@@ -98,6 +98,13 @@
       "httpStatus": 200,
       "observedValue": null,
       "shape": { "eventstats": null }
+    },
+    {
+      "provider": "API Ninjas unauthenticated request",
+      "request": "https://api.api-ninjas.com/v1/basketballgames?league=nba&date=2026-11-16",
+      "httpStatus": 400,
+      "note": "No API key was supplied; no game data was returned.",
+      "shape": { "error": "Missing API Key." }
     }
   ]
 }
