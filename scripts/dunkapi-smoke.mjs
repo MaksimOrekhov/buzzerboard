@@ -3,12 +3,23 @@ const arguments_ = process.argv.slice(2).filter((argument) => argument !== '--')
 const execute = arguments_.includes('--execute')
 const verifyIdentifiersMode = arguments_.includes('--verify-identifiers')
 const creditCeiling = verifyIdentifiersMode ? 9 : 18
+const confirmationArgument = arguments_.find((argument) =>
+  argument.startsWith('--confirm-credit-spend='),
+)
+const confirmedCreditCeiling = confirmationArgument
+  ? Number(confirmationArgument.slice('--confirm-credit-spend='.length))
+  : null
 const unexpectedArgs = arguments_.filter(
-  (argument) => argument !== '--execute' && argument !== '--verify-identifiers',
+  (argument) =>
+    argument !== '--execute' &&
+    argument !== '--verify-identifiers' &&
+    argument !== confirmationArgument,
 )
 
 if (unexpectedArgs.length > 0) {
-  console.error('Usage: node scripts/dunkapi-smoke.mjs [--execute] [--verify-identifiers]')
+  console.error(
+    'Usage: node scripts/dunkapi-smoke.mjs [--verify-identifiers] [--execute --confirm-credit-spend=<18|9>]',
+  )
   process.exit(2)
 }
 
@@ -37,11 +48,26 @@ if (!execute) {
     console.log(
       `Maximum base cost: ${requests.reduce((total, request) => total + request.credits, 0)} credits.`,
     )
-    console.log('One get_game and one get_player_games request may add up to 10 credits.')
+    console.log('One get_game and one get_player_games request may add up to 10 more credits.')
+    console.log('Maximum total for this run: 18 credits.')
   }
-  console.log('Pass --execute to make the bounded requests using DUNKAPI_API_KEY.')
+  console.log('Each later execution spends credits again; this script does not track prior usage.')
+  console.log(
+    `Network calls require --execute --confirm-credit-spend=${creditCeiling} and DUNKAPI_API_KEY.`,
+  )
   process.exit(0)
 }
+
+if (confirmedCreditCeiling !== creditCeiling) {
+  console.error(
+    `No API request was sent. Confirm this run's ${creditCeiling}-credit ceiling with --confirm-credit-spend=${creditCeiling}.`,
+  )
+  process.exit(1)
+}
+
+console.log(
+  `Confirmed up to ${creditCeiling} credits for this run. Running again will spend credits again; prior usage is not tracked.`,
+)
 
 const apiKey = process.env.DUNKAPI_API_KEY
 
