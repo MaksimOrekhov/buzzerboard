@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "buzzerboard",
+  "main": "src/server/worker.ts",
+  "compatibility_date": "2026-11-16",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  "d1_databases": [
+    {
+      "binding": "NBA_DB",
+      "database_name": "buzzerboard-nba-cache",
+      "database_id": "00000000000000000000000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "triggers": {
+    "crons": ["30 10 * * *"],
+  },
+  "vars": {
+    "DUNKAPI_REFRESH_ENABLED": "false",
+    "DUNKAPI_MONTHLY_CREDIT_LIMIT": "500",
+    "DUNKAPI_APP_MONTHLY_CREDIT_BUDGET": "128",
+    "DUNKAPI_CREDITS_USED_BASELINE": "27",
+    "DUNKAPI_CREDIT_BASELINE_MONTH": "2026-11",
+    "NBA_GAMES_PROVIDER_ORDER": "dunkapi",
+    "NBA_STANDINGS_PROVIDER_ORDER": "dunkapi",
+  },
+}

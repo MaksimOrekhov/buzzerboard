@@ -9,6 +9,7 @@ build/
 coverage/
 .vite/
 .cache/
+.wrangler/
 
 # Local environment and secrets
 .env

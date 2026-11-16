@@ -111,13 +111,18 @@ export type NbaApiErrorCode =
   | 'timeout'
   | 'upstream_unavailable'
   | 'invalid_response'
+  | 'unauthorized'
+  | 'quota_exceeded'
+  | 'not_configured'
+  | 'refresh_in_progress'
+  | 'storage_unavailable'
   | 'unknown'
 
 export interface NbaApiError {
   code: NbaApiErrorCode
   message: string
   retryable: boolean
-  provider: NbaProviderId
+  provider: NbaProviderId | null
   upstreamStatus: number | null
 }
 
