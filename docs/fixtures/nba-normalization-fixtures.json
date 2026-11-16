@@ -1,0 +1,178 @@
+{
+  "note": "Synthetic test values only. Shapes are based on the observed DunkAPI/ESPN response structures and documented DunkAPI fields; no raw or credentialed provider payload is stored.",
+  "dunkapi": {
+    "gamesResponse": {
+      "data": {
+        "games": [
+          {
+            "game_id": "dunk-game-001",
+            "season": 2027,
+            "date": "2026-11-15",
+            "starts_at": "2026-11-16T00:30:00.000Z",
+            "status": "final",
+            "home": {
+              "team_id": "9",
+              "abbrev": "GS",
+              "name": "Golden State Warriors",
+              "score": 112
+            },
+            "away": { "team_id": "20", "abbrev": "NY", "name": "New York Knicks", "score": 108 },
+            "periods": 4,
+            "overtime_periods": 0,
+            "venue": "Synthetic Arena"
+          },
+          {
+            "game_id": "dunk-game-002",
+            "season": 2027,
+            "date": "2026-11-16",
+            "starts_at": "2026-11-17T00:00:00+00:00",
+            "status": "scheduled",
+            "home": { "team_id": "3", "abbrev": "BKN", "name": "Brooklyn Nets" },
+            "away": { "team_id": "6", "abbrev": "CHI", "name": "Chicago Bulls" }
+          }
+        ]
+      }
+    },
+    "standingsResponse": {
+      "season": 2027,
+      "standings": [
+        {
+          "team_id": "2",
+          "abbrev": "BOS",
+          "display_name": "Boston Celtics",
+          "conference": "Eastern",
+          "wins": 0,
+          "losses": 0,
+          "conf_wins": 0,
+          "conf_losses": 0,
+          "home_wins": 0,
+          "home_losses": 0,
+          "away_wins": 0,
+          "away_losses": 0,
+          "last10_wins": 0,
+          "points_for": 0,
+          "win_pct": 0
+        },
+        {
+          "team_id": "25",
+          "abbrev": "OKC",
+          "display_name": "Oklahoma City Thunder",
+          "conference": "Western",
+          "wins": 1,
+          "losses": 0,
+          "win_pct": 1
+        }
+      ],
+      "count": 2
+    }
+  },
+  "espn": {
+    "scoreboardResponse": {
+      "events": [
+        {
+          "id": "espn-game-live",
+          "date": "2026-11-16T00:30:00.000Z",
+          "season": { "year": 2027, "type": 2, "slug": "regular-season" },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "score": "54",
+                  "team": {
+                    "id": "9",
+                    "abbreviation": "GSW",
+                    "displayName": "Golden State Warriors"
+                  },
+                  "linescores": [
+                    { "period": 1, "value": 24 },
+                    { "period": 2, "value": 30 }
+                  ]
+                },
+                {
+                  "homeAway": "away",
+                  "score": "51",
+                  "team": { "id": "20", "abbreviation": "NYK", "displayName": "New York Knicks" },
+                  "linescores": [
+                    { "period": 1, "value": 26 },
+                    { "period": 2, "value": 25 }
+                  ]
+                }
+              ],
+              "venue": { "fullName": "Synthetic Arena" }
+            }
+          ],
+          "status": {
+            "type": { "name": "STATUS_IN_PROGRESS", "state": "in", "description": "Halftime" }
+          }
+        },
+        {
+          "id": "espn-game-postponed",
+          "date": "2026-11-17T01:00:00.000Z",
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": { "id": "3", "abbreviation": "BKN", "displayName": "Brooklyn Nets" }
+                },
+                {
+                  "homeAway": "away",
+                  "team": { "id": "6", "abbreviation": "CHI", "displayName": "Chicago Bulls" }
+                }
+              ]
+            }
+          ],
+          "status": {
+            "type": { "name": "STATUS_POSTPONED", "state": "pre", "description": "Postponed" }
+          }
+        },
+        {
+          "id": "espn-game-final",
+          "date": "2026-11-18T01:00:00.000Z",
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "score": "101",
+                  "team": { "id": "2", "abbreviation": "BOS", "displayName": "Boston Celtics" }
+                },
+                {
+                  "homeAway": "away",
+                  "score": "99",
+                  "team": {
+                    "id": "25",
+                    "abbreviation": "OKC",
+                    "displayName": "Oklahoma City Thunder"
+                  }
+                }
+              ]
+            }
+          ],
+          "status": { "type": { "name": "STATUS_FINAL", "state": "post", "description": "Final" } }
+        }
+      ]
+    },
+    "standingsResponse": {
+      "season": { "year": 2027 },
+      "children": [
+        {
+          "name": "Eastern Conference",
+          "standings": {
+            "entries": [
+              {
+                "team": { "id": "2", "abbreviation": "BOS", "displayName": "Boston Celtics" },
+                "stats": [
+                  { "name": "wins", "value": 0 },
+                  { "name": "losses", "value": 0 },
+                  { "name": "winPercent", "value": 0 }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
