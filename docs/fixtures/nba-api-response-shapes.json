@@ -1,0 +1,103 @@
+{
+  "capturedOn": "2026-11-16",
+  "note": "Shape-only examples from live unauthenticated checks. IDs, names, scores, and other values are redacted; these are not complete provider fixtures.",
+  "samples": [
+    {
+      "provider": "ESPN scoreboard",
+      "request": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20261116",
+      "httpStatus": 200,
+      "observedEventCount": 8,
+      "shape": {
+        "leagues": [{ "id": "<redacted>", "name": "<redacted>" }],
+        "events": [
+          {
+            "id": "<redacted>",
+            "date": "<redacted>",
+            "competitions": [
+              {
+                "competitors": [
+                  {
+                    "homeAway": "<redacted>",
+                    "team": { "abbreviation": "<redacted>" },
+                    "score": "<redacted>"
+                  }
+                ],
+                "status": {
+                  "period": "<redacted>",
+                  "type": { "name": "<redacted>" }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "provider": "ESPN standings",
+      "request": "https://site.api.espn.com/apis/v2/sports/basketball/nba/standings?season=2026",
+      "httpStatus": 200,
+      "observedGroups": [
+        { "name": "<redacted>", "teamCount": 15 },
+        { "name": "<redacted>", "teamCount": 15 }
+      ],
+      "shape": {
+        "season": { "year": "<redacted>" },
+        "children": [
+          {
+            "name": "<redacted>",
+            "standings": {
+              "entries": [
+                {
+                  "team": { "displayName": "<redacted>" },
+                  "stats": ["<redacted>"]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "provider": "ESPN event summary",
+      "request": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event={eventId}",
+      "httpStatus": 200,
+      "observedBoxscoreTeams": 2,
+      "shape": {
+        "boxscore": {
+          "teams": [
+            {
+              "team": { "displayName": "<redacted>" },
+              "statistics": ["<redacted>"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "TheSportsDB schedule day",
+      "request": "https://www.thesportsdb.com/api/v1/json/123/eventsday.php?d=2026-11-16&l=4387",
+      "httpStatus": 200,
+      "observedEventCount": 3,
+      "shape": {
+        "events": [
+          {
+            "idEvent": "<redacted>",
+            "dateEvent": "<redacted>",
+            "strStatus": "<redacted>",
+            "strHomeTeam": "<redacted>",
+            "strAwayTeam": "<redacted>",
+            "intHomeScore": "<redacted>",
+            "intAwayScore": "<redacted>"
+          }
+        ]
+      }
+    },
+    {
+      "provider": "TheSportsDB event stats",
+      "request": "https://www.thesportsdb.com/api/v1/json/123/lookupeventstats.php?id={eventId}",
+      "httpStatus": 200,
+      "observedValue": null,
+      "shape": { "eventstats": null }
+    }
+  ]
+}
