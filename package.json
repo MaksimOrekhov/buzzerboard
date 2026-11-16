@@ -13,10 +13,11 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "dunkapi:smoke": "node scripts/dunkapi-smoke.mjs",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "vue-tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,vue,css}\" index.html package.json tsconfig.json vite.config.ts uno.config.ts eslint.config.js .github/workflows/ci.yml README.md .prettierrc.json pnpm-lock.yaml",
-    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\" index.html package.json tsconfig.json vite.config.ts uno.config.ts eslint.config.js .github/workflows/ci.yml README.md .prettierrc.json pnpm-lock.yaml"
+    "format": "prettier --write \"src/**/*.{ts,vue,css}\" \"scripts/**/*.mjs\" docs/dunkapi-spike.md docs/fixtures/dunkapi-timezone-cases.json index.html package.json tsconfig.json vite.config.ts uno.config.ts eslint.config.js .github/workflows/ci.yml README.md .prettierrc.json pnpm-lock.yaml",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\" \"scripts/**/*.mjs\" docs/dunkapi-spike.md docs/fixtures/dunkapi-timezone-cases.json index.html package.json tsconfig.json vite.config.ts uno.config.ts eslint.config.js .github/workflows/ci.yml README.md .prettierrc.json pnpm-lock.yaml"
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.0.0",
