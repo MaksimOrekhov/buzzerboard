@@ -120,12 +120,16 @@ function createGameRecord(
   }
 }
 
-function createScheduleRecord(from: string, through: string): NbaCacheRecord {
+function createScheduleRecord(
+  from: string,
+  through: string,
+  data: readonly Game[] = [],
+): NbaCacheRecord {
   return {
     cacheKey: scheduleCacheKey('dunkapi'),
     capability: 'schedule',
     provider: 'dunkapi',
-    data: [] as readonly Game[],
+    data,
     coverage: {
       from: from as NbaGameDate,
       through: through as NbaGameDate,
@@ -230,7 +234,44 @@ describe('NBA Worker cache API', () => {
     expect(fetcher).not.toHaveBeenCalled()
   })
 
-  it('returns an empty day only when the schedule cache explicitly covers that date', async () => {
+  it('returns an empty day only when the exact-date snapshot confirms no games', async () => {
+    const repository = new MemoryNbaRepository()
+    const exactDate = createGameRecord('2026-11-18')
+    repository.cache.set(gamesCacheKey('dunkapi', '2026-11-18'), { ...exactDate, data: [] })
+    const fetcher = vi.fn<typeof fetch>()
+    const worker = createWorker(repository, fetcher)
+    const response = await worker.fetch(
+      new Request('https://buzzerboard.test/api/games?date=2026-11-18'),
+      env,
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ data: [], meta: { source: 'dunkapi' } })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('serves matching schedule games within the recorded request window', async () => {
+    const repository = new MemoryNbaRepository()
+    const cachedGame = createGameRecord('2026-11-18').data[0] as Game
+    repository.cache.set(
+      scheduleCacheKey('dunkapi'),
+      createScheduleRecord('2026-11-16', '2026-11-22', [
+        { ...cachedGame, nbaGameDate: '2026-11-18' as NbaGameDate },
+      ]),
+    )
+    const fetcher = vi.fn<typeof fetch>()
+    const worker = createWorker(repository, fetcher)
+    const response = await worker.fetch(
+      new Request('https://buzzerboard.test/api/games?date=2026-11-18'),
+      env,
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ data: [{ nbaGameDate: '2026-11-18' }] })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('does not treat missing schedule rows inside its request window as a confirmed empty day', async () => {
     const repository = new MemoryNbaRepository()
     repository.cache.set(
       scheduleCacheKey('dunkapi'),
@@ -243,8 +284,10 @@ describe('NBA Worker cache API', () => {
       env,
     )
 
-    expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({ data: [], meta: { source: 'dunkapi' } })
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({
+      error: { code: 'cache_miss', provider: 'dunkapi' },
+    })
     expect(fetcher).not.toHaveBeenCalled()
   })
 

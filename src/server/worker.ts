@@ -161,7 +161,7 @@ async function getGames(
   const scheduledGames = scheduleSnapshot
     ? scheduleSnapshot.data.filter((game) => game.nbaGameDate === date)
     : []
-  if (!exactGames && !scheduleSnapshot) {
+  if (!exactGames && scheduledGames.length === 0) {
     const error = createError('cache_miss', provider, true)
     return errorResponse(error, requestId, 503)
   }
