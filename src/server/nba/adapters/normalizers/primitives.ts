@@ -134,17 +134,35 @@ export function normalizeConference(value: unknown): Conference | null {
 }
 
 export function normalizeGameStatus(...values: unknown[]): GameStatus {
-  const text = values
+  const statuses = values
     .map(readString)
     .filter((value): value is string => value !== null)
-    .join(' ')
-  const value = text.toLowerCase().replaceAll(/[^a-z]+/g, '_')
-  if (value.includes('postpon')) return 'postponed'
-  if (value.includes('cancel')) return 'canceled'
-  if (value.includes('suspend')) return 'suspended'
-  if (value.includes('live') || value.includes('in_progress') || value === 'in') return 'live'
-  if (value.includes('final') || value.includes('complete') || value === 'post') return 'final'
-  if (value.includes('scheduled') || value.includes('pre') || value.includes('upcoming')) {
+    .map((value) => value.toLowerCase().replaceAll(/[^a-z]+/g, '_'))
+
+  // Preserve the separate ESPN type name, state, and description. In particular,
+  // `state: "in"` is meaningful even when the type name is `STATUS_HALFTIME`.
+  if (statuses.some((value) => value.includes('cancel'))) return 'canceled'
+  if (statuses.some((value) => value.includes('postpon'))) return 'postponed'
+  if (statuses.some((value) => value.includes('suspend'))) return 'suspended'
+  if (
+    statuses.some(
+      (value) => value === 'in' || value.includes('live') || value.includes('in_progress'),
+    )
+  ) {
+    return 'live'
+  }
+  if (
+    statuses.some(
+      (value) => value.includes('final') || value.includes('complete') || value === 'post',
+    )
+  ) {
+    return 'final'
+  }
+  if (
+    statuses.some(
+      (value) => value.includes('scheduled') || value === 'pre' || value.includes('upcoming'),
+    )
+  ) {
     return 'scheduled'
   }
   return 'unknown'

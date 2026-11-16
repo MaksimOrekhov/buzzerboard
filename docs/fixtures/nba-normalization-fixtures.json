@@ -72,6 +72,7 @@
         {
           "id": "espn-game-live",
           "date": "2026-11-16T00:30:00.000Z",
+          "season": { "year": 2027, "type": 2, "slug": "regular-season" },
           "competitions": [
             {
               "competitors": [

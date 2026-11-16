@@ -3,6 +3,7 @@ import type {
   NbaProviderId,
   NbaSnapshot,
   ScoreByPeriod,
+  SeasonEndYear,
   StandingsRow,
   Team,
 } from '@/entities/nba/model'
@@ -30,6 +31,12 @@ const provider: NbaProviderId = 'espn'
 function teamFromEspn(value: unknown): Team | null {
   if (!isRecord(value)) return null
   return createTeam(provider, value.id, value.abbreviation, value.displayName)
+}
+
+function espnSeasonEndYear(value: unknown): SeasonEndYear | null {
+  // ESPN's NBA season year is the ending year: 2027 denotes the 2026–27 season.
+  const year = isRecord(value) ? value.year : value
+  return parseSeasonEndYear(year)
 }
 
 function scoreValue(value: unknown): number | null {
@@ -92,7 +99,7 @@ function normalizeEspnGame(value: unknown): Game | null {
     id: createGameId(provider, providerId),
     provider,
     providerId,
-    seasonEndYear: parseSeasonEndYear(value.season),
+    seasonEndYear: espnSeasonEndYear(value.season),
     nbaGameDate,
     startsAt,
     status: normalizeGameStatus(statusType.name, statusType.state, statusType.description),
@@ -118,7 +125,7 @@ function normalizeEspnStandingsRow(
   const conference = normalizeConference(conferenceValue)
   return {
     team,
-    seasonEndYear: parseSeasonEndYear(seasonValue),
+    seasonEndYear: espnSeasonEndYear(seasonValue),
     conference,
     record: {
       wins: statValue(stats, 'wins'),
@@ -130,9 +137,9 @@ function normalizeEspnStandingsRow(
       awayWins: statValue(stats, 'awayWins', 'roadWins'),
       awayLosses: statValue(stats, 'awayLosses', 'roadLosses'),
       lastTenWins: statValue(stats, 'lastTenWins', 'last10Wins'),
-      pointsFor: statValue(stats, 'pointsFor', 'avgPointsFor'),
-      pointsAgainst: statValue(stats, 'pointsAgainst', 'avgPointsAgainst'),
-      averageMargin: statValue(stats, 'averageMargin', 'pointDifferential', 'differential'),
+      pointsFor: statValue(stats, 'pointsFor'),
+      pointsAgainst: statValue(stats, 'pointsAgainst'),
+      averageMargin: statValue(stats, 'averageMargin'),
     },
     winPercentage: statValue(stats, 'winPercent', 'winPercentage'),
     officialRank: null,
@@ -170,7 +177,7 @@ function normalizeStandings(
   const root = requireRoot(payload)
   if (!Array.isArray(root.children)) throw new NbaAdapterError(invalidResponseError(provider))
 
-  const season = isRecord(root.season) ? root.season.year : root.season
+  const season = root.season
   let providerOrder = 0
   let rejectedRecords = 0
   const data: StandingsRow[] = []

@@ -124,6 +124,7 @@ describe('ESPN adapter candidate', () => {
     const [live, postponed, final] = snapshot.data
 
     expect(live).toMatchObject({
+      seasonEndYear: 2027,
       nbaGameDate: '2026-11-15',
       startsAt: '2026-11-16T00:30:00.000Z',
       status: 'live',
@@ -144,6 +145,33 @@ describe('ESPN adapter candidate', () => {
     })
     expect(snapshot.meta.rejectedRecords).toBe(0)
   })
+
+  it.each([
+    ['STATUS_HALFTIME', 'in', 'Halftime'],
+    ['STATUS_END_PERIOD', 'in', 'End of Period'],
+  ])('keeps ESPN %s games live when its separate state is %s', (name, state, description) => {
+    const source = fixtures.espn.scoreboardResponse.events[0]
+    const snapshot = normalizeGames(espnAdapter, {
+      events: [{ ...source, status: { type: { name, state, description } } }],
+    })
+
+    expect(snapshot.data[0]?.status).toBe('live')
+  })
+
+  it.each([
+    ['STATUS_POSTPONED', 'pre', 'Scheduled', 'postponed'],
+    ['STATUS_CANCELED', 'pre', 'Scheduled', 'canceled'],
+  ] as const)(
+    'prioritizes ESPN %s over the generic %s state and description',
+    (name, state, description, expected) => {
+      const source = fixtures.espn.scoreboardResponse.events[0]
+      const snapshot = normalizeGames(espnAdapter, {
+        events: [{ ...source, status: { type: { name, state, description } } }],
+      })
+
+      expect(snapshot.data[0]?.status).toBe(expected)
+    },
+  )
 
   it('normalizes team ids across providers while namespacing provider game ids', () => {
     const dunk = normalizeGames(dunkApiAdapter, fixtures.dunkapi.gamesResponse)
@@ -169,6 +197,39 @@ describe('ESPN adapter candidate', () => {
       officialRank: null,
       playoffSeed: null,
       providerOrder: 1,
+    })
+  })
+
+  it('does not normalize average points or an unverified differential as season totals', () => {
+    const snapshot = normalizeStandings(espnAdapter, {
+      season: { year: 2027, type: 2, slug: 'regular-season' },
+      children: [
+        {
+          name: 'Eastern Conference',
+          standings: {
+            entries: [
+              {
+                team: { id: '2', abbreviation: 'BOS', displayName: 'Boston Celtics' },
+                stats: [
+                  { name: 'avgPointsFor', value: 115 },
+                  { name: 'avgPointsAgainst', value: 110 },
+                  { name: 'pointDifferential', value: 5 },
+                  { name: 'averageMargin', value: 4.5 },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    })
+
+    expect(snapshot.data[0]).toMatchObject({
+      seasonEndYear: 2027,
+      record: {
+        pointsFor: null,
+        pointsAgainst: null,
+        averageMargin: 4.5,
+      },
     })
   })
 })
