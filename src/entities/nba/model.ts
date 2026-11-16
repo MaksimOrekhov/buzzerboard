@@ -107,17 +107,23 @@ export type NbaApiErrorCode =
   | 'forbidden'
   | 'rate_limited'
   | 'not_found'
+  | 'cache_miss'
   | 'invalid_request'
   | 'timeout'
   | 'upstream_unavailable'
   | 'invalid_response'
+  | 'unauthorized'
+  | 'quota_exceeded'
+  | 'not_configured'
+  | 'refresh_in_progress'
+  | 'storage_unavailable'
   | 'unknown'
 
 export interface NbaApiError {
   code: NbaApiErrorCode
   message: string
   retryable: boolean
-  provider: NbaProviderId
+  provider: NbaProviderId | null
   upstreamStatus: number | null
 }
 

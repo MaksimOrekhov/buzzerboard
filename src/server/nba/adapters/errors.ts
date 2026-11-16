@@ -5,11 +5,26 @@ const messages: Readonly<Record<NbaApiErrorCode, string>> = {
   forbidden: 'Поставщик данных запретил доступ.',
   rate_limited: 'Превышен лимит запросов к поставщику данных.',
   not_found: 'Запрошенные данные NBA не найдены.',
+  cache_miss: 'Данные NBA для запрошенного периода ещё не сохранены.',
   invalid_request: 'Запрос данных NBA имеет неверный формат.',
   timeout: 'Поставщик данных NBA не ответил вовремя.',
   upstream_unavailable: 'Поставщик данных NBA временно недоступен.',
   invalid_response: 'Поставщик данных NBA вернул ответ неверного формата.',
+  unauthorized: 'Необходима авторизация для обновления данных NBA.',
+  quota_exceeded: 'Лимит бюджета NBA API исчерпан.',
+  not_configured: 'Источник данных NBA ещё не настроен.',
+  refresh_in_progress: 'Обновление данных NBA уже выполняется.',
+  storage_unavailable: 'Общее хранилище данных NBA временно недоступно.',
   unknown: 'Не удалось получить данные NBA.',
+}
+
+export function createNbaApiError(
+  code: NbaApiErrorCode,
+  provider: NbaProviderId | null,
+  retryable = false,
+  upstreamStatus: number | null = null,
+): NbaApiError {
+  return { code, message: messages[code], retryable, provider, upstreamStatus }
 }
 
 export function mapHttpStatusToNbaError(provider: NbaProviderId, status: number): NbaApiError {
