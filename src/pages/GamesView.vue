@@ -4,11 +4,11 @@ import FeaturePage from '@/shared/components/FeaturePage.vue'
 
 <template>
   <FeaturePage
-    eyebrow="The schedule"
-    title="Games"
-    description="A clean view of what's on, what's finished, and what deserves a closer look."
+    eyebrow="Расписание"
+    title="Матчи"
+    description="Что будет дальше, чем завершились прошедшие игры и за чем стоит следить."
     icon="calendar"
-    empty-title="The next tip-off starts with trusted data."
-    empty-description="Game schedules and final scores will appear here when an NBA data source is connected."
+    empty-title="Расписание матчей появится здесь."
+    empty-description="Подключите источник данных NBA, чтобы увидеть предстоящие игры и результаты."
   />
 </template>

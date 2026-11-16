@@ -4,11 +4,11 @@ import FeaturePage from '@/shared/components/FeaturePage.vue'
 
 <template>
   <FeaturePage
-    eyebrow="The race"
-    title="Standings"
-    description="Follow the shape of the season across the Eastern and Western conferences."
+    eyebrow="Гонка за плей-офф"
+    title="Турнирная таблица"
+    description="Следите за борьбой команд Восточной и Западной конференций."
     icon="trophy"
-    empty-title="Conference tables will take shape here."
-    empty-description="Conference records and team rankings will appear when a trusted NBA data source is connected."
+    empty-title="Таблица конференций появится здесь."
+    empty-description="Позиции и результаты команд станут доступны после подключения источника данных NBA."
   />
 </template>

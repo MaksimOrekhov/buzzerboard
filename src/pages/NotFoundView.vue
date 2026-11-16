@@ -9,19 +9,19 @@ import PageHeading from '@/shared/components/PageHeading.vue'
 <template>
   <div class="not-found-view">
     <PageHeading
-      eyebrow="Out of bounds"
-      title="That page isn't in play."
-      description="The address may have changed, or the page may not exist yet."
+      eyebrow="Мимо кольца"
+      title="Такой страницы нет."
+      description="Возможно, адрес изменился или страницу ещё не создали."
     />
     <EmptyState
       icon="basketball"
-      eyebrow="Back to the court"
-      title="Find your way back to the hub."
-      description="Head home to find the BuzzerBoard sections that are ready to explore."
+      eyebrow="Вернуться в игру"
+      title="Начните с главной."
+      description="Откройте главную страницу и выберите нужный раздел BuzzerBoard."
     />
     <RouterLink class="home-link focus-ring" to="/">
       <AppIcon name="arrow-up-right" :size="17" />
-      Back to home
+      На главную
     </RouterLink>
   </div>
 </template>

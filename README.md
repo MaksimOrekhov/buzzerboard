@@ -18,24 +18,24 @@ pnpm run dev
 
 ## Команды
 
-| Команда                 | Назначение                          |
-| ----------------------- | ----------------------------------- |
-| `pnpm run dev`          | Vite dev server                     |
-| `pnpm run build`        | Production build                    |
-| `pnpm run preview`      | Локальный preview production build  |
-| `pnpm test`             | Однократный запуск Vitest           |
-| `pnpm run test:watch`   | Vitest в watch-режиме               |
-| `pnpm run lint`         | ESLint                              |
-| `pnpm run typecheck`    | Проверка TypeScript и Vue SFC типов |
-| `pnpm run format`       | Форматирование Prettier             |
-| `pnpm run format:check` | Проверка форматирования             |
+| Команда                 | Назначение                       |
+| ----------------------- | -------------------------------- |
+| `pnpm run dev`          | Локальный сервер разработки Vite |
+| `pnpm run build`        | Сборка приложения                |
+| `pnpm run preview`      | Предпросмотр production-сборки   |
+| `pnpm test`             | Однократный запуск Vitest        |
+| `pnpm run test:watch`   | Vitest в режиме наблюдения       |
+| `pnpm run lint`         | Проверка ESLint                  |
+| `pnpm run typecheck`    | Проверка типов TypeScript и Vue  |
+| `pnpm run format`       | Форматирование Prettier          |
+| `pnpm run format:check` | Проверка форматирования          |
 
 ## Структура
 
-- `src/app` — точка входа, app shell, маршруты и TanStack Vue Query client.
-- `src/pages` — route views для Home, Games, Standings, News и Favorites.
-- `src/shared/components` — небольшие общие UI-компоненты.
+- `src/app` — точка входа, оболочка, маршруты и клиент TanStack Vue Query.
+- `src/pages` — страницы «Главная», «Матчи», «Турнирная таблица», «Новости» и «Избранное».
+- `src/shared/components` — небольшие общие компоненты интерфейса.
 - `src/assets` — глобальные токены и базовые стили.
 - `.github/workflows/ci.yml` — проверки pull request и push в `main`.
 
-Состояние запросов будет принадлежать TanStack Vue Query. Pinia не добавлена: сейчас нет подтверждённого глобального клиентского состояния. Секреты и локальные настройки размещайте в `.env.local` (игнорируется git); любые переменные с префиксом `VITE_` попадут в клиентскую сборку и не должны содержать секреты.
+Состоянием запросов управляет TanStack Vue Query. Pinia не добавлена: общего клиентского состояния пока нет. Локальные настройки храните в `.env.local` (файл игнорируется git). Переменные с префиксом `VITE_` попадают в клиентскую сборку и не должны содержать секреты.

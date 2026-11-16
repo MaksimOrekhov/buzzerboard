@@ -15,6 +15,7 @@ describe('EmptyState', () => {
 
     expect(wrapper.get('h2').text()).toBe('No games are available yet')
     expect(wrapper.text()).toContain('Connect a trusted source to show the schedule.')
+    expect(wrapper.text()).toContain('Скоро здесь')
     expect(wrapper.find('svg[aria-hidden="true"]').exists()).toBe(true)
   })
 })

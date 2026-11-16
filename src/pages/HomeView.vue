@@ -15,29 +15,29 @@ interface HubSection {
 
 const sections: HubSection[] = [
   {
-    title: 'Games',
-    description: 'Schedules and final scores, when a verified feed is connected.',
+    title: 'Матчи',
+    description: 'Расписание и результаты после подключения проверенного источника данных.',
     to: '/games',
     icon: 'calendar',
     index: '01',
   },
   {
-    title: 'Standings',
-    description: 'A clear view of the race across both conferences.',
+    title: 'Таблица',
+    description: 'Борьба команд Восточной и Западной конференций.',
     to: '/standings',
     icon: 'trophy',
     index: '02',
   },
   {
-    title: 'News',
-    description: 'A dedicated place for the stories shaping the league.',
+    title: 'Новости',
+    description: 'Главные истории и события вокруг NBA.',
     to: '/news',
     icon: 'news',
     index: '03',
   },
   {
-    title: 'Favorites',
-    description: 'Keep your teams and matchups close at hand.',
+    title: 'Избранное',
+    description: 'Любимые команды и матчи всегда под рукой.',
     to: '/favorites',
     icon: 'bookmark',
     index: '04',
@@ -48,24 +48,24 @@ const sections: HubSection[] = [
 <template>
   <div class="home-view">
     <PageHeading
-      eyebrow="Your NBA workspace"
-      title="A better view of the game."
-      description="The league, your way: games, standings, stories, and the teams you care about — gathered in one focused home."
+      eyebrow="Ваш NBA-хаб"
+      title="Игра — в центре внимания."
+      description="Матчи, турнирная таблица, новости и любимые команды — в одном месте."
     />
 
     <section class="welcome-panel" aria-labelledby="welcome-title">
       <div class="welcome-copy">
         <div class="welcome-kicker">
           <span class="welcome-kicker-line" />
-          <span class="eyebrow">Built around the game</span>
+          <span class="eyebrow">В центре игры</span>
         </div>
-        <h2 id="welcome-title">Your seat for<br /><span>the whole season.</span></h2>
+        <h2 id="welcome-title">Весь сезон<br /><span>на одной площадке.</span></h2>
         <p>
-          Start with the view you need. Schedules, standings, and stories will arrive once their
-          data sources are connected.
+          Выберите, с чего начать. Расписание, таблица и новости появятся после подключения
+          источников данных.
         </p>
         <RouterLink class="welcome-link focus-ring" to="/games">
-          Explore the hub
+          Открыть матчи
           <AppIcon name="arrow-up-right" :size="17" />
         </RouterLink>
       </div>
@@ -82,17 +82,17 @@ const sections: HubSection[] = [
           </svg>
         </div>
         <div class="visual-label visual-label--top">01 / 05</div>
-        <div class="visual-label visual-label--bottom">THE GAME, IN FOCUS</div>
+        <div class="visual-label visual-label--bottom">NBA В ФОКУСЕ</div>
       </div>
     </section>
 
     <section class="hub-section" aria-labelledby="hub-section-title">
       <div class="hub-section-heading">
         <div>
-          <p class="eyebrow">Make it yours</p>
-          <h2 id="hub-section-title">Choose your starting five.</h2>
+          <p class="eyebrow">Для вашего обзора</p>
+          <h2 id="hub-section-title">Выберите раздел.</h2>
         </div>
-        <p>Every section is ready for a real data source.</p>
+        <p>Главное о лиге — в одном месте.</p>
       </div>
 
       <div class="hub-grid">
@@ -119,7 +119,9 @@ const sections: HubSection[] = [
 
     <div class="home-note">
       <span class="home-note-icon"><AppIcon name="sparkles" :size="16" /></span>
-      <p><strong>Built around the game.</strong> Live data will arrive when its source is ready.</p>
+      <p>
+        <strong>Всё главное об NBA.</strong> Актуальные данные появятся после подключения источника.
+      </p>
     </div>
   </div>
 </template>

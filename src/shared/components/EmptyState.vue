@@ -10,7 +10,7 @@ withDefaults(
     eyebrow?: string
   }>(),
   {
-    eyebrow: 'Ready when you are',
+    eyebrow: 'Скоро здесь',
   },
 )
 </script>

@@ -4,11 +4,11 @@ import FeaturePage from '@/shared/components/FeaturePage.vue'
 
 <template>
   <FeaturePage
-    eyebrow="Your shortlist"
-    title="Favorites"
-    description="A personal shelf for the teams, players, and matchups you want to keep close."
+    eyebrow="Ваш выбор"
+    title="Избранное"
+    description="Любимые команды, игроки и матчи — в одном списке."
     icon="bookmark"
-    empty-title="Nothing saved yet."
-    empty-description="This route is ready for a favorites feature. Saving teams and games will be added with the first real NBA data flow."
+    empty-title="Пока здесь пусто."
+    empty-description="Добавление команд и матчей в избранное появится вместе с первыми данными NBA."
   />
 </template>

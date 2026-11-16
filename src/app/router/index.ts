@@ -11,5 +11,5 @@ export const router = createRouter({
 })
 
 router.afterEach((to) => {
-  document.title = `${String(to.meta.title ?? 'NBA Hub')} — BuzzerBoard`
+  document.title = `${String(to.meta.title ?? 'NBA-хаб')} — BuzzerBoard`
 })

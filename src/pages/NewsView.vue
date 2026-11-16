@@ -4,11 +4,11 @@ import FeaturePage from '@/shared/components/FeaturePage.vue'
 
 <template>
   <FeaturePage
-    eyebrow="Around the league"
-    title="News"
-    description="A quieter place to catch up on the people, teams, and moments shaping the NBA."
+    eyebrow="Вокруг лиги"
+    title="Новости"
+    description="Истории о командах, игроках и событиях, которые меняют NBA."
     icon="news"
-    empty-title="Your league briefing starts here."
-    empty-description="Stories will appear here when BuzzerBoard is connected to a trusted news source."
+    empty-title="Лента новостей появится здесь."
+    empty-description="Здесь появятся публикации после подключения проверенного источника новостей."
   />
 </template>

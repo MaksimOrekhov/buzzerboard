@@ -1,28 +1,49 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { nextTick, ref, watch } from 'vue'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 
 import { navigationItems } from './navigation'
 import AppIcon from '@/shared/components/AppIcon.vue'
+
+const route = useRoute()
+const primaryNavigation = ref<HTMLElement | null>(null)
+
+watch(
+  () => route.path,
+  async () => {
+    await nextTick()
+
+    const navigation = primaryNavigation.value
+    const activeLink = navigation?.querySelector<HTMLElement>('.nav-link--exact-active')
+
+    if (!navigation || !activeLink || !window.matchMedia('(max-width: 760px)').matches) return
+
+    const centeredLeft =
+      activeLink.offsetLeft - (navigation.clientWidth - activeLink.offsetWidth) / 2
+    navigation.scrollTo({ left: centeredLeft, behavior: 'smooth' })
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
-  <a class="skip-link focus-ring" href="#main-content">Skip to content</a>
+  <a class="skip-link focus-ring" href="#main-content">Перейти к содержимому</a>
 
   <div class="app-shell">
-    <aside class="sidebar" aria-label="BuzzerBoard navigation">
-      <RouterLink class="brand" to="/" aria-label="BuzzerBoard home">
+    <aside class="sidebar" aria-label="Навигация BuzzerBoard">
+      <RouterLink class="brand" to="/" aria-label="На главную BuzzerBoard">
         <span class="brand-mark"><AppIcon name="basketball" :size="22" /></span>
         <span class="brand-copy">
-          <span class="brand-name">BUZZERBOARD</span>
-          <span class="brand-caption">THE NBA, IN FOCUS</span>
+          <span class="brand-name">BuzzerBoard</span>
+          <span class="brand-caption">NBA В ФОКУСЕ</span>
         </span>
       </RouterLink>
 
-      <div class="sidebar-label eyebrow">Your hub</div>
-      <nav class="primary-nav" aria-label="Primary navigation">
+      <div class="sidebar-label eyebrow">Разделы</div>
+      <nav ref="primaryNavigation" class="primary-nav" aria-label="Основная навигация">
         <RouterLink
           v-for="item in navigationItems"
-          :key="item.to"
+          :key="item.id"
           class="nav-link focus-ring"
           :to="item.to"
           active-class="nav-link--active"
@@ -30,7 +51,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
         >
           <AppIcon :name="item.icon" :size="18" />
           <span>{{ item.label }}</span>
-          <span v-if="item.label === 'Home'" class="nav-link-mark" aria-hidden="true" />
+          <span v-if="item.id === 'home'" class="nav-link-mark" aria-hidden="true" />
         </RouterLink>
       </nav>
 
@@ -38,22 +59,24 @@ import AppIcon from '@/shared/components/AppIcon.vue'
         <div class="data-status">
           <span class="status-dot" aria-hidden="true" />
           <div>
-            <p class="data-status-title">Data source</p>
-            <p class="data-status-copy">Not connected</p>
+            <p class="data-status-title">Источник данных</p>
+            <p class="data-status-copy">Не подключён</p>
           </div>
         </div>
-        <p class="sidebar-note">Scores and standings will appear when a data feed is connected.</p>
-        <span class="sidebar-version">BUZZERBOARD · EARLY ACCESS</span>
+        <p class="sidebar-note">
+          Результаты матчей и турнирная таблица появятся после подключения источника данных.
+        </p>
+        <span class="sidebar-version">BUZZERBOARD · РАННИЙ ДОСТУП</span>
       </div>
     </aside>
 
     <div class="app-main">
       <header class="mobile-header">
-        <RouterLink class="brand brand--compact" to="/" aria-label="BuzzerBoard home">
+        <RouterLink class="brand brand--compact" to="/" aria-label="На главную BuzzerBoard">
           <span class="brand-mark"><AppIcon name="basketball" :size="20" /></span>
-          <span class="brand-name">BUZZERBOARD</span>
+          <span class="brand-name">BuzzerBoard</span>
         </RouterLink>
-        <span class="mobile-status"><span class="status-dot" />No data feed</span>
+        <span class="mobile-status"><span class="status-dot" />Нет данных</span>
       </header>
 
       <main id="main-content" class="page-content" tabindex="-1">
@@ -65,8 +88,8 @@ import AppIcon from '@/shared/components/AppIcon.vue'
       </main>
 
       <footer class="app-footer">
-        <span>Built for the love of the game.</span>
-        <span>Scores will appear when a verified data source is connected.</span>
+        <span>Для тех, кто любит баскетбол.</span>
+        <span>Результаты игр появятся после подключения проверенного источника данных.</span>
       </footer>
     </div>
   </div>
