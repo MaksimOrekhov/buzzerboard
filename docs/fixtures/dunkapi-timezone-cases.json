@@ -1,0 +1,29 @@
+{
+  "note": "Synthetic timezone cases; these are not DunkAPI game records.",
+  "cases": [
+    {
+      "name": "US daylight saving starts before Cyprus",
+      "startsAt": "2026-03-08T23:30:00.000Z",
+      "nbaGameDate": "2026-03-08",
+      "nicosiaDate": "2026-03-09"
+    },
+    {
+      "name": "Cyprus daylight saving ends before US",
+      "startsAt": "2026-10-25T23:30:00.000Z",
+      "nbaGameDate": "2026-10-25",
+      "nicosiaDate": "2026-10-26"
+    },
+    {
+      "name": "US daylight saving has ended",
+      "startsAt": "2026-11-01T23:30:00.000Z",
+      "nbaGameDate": "2026-11-01",
+      "nicosiaDate": "2026-11-02"
+    },
+    {
+      "name": "Nicosia date differs from NBA game day after midnight UTC",
+      "startsAt": "2026-11-16T00:30:00.000Z",
+      "nbaGameDate": "2026-11-15",
+      "nicosiaDate": "2026-11-16"
+    }
+  ]
+}
