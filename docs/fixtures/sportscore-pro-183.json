@@ -1,0 +1,188 @@
+{
+  "source": "SportScore /api/widget/",
+  "capturedAt": "2026-11-16T13:02:40Z/2026-11-16T13:06:16Z",
+  "requestCount": 7,
+  "auth": "none",
+  "sanitized": true,
+  "headersObserved": {
+    "accessControlAllowOrigin": "*",
+    "apiKeyStatus": "none"
+  },
+  "requests": [
+    {
+      "path": "/api/widget/matches/",
+      "query": {
+        "sport": "basketball",
+        "limit": 5
+      },
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "cacheControl": "public, max-age=60",
+      "internalCache": "STALE",
+      "httpDate": "2026-11-16T13:02:40Z",
+      "updated": "2026-11-16T12:15:47.449036Z",
+      "body": {
+        "sport": "basketball",
+        "count": 5,
+        "nbaCount": 1,
+        "nonNbaCount": 4,
+        "nbaSample": {
+          "home": "[home team]",
+          "away": "[away team]",
+          "homeScore": "119",
+          "awayScore": "147",
+          "status": "finished",
+          "time": "2026-11-16T00:00:00Z",
+          "competition": "National Basketball Association"
+        }
+      }
+    },
+    {
+      "path": "/api/widget/matches/",
+      "query": {
+        "sport": "basketball",
+        "limit": 50
+      },
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bodyUpdated": "2026-11-16T13:05:37.562074Z",
+      "body": {
+        "count": 50,
+        "nbaCount": 5,
+        "nbaFinalCountForEasternDate2026_11_15": 3,
+        "nbaUpcomingCountForNextEasternDate": 2,
+        "paginationMetadataPresent": false,
+        "finalScoreSamples": [
+          {
+            "home": "[team 1]",
+            "away": "[team 2]",
+            "homeScore": "119",
+            "awayScore": "147",
+            "time": "2026-11-16T00:00:00Z"
+          },
+          {
+            "home": "[team 3]",
+            "away": "[team 4]",
+            "homeScore": "106",
+            "awayScore": "113",
+            "time": "2026-11-16T01:00:00Z"
+          },
+          {
+            "home": "[team 5]",
+            "away": "[team 6]",
+            "homeScore": "103",
+            "awayScore": "125",
+            "time": "2026-11-16T02:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/api/widget/standings/",
+      "query": {
+        "sport": "basketball",
+        "slugSource": "official SportScore embed example",
+        "slug": "national-basketball-association"
+      },
+      "httpStatus": 404,
+      "contentType": "application/json",
+      "body": {
+        "error": "No standings data"
+      }
+    },
+    {
+      "path": "/api/widget/match/",
+      "query": {
+        "sport": "basketball",
+        "slugSource": "returned by matches endpoint",
+        "slug": "[redacted]"
+      },
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "cacheControl": "public, max-age=30",
+      "internalCache": "STALE",
+      "httpDate": "2026-11-16T13:03:13Z",
+      "updated": "2026-11-16T12:59:23.701341Z",
+      "body": {
+        "homeScore": "119",
+        "awayScore": "147",
+        "status": "finished",
+        "time": "2026-11-16T00:00:00Z",
+        "liveMinute": null,
+        "incidentsCount": 0,
+        "statsCount": 0,
+        "lineups": null,
+        "trackerReferencePresent": true
+      }
+    },
+    {
+      "path": "/api/widget/tracker/",
+      "query": {
+        "sport": "basketball",
+        "idSource": "match endpoint",
+        "id": "[redacted]"
+      },
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "cacheControl": "public, max-age=300",
+      "body": {
+        "iframePresent": true,
+        "jsonFeedPresent": false
+      }
+    },
+    {
+      "path": "/api/widget/team/",
+      "query": {
+        "sport": "basketball",
+        "slugSource": "public SportScore team page",
+        "slug": "chicago-bulls",
+        "limit": 5
+      },
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "cacheControl": "public, max-age=60",
+      "internalCache": "MISS",
+      "httpDate": "2026-11-16T13:04:41Z",
+      "updated": "2026-11-16T13:04:41.171183Z",
+      "body": {
+        "returnedCount": 5,
+        "competition": "National Basketball Association",
+        "statuses": [
+          "upcoming",
+          "upcoming",
+          "upcoming",
+          "upcoming",
+          "upcoming"
+        ],
+        "firstReturnedTime": "2027-04-11T22:00:00Z",
+        "lastReturnedTime": "2027-04-04T20:00:00Z",
+        "orderByTime": "descending"
+      }
+    },
+    {
+      "path": "/api/widget/player/",
+      "query": {
+        "sport": "basketball",
+        "slugSource": "public SportScore player page",
+        "slug": "[redacted]"
+      },
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "cacheControl": "public, max-age=300",
+      "httpDate": "2026-11-16T13:06:16Z",
+      "body": {
+        "playerProfilePresent": true,
+        "stats": null
+      }
+    }
+  ],
+  "comparison": {
+    "priorDunkApiRecord": {
+      "nbaEasternDate": "2026-11-15",
+      "completedGameCount": 9,
+      "perGameRowsPersisted": false,
+      "newDunkApiCalls": 0
+    },
+    "note": "Exact score-level comparison is not possible from the retained PRO-163 artifact."
+  }
+}
