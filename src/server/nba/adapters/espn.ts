@@ -193,6 +193,8 @@ function normalizeStandings(
 
 export const espnAdapter: NbaProviderAdapter = {
   provider,
-  normalizeGames,
-  normalizeStandings,
+  capabilities: {
+    games: { normalize: normalizeGames },
+    standings: { normalize: normalizeStandings },
+  },
 }

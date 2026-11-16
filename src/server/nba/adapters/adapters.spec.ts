@@ -4,12 +4,35 @@ import { describe, expect, it } from 'vitest'
 import { mapHttpStatusToNbaError, NbaAdapterError } from './errors'
 import { dunkApiAdapter } from './dunkApi'
 import { espnAdapter } from './espn'
+import { nbaProviderAdapters } from './index'
+import { createGameId, createPlayer, createTeam, readIdentifier } from './normalizers/primitives'
+import { resolveProviderForCapability } from './adapter'
 
 const context = { fetchedAt: '2026-11-16T12:00:00.000Z', stale: false }
 
+function normalizeGames(
+  adapter: typeof dunkApiAdapter | typeof espnAdapter,
+  payload: unknown,
+  normalizationContext = context,
+) {
+  const capability = adapter.capabilities.games
+  if (!capability) throw new Error(`${adapter.provider} does not normalize games`)
+  return capability.normalize(payload, normalizationContext)
+}
+
+function normalizeStandings(
+  adapter: typeof dunkApiAdapter | typeof espnAdapter,
+  payload: unknown,
+  normalizationContext = context,
+) {
+  const capability = adapter.capabilities.standings
+  if (!capability) throw new Error(`${adapter.provider} does not normalize standings`)
+  return capability.normalize(payload, normalizationContext)
+}
+
 describe('DunkAPI adapter', () => {
   it('normalizes final and scheduled games without filling missing scores or period data', () => {
-    const snapshot = dunkApiAdapter.normalizeGames(fixtures.dunkapi.gamesResponse, context)
+    const snapshot = normalizeGames(dunkApiAdapter, fixtures.dunkapi.gamesResponse)
     const [final, scheduled] = snapshot.data
 
     expect(snapshot.meta).toMatchObject({
@@ -38,7 +61,7 @@ describe('DunkAPI adapter', () => {
   })
 
   it('keeps zero metrics and absent rank, seed, and metrics distinct', () => {
-    const snapshot = dunkApiAdapter.normalizeStandings(fixtures.dunkapi.standingsResponse, context)
+    const snapshot = normalizeStandings(dunkApiAdapter, fixtures.dunkapi.standingsResponse)
     const [celtics, thunder] = snapshot.data
 
     expect(celtics).toMatchObject({
@@ -63,18 +86,17 @@ describe('DunkAPI adapter', () => {
     const responseWithBadRow = {
       games: [{ game_id: 'missing-teams' }, fixtures.dunkapi.gamesResponse.data.games[0]],
     }
-    const snapshot = dunkApiAdapter.normalizeGames(responseWithBadRow, context)
+    const snapshot = normalizeGames(dunkApiAdapter, responseWithBadRow)
 
     expect(snapshot.data).toHaveLength(1)
     expect(snapshot.meta.rejectedRecords).toBe(1)
-    expect(() => dunkApiAdapter.normalizeGames({ games: 'not-an-array' }, context)).toThrow(
-      NbaAdapterError,
-    )
+    expect(() => normalizeGames(dunkApiAdapter, { games: 'not-an-array' })).toThrow(NbaAdapterError)
   })
 
   it('derives only a missing NBA date from a valid UTC instant and preserves missing timestamps', () => {
     const source = fixtures.dunkapi.gamesResponse.data.games[0]
-    const snapshot = dunkApiAdapter.normalizeGames(
+    const snapshot = normalizeGames(
+      dunkApiAdapter,
       {
         games: [
           { ...source, date: null, starts_at: '2026-11-16T00:30:00.000Z' },
@@ -98,7 +120,7 @@ describe('DunkAPI adapter', () => {
 
 describe('ESPN adapter candidate', () => {
   it('normalizes live, postponed, and final states and keeps explicit period scores', () => {
-    const snapshot = espnAdapter.normalizeGames(fixtures.espn.scoreboardResponse, context)
+    const snapshot = normalizeGames(espnAdapter, fixtures.espn.scoreboardResponse)
     const [live, postponed, final] = snapshot.data
 
     expect(live).toMatchObject({
@@ -124,8 +146,8 @@ describe('ESPN adapter candidate', () => {
   })
 
   it('normalizes team ids across providers while namespacing provider game ids', () => {
-    const dunk = dunkApiAdapter.normalizeGames(fixtures.dunkapi.gamesResponse, context)
-    const espn = espnAdapter.normalizeGames(fixtures.espn.scoreboardResponse, context)
+    const dunk = normalizeGames(dunkApiAdapter, fixtures.dunkapi.gamesResponse)
+    const espn = normalizeGames(espnAdapter, fixtures.espn.scoreboardResponse)
 
     expect(espn.data[0]?.homeTeam.id).toBe(dunk.data[0]?.homeTeam.id)
     expect(espn.data[0]?.awayTeam.id).toBe(dunk.data[0]?.awayTeam.id)
@@ -136,7 +158,7 @@ describe('ESPN adapter candidate', () => {
   })
 
   it('normalizes standings but does not synthesize rank or missing values', () => {
-    const snapshot = espnAdapter.normalizeStandings(fixtures.espn.standingsResponse, context)
+    const snapshot = normalizeStandings(espnAdapter, fixtures.espn.standingsResponse)
     const [row] = snapshot.data
 
     expect(row).toMatchObject({
@@ -148,6 +170,43 @@ describe('ESPN adapter candidate', () => {
       playoffSeed: null,
       providerOrder: 1,
     })
+  })
+})
+
+describe('capability-specific provider selection and identity safety', () => {
+  it('selects providers independently per capability and has no implicit fallback', () => {
+    const adapters = Object.values(nbaProviderAdapters)
+    const selected = {
+      games: ['espn', 'dunkapi'],
+      standings: ['dunkapi', 'espn'],
+    } as const
+
+    expect(resolveProviderForCapability('games', selected, adapters)?.provider).toBe('espn')
+    expect(resolveProviderForCapability('standings', selected, adapters)?.provider).toBe('dunkapi')
+    expect(resolveProviderForCapability('games', {}, adapters)).toBeNull()
+    expect(
+      resolveProviderForCapability('liveScores', { liveScores: ['dunkapi', 'espn'] }, adapters),
+    ).toBeNull()
+  })
+
+  it('maps teams only through recognized abbreviations and keeps game/player ids source-scoped', () => {
+    const dunkTeam = createTeam('dunkapi', 'shared-raw-id', 'GS', 'Golden State Warriors')
+    const espnTeam = createTeam('espn', 'shared-raw-id', 'GSW', 'Golden State Warriors')
+    const conflictingTeam = createTeam('espn', 'shared-raw-id', 'BOS', 'Boston Celtics')
+    const unknownDunkTeam = createTeam('dunkapi', 'unknown-id', 'XYZ', 'Unknown')
+    const unknownEspnTeam = createTeam('espn', 'unknown-id', 'XYZ', 'Unknown')
+    const providerGameId = readIdentifier('shared-game-id')
+    const providerPlayerId = readIdentifier('shared-player-id')
+
+    expect(dunkTeam?.id).toBe('nba:team:GSW')
+    expect(espnTeam?.id).toBe(dunkTeam?.id)
+    expect(conflictingTeam?.id).not.toBe(dunkTeam?.id)
+    expect(unknownDunkTeam?.id).not.toBe(unknownEspnTeam?.id)
+    expect(createGameId('dunkapi', providerGameId!)).not.toBe(createGameId('espn', providerGameId!))
+    expect(createPlayer('dunkapi', providerPlayerId, 'Player', dunkTeam?.id ?? null)?.id).not.toBe(
+      createPlayer('espn', providerPlayerId, 'Player', espnTeam?.id ?? null)?.id,
+    )
+    expect(createPlayer('dunkapi', null, 'Player')).toBeNull()
   })
 })
 

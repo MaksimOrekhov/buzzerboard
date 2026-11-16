@@ -4,6 +4,8 @@ import type {
   GameStatus,
   NbaGameDate,
   NbaProviderId,
+  Player,
+  PlayerId,
   ProviderRecordId,
   SeasonEndYear,
   Team,
@@ -178,6 +180,24 @@ export function createTeam(
 
 export function createGameId(provider: NbaProviderId, providerId: ProviderRecordId): GameId {
   return `${provider}:game:${providerId}` as GameId
+}
+
+export function createPlayer(
+  provider: NbaProviderId,
+  providerIdValue: unknown,
+  displayNameValue: unknown,
+  teamId: TeamId | null = null,
+): Player | null {
+  const providerId = readIdentifier(providerIdValue)
+  if (!providerId) return null
+
+  return {
+    id: `${provider}:player:${providerId}` as PlayerId,
+    provider,
+    providerId,
+    displayName: readString(displayNameValue),
+    teamId,
+  }
 }
 
 export function timestampField(

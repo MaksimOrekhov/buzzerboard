@@ -3,6 +3,7 @@ export type Brand<Value, Name extends string> = Value & { readonly __brand: Name
 export type NbaProviderId = 'dunkapi' | 'espn'
 export type TeamId = Brand<string, 'TeamId'>
 export type GameId = Brand<string, 'GameId'>
+export type PlayerId = Brand<string, 'PlayerId'>
 export type NewsItemId = Brand<string, 'NewsItemId'>
 export type ProviderRecordId = Brand<string, 'ProviderRecordId'>
 export type NbaGameDate = Brand<string, 'NbaGameDate'>
@@ -50,6 +51,15 @@ export interface Game {
   /** Null means period-level scores are unavailable from this source. */
   scoreByPeriod: readonly ScoreByPeriod[] | null
   venue: string | null
+}
+
+export interface Player {
+  /** Provider-qualified until a verified cross-provider player mapping exists. */
+  id: PlayerId
+  provider: NbaProviderId
+  providerId: ProviderRecordId
+  displayName: string | null
+  teamId: TeamId | null
 }
 
 export interface TeamRecord {
