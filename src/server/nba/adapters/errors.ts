@@ -5,6 +5,7 @@ const messages: Readonly<Record<NbaApiErrorCode, string>> = {
   forbidden: 'Поставщик данных запретил доступ.',
   rate_limited: 'Превышен лимит запросов к поставщику данных.',
   not_found: 'Запрошенные данные NBA не найдены.',
+  cache_miss: 'Данные NBA для запрошенного периода ещё не сохранены.',
   invalid_request: 'Запрос данных NBA имеет неверный формат.',
   timeout: 'Поставщик данных NBA не ответил вовремя.',
   upstream_unavailable: 'Поставщик данных NBA временно недоступен.',

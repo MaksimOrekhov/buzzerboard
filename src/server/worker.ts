@@ -76,6 +76,8 @@ function responseStatusForError(error: NbaApiError): number {
       return 400
     case 'not_found':
       return 404
+    case 'cache_miss':
+      return 503
     case 'quota_exceeded':
     case 'rate_limited':
       return 429
@@ -149,21 +151,26 @@ async function getGames(
   }
 
   const schedule = await usableCache(repository, scheduleCacheKey(provider), now)
-  const scheduledGames =
-    schedule && schedule.capability === 'schedule'
-      ? schedule.data.filter((game) => game.nbaGameDate === date)
-      : []
-  const exactGames = exact?.capability === 'games' ? exact.data : []
-  if (!exact && !schedule) {
-    const error = createError('upstream_unavailable', provider, true)
+  const exactGames: GamesCacheRecord | null = exact?.capability === 'games' ? exact : null
+  const scheduleSnapshot: GamesCacheRecord | null =
+    schedule?.capability === 'schedule' &&
+    schedule.coverage.from <= date &&
+    date <= schedule.coverage.through
+      ? schedule
+      : null
+  const scheduledGames = scheduleSnapshot
+    ? scheduleSnapshot.data.filter((game) => game.nbaGameDate === date)
+    : []
+  if (!exactGames && !scheduleSnapshot) {
+    const error = createError('cache_miss', provider, true)
     return errorResponse(error, requestId, 503)
   }
 
-  const merged = new Map<string, (typeof exactGames)[number]>()
+  const merged = new Map<string, (typeof scheduledGames)[number]>()
   for (const game of suppressLiveStatus(scheduledGames)) merged.set(game.id, game)
-  for (const game of suppressLiveStatus(exactGames)) merged.set(game.id, game)
-  const sourceRecords = [exact, schedule].filter(
-    (record): record is NbaCacheRecord => record !== null,
+  for (const game of suppressLiveStatus(exactGames?.data ?? [])) merged.set(game.id, game)
+  const sourceRecords = [exactGames, scheduleSnapshot].filter(
+    (record): record is GamesCacheRecord => record !== null,
   )
   const newest = sourceRecords.reduce((current, record) =>
     record.fetchedAt > current.fetchedAt ? record : current,
@@ -219,7 +226,7 @@ async function getStandings(
   if (!provider) return errorResponse(createError('not_configured'), requestId, 503)
   const record = await usableCache(repository, standingsCacheKey(provider, seasonEndYear), now)
   if (!record || record.capability !== 'standings') {
-    return errorResponse(createError('upstream_unavailable', provider, true), requestId, 503)
+    return errorResponse(createError('cache_miss', provider, true), requestId, 503)
   }
   const response: StandingsResponse = apiSnapshot(record, record.data, now)
   return jsonResponse(

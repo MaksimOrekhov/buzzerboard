@@ -1,5 +1,14 @@
 import type { NbaCacheRecord, NbaRepository } from '@/server/nba/runtime/types'
 import type { D1Database } from '@/server/nba/runtime/types'
+import { parseNbaGameDate } from '@/server/nba/adapters/normalizers/primitives'
+
+function isGameDateCoverage(value: unknown): value is { from: string; through: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const coverage = value as Record<string, unknown>
+  const from = parseNbaGameDate(coverage.from)
+  const through = parseNbaGameDate(coverage.through)
+  return from !== null && through !== null && from <= through
+}
 
 function isCacheRecord(value: unknown): value is NbaCacheRecord {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
@@ -17,7 +26,8 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
     typeof record.expiresAt === 'number' &&
     typeof record.staleUntil === 'number' &&
     (record.retryAt === null || typeof record.retryAt === 'number') &&
-    (record.refreshError === null || typeof record.refreshError === 'object')
+    (record.refreshError === null || typeof record.refreshError === 'object') &&
+    (record.capability !== 'schedule' || isGameDateCoverage(record.coverage))
   )
 }
 

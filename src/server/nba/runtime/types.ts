@@ -15,6 +15,11 @@ export type NbaRefreshTarget =
   | { type: 'standings'; seasonEndYear: SeasonEndYear }
   | { type: 'schedule' }
 
+export interface GameDateCoverage {
+  from: NbaGameDate
+  through: NbaGameDate
+}
+
 interface CacheRecordBase {
   cacheKey: string
   provider: NbaProviderId
@@ -27,10 +32,16 @@ interface CacheRecordBase {
   refreshError: NbaApiError | null
 }
 
-export type GamesCacheRecord = CacheRecordBase & {
-  capability: 'games' | 'schedule'
-  data: readonly Game[]
-}
+export type GamesCacheRecord =
+  | (CacheRecordBase & {
+      capability: 'games'
+      data: readonly Game[]
+    })
+  | (CacheRecordBase & {
+      capability: 'schedule'
+      data: readonly Game[]
+      coverage: GameDateCoverage
+    })
 
 export type StandingsCacheRecord = CacheRecordBase & {
   capability: 'standings'

@@ -16,6 +16,7 @@ import {
 import { nbaProviderAdapters } from '@/server/nba/adapters'
 import { resolveProviderForCapability } from '@/server/nba/adapters/adapter'
 import type {
+  GameDateCoverage,
   NbaCacheRecord,
   NbaRefreshTarget,
   NbaRepository,
@@ -31,6 +32,8 @@ const UPSTREAM_WINDOW_MS = 60_000
 const UPSTREAM_RATE_LIMIT = 10
 const PROVIDER_FREE_MONTHLY_CREDITS = 500
 const APP_MONTHLY_CREDIT_CAP = 128
+const DAILY_REGULAR_REFRESH_CREDITS = 4
+const SCHEDULE_REFRESH_CREDITS = 2
 const RETRY_COOLDOWN_MS = 15 * 60_000
 const GAME_FRESH_TTL_MS = 24 * 60 * 60_000
 const GAME_MAX_STALE_MS = 30 * 24 * 60 * 60_000
@@ -58,6 +61,53 @@ interface BudgetConfig {
   month: string
   baselineCredits: number
   appLimit: number
+}
+
+export interface RegularRefreshPlan {
+  daysInMonth: number
+  sundayOrdinals: readonly number[]
+  scheduleRefreshSundayOrdinals: readonly number[]
+  dailyCredits: number
+  plannedScheduleCredits: number
+  plannedCredits: number
+}
+
+export function getRegularRefreshPlan(
+  month: string,
+  monthlyCreditBudget: number,
+): RegularRefreshPlan {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(month)
+  if (!match) throw new Error('A regular refresh plan requires a YYYY-MM month')
+
+  const year = Number(match[1])
+  const monthNumber = Number(match[2])
+  const daysInMonth = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
+  const sundayOrdinals: number[] = []
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    if (new Date(Date.UTC(year, monthNumber - 1, day)).getUTCDay() === 0) {
+      sundayOrdinals.push(Math.floor((day - 1) / 7) + 1)
+    }
+  }
+
+  const dailyCredits = daysInMonth * DAILY_REGULAR_REFRESH_CREDITS
+  const scheduleRefreshCount = Math.min(
+    sundayOrdinals.length,
+    Math.floor(Math.max(0, monthlyCreditBudget - dailyCredits) / SCHEDULE_REFRESH_CREDITS),
+  )
+  const scheduleRefreshSundayOrdinals = Array.from({ length: scheduleRefreshCount }, (_, index) => {
+    const sundayIndex = Math.floor(((index + 0.5) * sundayOrdinals.length) / scheduleRefreshCount)
+    return sundayOrdinals[sundayIndex]!
+  })
+  const plannedScheduleCredits = scheduleRefreshCount * SCHEDULE_REFRESH_CREDITS
+
+  return {
+    daysInMonth,
+    sundayOrdinals,
+    scheduleRefreshSundayOrdinals,
+    dailyCredits,
+    plannedScheduleCredits,
+    plannedCredits: dailyCredits + plannedScheduleCredits,
+  }
 }
 
 function parseInteger(value: string | undefined): number | null {
@@ -244,11 +294,28 @@ function createCacheRecord(
   if (target.type === 'standings') {
     return { ...base, capability: 'standings', data: data as readonly StandingsRow[] }
   }
+  if (target.type === 'schedule') {
+    const coverage = getScheduleCoverage(now)
+    return { ...base, capability: 'schedule', data: data as readonly Game[], coverage }
+  }
   return {
     ...base,
-    capability: target.type === 'schedule' ? 'schedule' : 'games',
+    capability: 'games',
     data: data as readonly Game[],
   }
+}
+
+function addGameDays(date: NbaGameDate, days: number): NbaGameDate {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(Date.UTC(year!, month! - 1, day! + days))
+    .toISOString()
+    .slice(0, 10) as NbaGameDate
+}
+
+function getScheduleCoverage(now: number): GameDateCoverage {
+  const from = parseNbaGameDate(getDateKeyInTimeZone(new Date(now), NBA_TIME_ZONE))
+  if (!from) throw new Error('Unable to determine the NBA schedule coverage start date')
+  return { from, through: addGameDays(from, 6) }
 }
 
 async function persistFailure(
@@ -470,6 +537,7 @@ export async function runScheduledRefresh(
   const today = getDateKeyInTimeZone(instant, NBA_TIME_ZONE)
   const todayDate = parseNbaGameDate(today)
   if (!todayDate) return []
+  const budget = budgetConfig(env, now)
 
   const previousUtcDay = new Date(now - 24 * 60 * 60_000)
   const previousDate = getDateKeyInTimeZone(previousUtcDay, NBA_TIME_ZONE)
@@ -483,7 +551,14 @@ export async function runScheduledRefresh(
     { type: 'games', date: previousNbaDate },
     { type: 'standings', seasonEndYear },
   ]
-  if (instant.getUTCDay() === 0) targets.push({ type: 'schedule' })
+  if (instant.getUTCDay() === 0 && budget) {
+    const month = instant.toISOString().slice(0, 7)
+    const plan = getRegularRefreshPlan(month, budget.appLimit)
+    const sundayOrdinal = Math.floor((instant.getUTCDate() - 1) / 7) + 1
+    if (plan.scheduleRefreshSundayOrdinals.includes(sundayOrdinal)) {
+      targets.push({ type: 'schedule' })
+    }
+  }
 
   const results: RefreshOutcome[] = []
   for (const target of targets) {

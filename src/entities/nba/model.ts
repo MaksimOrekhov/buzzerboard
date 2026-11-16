@@ -107,6 +107,7 @@ export type NbaApiErrorCode =
   | 'forbidden'
   | 'rate_limited'
   | 'not_found'
+  | 'cache_miss'
   | 'invalid_request'
   | 'timeout'
   | 'upstream_unavailable'

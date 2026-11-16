@@ -1,6 +1,12 @@
 import fixtures from '../../docs/fixtures/nba-normalization-fixtures.json'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { NbaApiError, NbaGameDate, SeasonEndYear } from '@/entities/nba/model'
+import type {
+  Game,
+  NbaApiError,
+  NbaGameDate,
+  SeasonEndYear,
+  UtcTimestamp,
+} from '@/entities/nba/model'
 import { dunkApiAdapter } from '@/server/nba/adapters/dunkApi'
 import { gamesCacheKey, scheduleCacheKey, standingsCacheKey } from '@/server/nba/runtime/cacheKeys'
 import type {
@@ -9,7 +15,11 @@ import type {
   NbaRepository,
   WorkerEnvironment,
 } from '@/server/nba/runtime/types'
-import { refreshNbaResource, runScheduledRefresh } from '@/server/nba/runtime/refresh'
+import {
+  getRegularRefreshPlan,
+  refreshNbaResource,
+  runScheduledRefresh,
+} from '@/server/nba/runtime/refresh'
 import { createNbaWorker } from '@/server/worker'
 
 const now = Date.parse('2026-11-16T12:00:00.000Z')
@@ -110,6 +120,26 @@ function createGameRecord(
   }
 }
 
+function createScheduleRecord(from: string, through: string): NbaCacheRecord {
+  return {
+    cacheKey: scheduleCacheKey('dunkapi'),
+    capability: 'schedule',
+    provider: 'dunkapi',
+    data: [] as readonly Game[],
+    coverage: {
+      from: from as NbaGameDate,
+      through: through as NbaGameDate,
+    },
+    fetchedAt: context.fetchedAt as UtcTimestamp,
+    providerUpdatedAt: null,
+    rejectedRecords: 0,
+    expiresAt: now + 60_000,
+    staleUntil: now + 14 * 24 * 60 * 60_000,
+    retryAt: null,
+    refreshError: null,
+  }
+}
+
 const env: WorkerEnvironment = {
   DUNKAPI_REFRESH_ENABLED: 'true',
   DUNKAPI_API_KEY: 'server-test-key',
@@ -196,7 +226,45 @@ describe('NBA Worker cache API', () => {
     const payload = await response.json()
 
     expect(response.status).toBe(503)
-    expect(payload).toMatchObject({ error: { code: 'upstream_unavailable', provider: 'dunkapi' } })
+    expect(payload).toMatchObject({ error: { code: 'cache_miss', provider: 'dunkapi' } })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('returns an empty day only when the schedule cache explicitly covers that date', async () => {
+    const repository = new MemoryNbaRepository()
+    repository.cache.set(
+      scheduleCacheKey('dunkapi'),
+      createScheduleRecord('2026-11-16', '2026-11-22'),
+    )
+    const fetcher = vi.fn<typeof fetch>()
+    const worker = createWorker(repository, fetcher)
+    const response = await worker.fetch(
+      new Request('https://buzzerboard.test/api/games?date=2026-11-18'),
+      env,
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ data: [], meta: { source: 'dunkapi' } })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('returns cache_miss outside the schedule coverage instead of a false empty day', async () => {
+    const repository = new MemoryNbaRepository()
+    repository.cache.set(
+      scheduleCacheKey('dunkapi'),
+      createScheduleRecord('2026-11-16', '2026-11-22'),
+    )
+    const fetcher = vi.fn<typeof fetch>()
+    const worker = createWorker(repository, fetcher)
+    const response = await worker.fetch(
+      new Request('https://buzzerboard.test/api/games?date=2026-11-23'),
+      env,
+    )
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({
+      error: { code: 'cache_miss', provider: 'dunkapi' },
+    })
     expect(fetcher).not.toHaveBeenCalled()
   })
 
@@ -399,6 +467,24 @@ describe('protected NBA revalidation', () => {
 })
 
 describe('scheduled NBA refresh', () => {
+  it.each([
+    { month: '2026-01', daysInMonth: 31, sundays: 4, scheduleRefreshes: 2 },
+    { month: '2026-03', daysInMonth: 31, sundays: 5, scheduleRefreshes: 2 },
+    { month: '2026-04', daysInMonth: 30, sundays: 4, scheduleRefreshes: 4 },
+    { month: '2026-11', daysInMonth: 30, sundays: 5, scheduleRefreshes: 4 },
+  ])(
+    'keeps the regular refresh plan within 128 credits for $month ($daysInMonth days, $sundays Sundays)',
+    ({ month, daysInMonth, sundays, scheduleRefreshes }) => {
+      const plan = getRegularRefreshPlan(month, 128)
+
+      expect(plan.daysInMonth).toBe(daysInMonth)
+      expect(plan.sundayOrdinals).toHaveLength(sundays)
+      expect(plan.scheduleRefreshSundayOrdinals).toHaveLength(scheduleRefreshes)
+      expect(plan.plannedCredits).toBeLessThanOrEqual(128)
+      expect(plan.plannedCredits).toBe(128)
+    },
+  )
+
   it('refreshes the previous NBA date and standings daily, with schedule weekly', async () => {
     const repository = new MemoryNbaRepository()
     const fetchedEndpoints: string[] = []
@@ -429,7 +515,31 @@ describe('scheduled NBA refresh', () => {
     ])
     expect(repository.usage.get(usageMonth)?.appCredits).toBe(6)
     expect(await repository.getCache(standingsCacheKey('dunkapi', seasonEndYear))).not.toBeNull()
-    expect(await repository.getCache(scheduleCacheKey('dunkapi'))).not.toBeNull()
+    expect(await repository.getCache(scheduleCacheKey('dunkapi'))).toMatchObject({
+      coverage: { from: '2026-11-22', through: '2026-11-28' },
+    })
+  })
+
+  it('skips an unbudgeted Sunday schedule refresh without affecting daily updates', async () => {
+    const repository = new MemoryNbaRepository()
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.endsWith('/get_standings')) return jsonResponse(fixtures.dunkapi.standingsResponse)
+      return jsonResponse({ data: { games: [gameFixture] } })
+    })
+    const marchEnv = {
+      ...env,
+      DUNKAPI_CREDIT_BASELINE_MONTH: '2026-03',
+      DUNKAPI_CREDITS_USED_BASELINE: '0',
+    }
+
+    await runScheduledRefresh(marchEnv, repository, fetcher, Date.parse('2026-03-29T10:30:00.000Z'))
+
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(fetcher.mock.calls.map(([input]) => String(input))).not.toContain(
+      'https://mcp.dunkapi.com/v1/get_schedule',
+    )
+    expect(repository.usage.get('2026-03')?.appCredits).toBe(4)
   })
 
   it('does not publish a provider live status in the non-live product', async () => {
