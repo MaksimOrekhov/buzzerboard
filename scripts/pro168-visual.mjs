@@ -70,6 +70,7 @@ async function waitForServer(url) {
 await mkdir(outputDirectory, { recursive: true })
 
 const server = await createServer({
+  cacheDir: path.join(projectRoot, 'node_modules/.vite-pro168'),
   configFile: path.join(projectRoot, 'vite.config.ts'),
   root: projectRoot,
   logLevel: 'warn',
@@ -84,7 +85,7 @@ try {
   assert.ok(address && typeof address === 'object')
   const baseUrl = `http://127.0.0.1:${address.port}`
   await waitForServer(baseUrl)
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, channel: process.env.PW_CHANNEL || undefined })
 
   for (const viewport of viewports) {
     const context = await browser.newContext({
@@ -94,6 +95,24 @@ try {
       deviceScaleFactor: 1,
     })
 
+    // Keep public review artifacts synthetic even when a local Worker is running.
+    await context.route(
+      (url) => url.pathname.startsWith('/api/'),
+      (route) =>
+        route.fulfill({
+          status: 503,
+          json: {
+            error: {
+              code: 'cache_miss',
+              message: 'No synthetic snapshot',
+              retryable: true,
+              provider: null,
+              upstreamStatus: null,
+            },
+            requestId: null,
+          },
+        }),
+    )
     for (const route of routes) {
       const page = await context.newPage()
       const pageErrors = []
@@ -105,10 +124,20 @@ try {
 
       assert.equal(await page.locator('html').getAttribute('lang'), 'ru')
       assert.equal(await page.locator('h1').count(), 1, `${route.path} must have one main heading`)
-      const currentNavigation =
-        viewport.width <= 760 ? page.locator('.mobile-nav') : page.locator('.primary-nav')
-      const activeClass =
-        viewport.width <= 760 ? 'mobile-nav-link--exact-active' : 'nav-link--exact-active'
+      const isGameCenter = route.name === 'games'
+      const mobile = viewport.width <= (isGameCenter ? 620 : 760)
+      const currentNavigation = isGameCenter
+        ? page.locator(mobile ? '.gc-mobile-nav' : '.gc-primary-nav')
+        : viewport.width <= 760
+          ? page.locator('.mobile-nav')
+          : page.locator('.primary-nav')
+      const activeClass = isGameCenter
+        ? mobile
+          ? 'gc-mobile-nav--active'
+          : 'gc-nav-link--active'
+        : viewport.width <= 760
+          ? 'mobile-nav-link--exact-active'
+          : 'nav-link--exact-active'
       assert.equal(await currentNavigation.locator(`a.${activeClass}:visible`).count(), 1)
       assert.equal(await page.getByText('Boston Celtics', { exact: true }).count(), 0)
 
@@ -120,7 +149,10 @@ try {
         `${route.path} overflows at ${viewport.width}px (${documentWidth}px document width)`,
       )
 
-      if (viewport.width <= 760) {
+      if (isGameCenter) {
+        assert.equal(await page.locator('.gc-mobile-nav').isVisible(), mobile)
+        assert.equal(await page.locator('.gc-sidebar').isVisible(), !mobile)
+      } else if (viewport.width <= 760) {
         assert.equal(await page.locator('.mobile-nav').isVisible(), true)
         assert.equal(await page.locator('.sidebar').isVisible(), false)
       } else {
