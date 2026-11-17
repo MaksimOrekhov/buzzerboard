@@ -461,13 +461,13 @@ describe('BBS cached refresh flow', () => {
     expect(paths).toHaveLength(1)
   })
 
-  it('preserves provider quota headroom when upstream exposes daily remaining headers', async () => {
+  it('preserves provider quota headroom when the tightest remaining bucket reaches 25', async () => {
     const repository = new MemoryRepository()
     const fetcher = vi.fn(
       async () =>
         new Response(JSON.stringify(fixture), {
           status: 200,
-          headers: { 'x-ratelimit-remaining-day': '25' },
+          headers: { 'x-ratelimit-remaining': '25' },
         }),
     ) as typeof fetch
     const result = await refreshBbsGames(
@@ -483,7 +483,7 @@ describe('BBS cached refresh flow', () => {
     expect(repository.cache.get(gamesCacheKey('bbs', date))?.capability).toBe('games')
   })
 
-  it('does not mistake the generic remaining counter for daily quota', async () => {
+  it('uses generic remaining as the conservative floor across daily and minute quota', async () => {
     const repository = new MemoryRepository()
     const { fetcher, paths } = fakeBbsFetch()
     const withMinuteCounter = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -491,7 +491,7 @@ describe('BBS cached refresh flow', () => {
       const body = await response.text()
       return new Response(body, {
         status: response.status,
-        headers: { 'x-ratelimit-remaining': '25' },
+        headers: { 'x-ratelimit-remaining': '99' },
       })
     }) as typeof fetch
     const result = await refreshBbsGames(

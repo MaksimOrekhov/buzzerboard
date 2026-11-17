@@ -66,7 +66,7 @@ function configuredLimit(value: string | undefined, fallback: number): number {
 }
 
 function requestHeadroom(env: WorkerEnvironment): number {
-  const configured = Number(env.BBS_DAILY_REQUEST_HEADROOM)
+  const configured = Number(env.BBS_REQUEST_HEADROOM)
   return Number.isSafeInteger(configured) ? Math.max(25, configured) : 25
 }
 
@@ -156,6 +156,7 @@ async function getBbsJson(
   }
   previousRequestStartedAt = Date.now()
   const remainingHeader =
+    response.headers.get('x-ratelimit-remaining') ??
     response.headers.get('x-ratelimit-remaining-day') ??
     response.headers.get('x-ratelimit-day-remaining')
   const providerRemaining = remainingHeader === null ? NaN : Number(remainingHeader)

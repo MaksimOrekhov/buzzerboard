@@ -133,7 +133,7 @@ export interface WorkerEnvironment {
   BBS_API_BASE_URL?: string
   BBS_REFRESH_ENABLED?: string
   BBS_DAILY_REQUEST_LIMIT?: string
-  BBS_DAILY_REQUEST_HEADROOM?: string
+  BBS_REQUEST_HEADROOM?: string
   BBS_PER_MINUTE_REQUEST_LIMIT?: string
   BBS_REQUEST_INTERVAL_MS?: string
 }
