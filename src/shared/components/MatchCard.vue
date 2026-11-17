@@ -29,21 +29,25 @@ const statusTone: Record<GameStatus, 'neutral' | 'accent' | 'lime' | 'warning' |
   unknown: 'neutral',
 }
 
-const displayDate = computed(() => {
+const displayNbaDate = computed(() => {
   const date = new Date(`${props.game.nbaGameDate}T12:00:00Z`)
   return new Intl.DateTimeFormat('ru-RU', {
     day: 'numeric',
     month: 'short',
+    year: 'numeric',
     timeZone: 'UTC',
   }).format(date)
 })
 
-const displayTime = computed(() => {
-  if (!props.game.startsAt) return 'Время не указано'
+const displayLocalStart = computed(() => {
+  if (!props.game.startsAt) return 'Время начала не указано'
   return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
     hour: '2-digit',
     minute: '2-digit',
     timeZone: VIEWER_TIME_ZONE,
+    timeZoneName: 'short',
   }).format(new Date(props.game.startsAt))
 })
 
@@ -69,7 +73,7 @@ function score(value: number | null): string {
     :aria-label="`${game.awayTeam.displayName ?? 'Гость'} — ${game.homeTeam.displayName ?? 'Хозяин'}`"
   >
     <header class="match-card-header">
-      <span class="match-date">{{ displayDate }} · NBA</span>
+      <span class="match-date">NBA · {{ displayNbaDate }} (ET)</span>
       <AppBadge :tone="statusTone[game.status]" dot>{{ statusLabels[game.status] }}</AppBadge>
     </header>
 
@@ -96,9 +100,9 @@ function score(value: number | null): string {
     </div>
 
     <footer class="match-card-footer">
-      <span>Начало по времени зрителя</span>
-      <time v-if="game.startsAt" :datetime="game.startsAt">{{ displayTime }}</time>
-      <span v-else>{{ displayTime }}</span>
+      <span>Кипр · Europe/Nicosia</span>
+      <time v-if="game.startsAt" :datetime="game.startsAt">{{ displayLocalStart }}</time>
+      <span v-else>{{ displayLocalStart }}</span>
     </footer>
   </article>
 </template>

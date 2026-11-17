@@ -48,3 +48,18 @@ jobs:
 
       - name: Build Cloudflare Worker
         run: pnpm run worker:check
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Capture responsive visual checks
+        run: pnpm run visual:pro168
+
+      - name: Upload PRO-168 screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-pro168-visual-review
+          path: artifacts/pro-168/
+          if-no-files-found: warn
+          retention-days: 30

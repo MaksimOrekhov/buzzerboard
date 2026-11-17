@@ -36,11 +36,13 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
             :key="item.id"
             class="nav-link focus-ring"
             :to="item.to"
+            :aria-label="item.label"
             active-class="nav-link--active"
             exact-active-class="nav-link--exact-active"
           >
             <span class="nav-icon"><AppIcon :name="item.icon" :size="18" /></span>
             <span class="nav-link-label">{{ item.label }}</span>
+            <span class="nav-tooltip" aria-hidden="true">{{ item.label }}</span>
             <span v-if="item.id === 'home'" class="nav-active-mark" aria-hidden="true" />
           </RouterLink>
         </nav>
@@ -49,9 +51,16 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
       <div class="nav-group nav-group--upcoming">
         <p class="nav-label">Скоро</p>
         <div class="primary-nav" aria-label="Будущие разделы">
-          <div v-for="item in comingSoonItems" :key="item.id" class="nav-link nav-link--muted">
+          <div
+            v-for="item in comingSoonItems"
+            :key="item.id"
+            class="nav-link nav-link--muted"
+            :aria-label="`${item.label} — скоро`"
+            :title="`${item.label} — скоро`"
+          >
             <span class="nav-icon"><AppIcon :name="item.icon" :size="18" /></span>
             <span class="nav-link-label">{{ item.label }}</span>
+            <span class="nav-tooltip" aria-hidden="true">{{ item.label }} — скоро</span>
             <span class="nav-coming-soon">Скоро</span>
           </div>
         </div>
@@ -87,7 +96,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
       <header class="topbar">
         <div class="topbar-context">
           <span class="topbar-overline">BuzzerBoard <span>/</span> NBA</span>
-          <h1>{{ currentPageTitle }}</h1>
+          <p class="topbar-page-label">{{ currentPageTitle }}</p>
         </div>
         <div class="topbar-meta">
           <span class="topbar-date">{{ todayLabel }}</span>
@@ -287,22 +296,26 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   opacity: 0;
 }
 
+.nav-tooltip {
+  display: none;
+}
+
 .nav-link--exact-active .nav-active-mark {
   opacity: 1;
 }
 
 .nav-link--muted {
-  color: #687273;
+  color: var(--subtle);
   cursor: default;
 }
 
 .nav-link--muted .nav-icon {
-  color: #586263;
+  color: var(--subtle);
 }
 
 .nav-coming-soon {
   margin-left: auto;
-  color: #677172;
+  color: var(--subtle);
   font-size: var(--font-size-caption);
   font-weight: 660;
 }
@@ -373,7 +386,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 
 .sidebar-signature {
   padding-left: 0.25rem;
-  color: #556063;
+  color: var(--subtle);
   font-size: var(--font-size-caption);
   font-weight: 780;
   letter-spacing: 0.15em;
@@ -406,7 +419,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   backdrop-filter: blur(18px);
 }
 
-.topbar-context h1 {
+.topbar-page-label {
   margin: 0.1rem 0 0;
   color: var(--ink-soft);
   font-size: 0.83rem;
@@ -491,7 +504,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 }
 
 @media (max-width: 1040px) {
-  :global(:root) {
+  .app-shell {
     --sidebar-width: 5.2rem;
   }
 
@@ -506,7 +519,6 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 
   .brand-copy,
   .nav-label,
-  .nav-link-label,
   .nav-coming-soon,
   .sidebar-data-copy,
   .sidebar-footnote,
@@ -526,6 +538,42 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   .nav-link {
     justify-content: center;
     padding: 0;
+  }
+
+  .nav-link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .nav-tooltip {
+    position: absolute;
+    z-index: 12;
+    top: 50%;
+    left: calc(100% + 0.55rem);
+    display: block;
+    border: 1px solid var(--line-strong);
+    border-radius: 0.6rem;
+    background: var(--surface-raised);
+    padding: 0.45rem 0.6rem;
+    color: var(--ink);
+    font-size: var(--font-size-caption);
+    font-weight: 650;
+    line-height: 1.3;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition: opacity 120ms ease;
+    white-space: nowrap;
+  }
+
+  .nav-link:hover .nav-tooltip,
+  .nav-link:focus-visible .nav-tooltip {
+    opacity: 1;
   }
 
   .nav-icon {

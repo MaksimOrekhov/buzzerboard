@@ -56,7 +56,6 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
         </div>
         <div class="art-side-label">BUZZERBOARD / 01</div>
       </div>
-      <span class="hero-index" aria-hidden="true">01</span>
     </section>
 
     <section class="overview-section" aria-labelledby="overview-title">
@@ -384,21 +383,11 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   position: absolute;
   right: 1.5rem;
   bottom: 1.3rem;
-  color: #697271;
+  color: var(--subtle);
   font-size: var(--font-size-caption);
   font-weight: 750;
   letter-spacing: 0.14em;
   writing-mode: vertical-rl;
-}
-
-.hero-index {
-  position: absolute;
-  right: 1.3rem;
-  bottom: 1.05rem;
-  color: rgb(255 255 255 / 10%);
-  font-size: 2.5rem;
-  font-weight: 800;
-  letter-spacing: -0.08em;
 }
 
 .overview-section,
@@ -649,6 +638,10 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 }
 
 @media (max-width: 1100px) {
+  .art-side-label {
+    display: none;
+  }
+
   .hero-copy h1 {
     font-size: clamp(3rem, 6.7vw, 4.6rem);
   }
@@ -735,14 +728,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   }
 
   .art-side-label {
-    right: 0.9rem;
-    bottom: 0.65rem;
-  }
-
-  .hero-index {
-    right: 0.8rem;
-    bottom: 0.45rem;
-    font-size: 1.9rem;
+    display: none;
   }
 
   .overview-grid {

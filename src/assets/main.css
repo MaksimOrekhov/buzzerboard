@@ -20,7 +20,7 @@
   --ink: #f2f1ed;
   --ink-soft: #c6c9c5;
   --muted: #8d9699;
-  --subtle: #667174;
+  --subtle: #829093;
   --line: rgb(229 237 233 / 9%);
   --line-strong: rgb(229 237 233 / 15%);
   --accent: #f27a56;
@@ -31,7 +31,7 @@
   --warning: #e4b66b;
   --danger: #f27f79;
   --success: #8cc59d;
-  --font-size-caption: 0.8rem;
+  --font-size-caption: 0.875rem;
   --radius-sm: 0.65rem;
   --radius-md: 1rem;
   --radius-lg: 1.45rem;
