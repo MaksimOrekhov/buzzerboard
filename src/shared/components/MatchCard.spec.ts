@@ -39,7 +39,10 @@ const game: Game = {
 
 describe('MatchCard', () => {
   it('keeps the NBA date separate from the viewer-local date, time, and timezone', () => {
-    const wrapper = mount(MatchCard, { props: { game } })
+    const wrapper = mount(MatchCard, {
+      props: { game },
+      global: { stubs: { AppIcon: true } },
+    })
     const expectedLocalStart = new Intl.DateTimeFormat('ru-RU', {
       day: 'numeric',
       month: 'long',
