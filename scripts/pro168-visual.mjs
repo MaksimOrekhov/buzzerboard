@@ -256,7 +256,12 @@ try {
       waitUntil: 'networkidle',
     })
     await fixture.locator('article.match-card').waitFor()
-    await fixture.getByRole('table').waitFor()
+    if (viewport.width <= 620) {
+      await fixture.locator('.mobile-list').waitFor({ state: 'visible' })
+      assert.ok(await fixture.locator('.mobile-list .team-card').count())
+    } else {
+      await fixture.getByRole('table').waitFor({ state: 'visible' })
+    }
     assert.equal(await fixture.locator('h1').count(), 1)
     assert.match(
       await fixture.getByText('Тестовый стенд · синтетические данные').textContent(),
