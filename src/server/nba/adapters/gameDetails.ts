@@ -12,6 +12,7 @@ import {
   readNonNegativeNumber,
   readNumber,
   readString,
+  parseNbaGameDate,
 } from '@/server/nba/adapters/normalizers/primitives'
 
 function percentage(value: unknown): number | null {
@@ -86,6 +87,13 @@ function readPlayerRow(row: unknown, game: Game): PlayerBoxScore | null {
   }
 }
 
+function reportedScore(team: Record<string, unknown>): { valid: boolean; value: number | null } {
+  if (!Object.hasOwn(team, 'score') || team.score === null || team.score === undefined)
+    return { valid: true, value: null }
+  const value = readNonNegativeNumber(team.score)
+  return { valid: value !== null, value }
+}
+
 export function normalizeDunkGameDetails(payload: unknown, selectedGame: Game): GameBoxScore {
   const root = isRecord(payload) && isRecord(payload.data) ? payload.data : payload
   if (!isRecord(root) || 'error' in root) {
@@ -95,11 +103,26 @@ export function normalizeDunkGameDetails(payload: unknown, selectedGame: Game): 
   const home = isRecord(game.home) ? game.home : null
   const away = isRecord(game.away) ? game.away : null
   const gameId = readIdentifier(game.game_id)
+  const reportedDate =
+    game.date === null || game.date === undefined ? null : parseNbaGameDate(game.date)
+  const homeScore = home ? reportedScore(home) : { valid: false, value: null }
+  const awayScore = away ? reportedScore(away) : { valid: false, value: null }
   if (
     !home ||
     !away ||
     !gameId ||
     gameId !== selectedGame.providerId ||
+    (game.date !== null &&
+      game.date !== undefined &&
+      (!reportedDate || reportedDate !== selectedGame.nbaGameDate)) ||
+    !homeScore.valid ||
+    !awayScore.valid ||
+    (homeScore.value !== null &&
+      selectedGame.score.home !== null &&
+      homeScore.value !== selectedGame.score.home) ||
+    (awayScore.value !== null &&
+      selectedGame.score.away !== null &&
+      awayScore.value !== selectedGame.score.away) ||
     String(home.team_id ?? '') !== selectedGame.homeTeam.providerId ||
     String(away.team_id ?? '') !== selectedGame.awayTeam.providerId ||
     !Array.isArray(root.team_stats) ||
@@ -123,7 +146,11 @@ export function normalizeDunkGameDetails(payload: unknown, selectedGame: Game): 
       homeStats.points !== selectedGame.score.home) ||
     (selectedGame.score.away !== null &&
       awayStats.points !== null &&
-      awayStats.points !== selectedGame.score.away)
+      awayStats.points !== selectedGame.score.away) ||
+    (homeScore.value !== null &&
+      homeStats.points !== null &&
+      homeStats.points !== homeScore.value) ||
+    (awayScore.value !== null && awayStats.points !== null && awayStats.points !== awayScore.value)
   ) {
     throw new NbaAdapterError(invalidResponseError('dunkapi'))
   }

@@ -9,7 +9,13 @@ import type {
   UtcTimestamp,
 } from '@/entities/nba/model'
 import { dunkApiAdapter } from '@/server/nba/adapters/dunkApi'
-import { gamesCacheKey, scheduleCacheKey, standingsCacheKey } from '@/server/nba/runtime/cacheKeys'
+import { normalizeDunkGameDetails } from '@/server/nba/adapters/gameDetails'
+import {
+  gameDetailsCacheKey,
+  gamesCacheKey,
+  scheduleCacheKey,
+  standingsCacheKey,
+} from '@/server/nba/runtime/cacheKeys'
 import type {
   CreditUsage,
   NbaCacheRecord,
@@ -64,11 +70,24 @@ class MemoryNbaRepository implements NbaRepository {
     return this.usage.get(month) ?? null
   }
 
-  async reserveCredits(month: string, baselineCredits: number, credits: number, limit: number) {
+  async reserveCredits(
+    month: string,
+    baselineCredits: number,
+    credits: number,
+    regularAppLimit: number,
+    boxScoreLimit: number,
+    monthlyLimit: number,
+  ) {
     const current = this.usage.get(month)
     if (current && current.baselineCredits !== baselineCredits) return null
     const appCredits = (current?.appCredits ?? 0) + credits
-    if (appCredits > limit) return null
+    const boxScoreCredits = current?.boxScoreCredits ?? 0
+    if (
+      appCredits > regularAppLimit ||
+      boxScoreCredits > boxScoreLimit ||
+      baselineCredits + appCredits + boxScoreCredits > monthlyLimit
+    )
+      return null
     const updated = {
       month,
       baselineCredits,
@@ -91,6 +110,7 @@ class MemoryNbaRepository implements NbaRepository {
     if (current && current.baselineCredits !== baselineCredits) return null
     const boxScoreCredits = (current?.boxScoreCredits ?? 0) + credits
     if (
+      (current?.appCredits ?? 0) > regularAppLimit ||
       boxScoreCredits > boxScoreLimit ||
       baselineCredits + (current?.appCredits ?? 0) + boxScoreCredits > monthlyLimit ||
       baselineCredits + regularAppLimit + boxScoreCredits > monthlyLimit
@@ -173,6 +193,23 @@ function createCompletedGameRecord() {
   }
 }
 
+function createBoxScoreRecord(game: Game) {
+  return {
+    cacheKey: gameDetailsCacheKey('dunkapi', game.id),
+    capability: 'boxScore' as const,
+    gameId: game.id,
+    provider: 'dunkapi' as const,
+    data: normalizeDunkGameDetails(gameDetailsFixture, game),
+    fetchedAt: context.fetchedAt as UtcTimestamp,
+    providerUpdatedAt: null,
+    rejectedRecords: 0,
+    expiresAt: now + 60_000,
+    staleUntil: now + 7 * 24 * 60 * 60_000,
+    retryAt: null,
+    refreshError: null,
+  }
+}
+
 function createScheduleRecord(
   from: string,
   through: string,
@@ -205,6 +242,7 @@ const env: WorkerEnvironment = {
   DUNKAPI_APP_MONTHLY_CREDIT_BUDGET: '128',
   DUNKAPI_CREDITS_USED_BASELINE: '27',
   DUNKAPI_CREDIT_BASELINE_MONTH: usageMonth,
+  DUNKAPI_BOX_SCORE_MONTHLY_CREDIT_BUDGET: '5',
   NBA_GAMES_PROVIDER_ORDER: 'dunkapi',
   NBA_STANDINGS_PROVIDER_ORDER: 'dunkapi',
 }
@@ -246,9 +284,107 @@ describe('NBA Worker cache API', () => {
         game: { id: 'dunkapi:game:dunk-game-001', score: { home: 112, away: 108 } },
         boxScore: null,
       },
+      boxScoreAvailability: 'unavailable',
       meta: { source: 'dunkapi' },
     })
     expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it.each(['score', 'date', 'teams', 'status'] as const)(
+    'returns the corrected base game without an incompatible box score after a %s correction',
+    async (field) => {
+      const repository = new MemoryNbaRepository()
+      const originalRecord = createCompletedGameRecord()
+      const originalGame = originalRecord.data[0] as Game
+      repository.cache.set(
+        gameDetailsCacheKey('dunkapi', originalGame.id),
+        createBoxScoreRecord(originalGame),
+      )
+
+      const requestDate = field === 'date' ? '2026-11-16' : '2026-11-15'
+      const correctedGame: Game =
+        field === 'score'
+          ? {
+              ...originalGame,
+              score: { ...originalGame.score, home: originalGame.score.home! + 1 },
+            }
+          : field === 'date'
+            ? { ...originalGame, nbaGameDate: requestDate as NbaGameDate }
+            : field === 'teams'
+              ? {
+                  ...originalGame,
+                  homeTeam: {
+                    ...originalGame.homeTeam,
+                    id: 'nba:team:ORL' as Game['homeTeam']['id'],
+                  },
+                }
+              : { ...originalGame, status: 'scheduled' }
+      repository.cache.set(gamesCacheKey('dunkapi', requestDate), {
+        ...originalRecord,
+        cacheKey: gamesCacheKey('dunkapi', requestDate),
+        data: [correctedGame],
+      })
+      const fetcher = vi.fn<typeof fetch>()
+      const worker = createWorker(repository, fetcher)
+      const response = await worker.fetch(
+        new Request(
+          `https://buzzerboard.test/api/games/${encodeURIComponent(originalGame.id)}?date=${requestDate}`,
+        ),
+        env,
+      )
+      const payload = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(payload).toMatchObject({
+        data: { game: { nbaGameDate: requestDate }, boxScore: null },
+        boxScoreAvailability: 'snapshot_mismatch',
+        boxScoreMeta: null,
+      })
+      expect(fetcher).not.toHaveBeenCalled()
+    },
+  )
+
+  it('safely rejects a malformed nested cached box score and keeps the base game available', async () => {
+    const repository = new MemoryNbaRepository()
+    const gameRecord = createCompletedGameRecord()
+    const game = gameRecord.data[0] as Game
+    repository.cache.set(gamesCacheKey('dunkapi', '2026-11-15'), gameRecord)
+    repository.cache.set(gameDetailsCacheKey('dunkapi', game.id), {
+      ...createBoxScoreRecord(game),
+      data: { game: null, teams: 'broken', players: null },
+    } as unknown as NbaCacheRecord)
+    const fetcher = vi.fn<typeof fetch>()
+    const worker = createWorker(repository, fetcher)
+
+    const response = await worker.fetch(
+      new Request(
+        `https://buzzerboard.test/api/games/${encodeURIComponent(game.id)}?date=2026-11-15`,
+      ),
+      env,
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      data: { game: { id: game.id }, boxScore: null },
+      boxScoreAvailability: 'snapshot_mismatch',
+    })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('rejects a detail request when the requested date does not identify the cached game', async () => {
+    const repository = new MemoryNbaRepository()
+    repository.cache.set(gamesCacheKey('dunkapi', '2026-11-15'), createCompletedGameRecord())
+    const worker = createWorker(repository)
+
+    const response = await worker.fetch(
+      new Request(
+        'https://buzzerboard.test/api/games/dunkapi%3Agame%3Adunk-game-001?date=2026-11-16',
+      ),
+      env,
+    )
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({ error: { code: 'cache_miss' } })
   })
 
   it('requires the manual token and leaves the box-score budget disabled by default', async () => {
@@ -574,6 +710,42 @@ describe('protected NBA revalidation', () => {
 
     expect(result.error?.code).toBe('quota_exceeded')
     expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('fails closed for regular and box-score refreshes when the changed shared allocations exceed the cap', async () => {
+    const repository = new MemoryNbaRepository()
+    repository.cache.set(gamesCacheKey('dunkapi', '2026-11-15'), createCompletedGameRecord())
+    const fetcher = vi.fn<typeof fetch>()
+    const incompatibleBudget = {
+      ...env,
+      DUNKAPI_MONTHLY_CREDIT_LIMIT: '159',
+    }
+
+    const regular = await refreshNbaResource(
+      { type: 'games', date: '2026-11-15' as NbaGameDate },
+      incompatibleBudget,
+      new MemoryNbaRepository(),
+      fetcher,
+      now,
+    )
+    const worker = createWorker(repository, fetcher)
+    const boxScore = await worker.fetch(
+      new Request('https://buzzerboard.test/api/games/dunkapi%3Agame%3Adunk-game-001/refresh', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: 'Bearer server-admin-test-token',
+        },
+        body: JSON.stringify({ date: '2026-11-15' }),
+      }),
+      { ...incompatibleBudget, DUNKAPI_BOX_SCORE_REFRESH_ENABLED: 'true' },
+    )
+
+    expect(regular.error?.code).toBe('not_configured')
+    expect(boxScore.status).toBe(503)
+    expect(await boxScore.json()).toMatchObject({ error: { code: 'not_configured' } })
+    expect(fetcher).not.toHaveBeenCalled()
+    expect(repository.usage.size).toBe(0)
   })
 
   it('fails closed when the monthly baseline is stale or refresh is disabled', async () => {

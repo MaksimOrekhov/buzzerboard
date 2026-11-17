@@ -10,6 +10,7 @@ import type {
 } from '@/shared/api/nba/contracts'
 import { createNbaApiError } from '@/server/nba/adapters/errors'
 import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
+import { isGameBoxScoreForGame, isGameRecord } from '@/shared/api/nba/gameDetailsGuards'
 import { D1NbaRepository } from '@/server/nba/runtime/d1Repository'
 import {
   gameDetailsCacheKey,
@@ -24,7 +25,6 @@ import {
   nbaSeasonEndYearForDate,
 } from '@/server/nba/runtime/refresh'
 import type {
-  BoxScoreCacheRecord,
   GamesCacheRecord,
   NbaCacheRecord,
   NbaRefreshTarget,
@@ -271,8 +271,7 @@ async function getGameDetails(
     gameDetailsCacheKey(source.provider, source.id),
     now,
   )
-  const boxRecord =
-    detailsRecord?.capability === 'boxScore' ? (detailsRecord as BoxScoreCacheRecord) : null
+  const boxRecord = detailsRecord?.capability === 'boxScore' ? detailsRecord : null
   const [exactRecord, scheduleRecord] = await Promise.all([
     repository.getCache(gamesCacheKey(source.provider, date)),
     repository.getCache(scheduleCacheKey(source.provider)),
@@ -286,23 +285,37 @@ async function getGameDetails(
     date <= scheduleRecord.coverage.through
       ? scheduleRecord
       : null
-  const gameRecord = exactGameRecord?.data.some((game) => game.id === source.id)
-    ? exactGameRecord
-    : scheduledGameRecord?.data.some((game) => game.id === source.id && game.nbaGameDate === date)
-      ? scheduledGameRecord
-      : null
-  const cachedGame =
-    gameRecord?.data.find((game) => game.id === source.id && game.nbaGameDate === date) ?? null
-  const baseGame =
-    cachedGame ?? (boxRecord?.data?.game.nbaGameDate === date ? boxRecord.data.game : null)
+  const exactGame =
+    exactGameRecord?.data.find((game) => game.id === source.id && game.nbaGameDate === date) ?? null
+  const scheduledGame =
+    scheduledGameRecord?.data.find((game) => game.id === source.id && game.nbaGameDate === date) ??
+    null
+  const gameRecord = exactGame ? exactGameRecord : scheduledGame ? scheduledGameRecord : null
+  const cachedGame = exactGame ?? scheduledGame
+  const storedBoxScore = boxRecord?.data
+  const storedBoxGame =
+    storedBoxScore && isGameRecord(storedBoxScore.game) ? storedBoxScore.game : null
+  const baseGame = cachedGame ?? (storedBoxGame?.nbaGameDate === date ? storedBoxGame : null)
   if (!baseGame)
     return errorResponse(createError('cache_miss', source.provider, true), requestId, 503)
 
-  const dataRecord = gameRecord ?? boxRecord!
+  const dataRecord = gameRecord ?? boxRecord
+  if (!dataRecord)
+    return errorResponse(createError('cache_miss', source.provider, true), requestId, 503)
+
+  const boxScoreIsCompatible = Boolean(
+    storedBoxScore && isGameBoxScoreForGame(storedBoxScore, baseGame),
+  )
+  const boxScoreAvailability = boxScoreIsCompatible
+    ? 'available'
+    : storedBoxScore
+      ? 'snapshot_mismatch'
+      : 'unavailable'
   const fetchedAt = dataRecord.fetchedAt
   const providerUpdatedAt = dataRecord.providerUpdatedAt
   const response: GameDetailsResponse = {
-    data: { game: baseGame, boxScore: boxRecord?.data ?? null },
+    data: { game: baseGame, boxScore: boxScoreIsCompatible ? (storedBoxScore ?? null) : null },
+    boxScoreAvailability,
     meta: {
       source: dataRecord.provider,
       fetchedAt,
@@ -311,16 +324,17 @@ async function getGameDetails(
       rejectedRecords: dataRecord.rejectedRecords,
       refreshError: dataRecord.refreshError,
     },
-    boxScoreMeta: boxRecord
-      ? {
-          source: boxRecord.provider,
-          fetchedAt: boxRecord.fetchedAt,
-          providerUpdatedAt: boxRecord.providerUpdatedAt,
-          isStale: now >= boxRecord.expiresAt,
-          rejectedRecords: boxRecord.rejectedRecords,
-          refreshError: boxRecord.refreshError,
-        }
-      : null,
+    boxScoreMeta:
+      boxRecord && boxScoreAvailability !== 'snapshot_mismatch'
+        ? {
+            source: boxRecord.provider,
+            fetchedAt: boxRecord.fetchedAt,
+            providerUpdatedAt: boxRecord.providerUpdatedAt,
+            isStale: now >= boxRecord.expiresAt,
+            rejectedRecords: boxRecord.rejectedRecords,
+            refreshError: boxRecord.refreshError,
+          }
+        : null,
   }
   return jsonResponse(
     response,

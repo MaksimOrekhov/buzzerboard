@@ -35,9 +35,11 @@ const fetchErrorDescription = computed(() =>
     : 'Последний сохранённый снимок матча пока недоступен.',
 )
 const unavailableDetails = computed(() =>
-  boxScoreMeta.value?.refreshError
-    ? 'Последнее защищённое обновление не удалось. Показан безопасный кешированный снимок без выдуманных значений.'
-    : 'Статистика ещё не сохранена в D1. Открытие карточки читает только локальный кеш и не обращается к DunkAPI.',
+  response.value?.boxScoreAvailability === 'snapshot_mismatch'
+    ? 'Снимки матча и статистики не совпадают. Показан текущий результат без противоречивых данных игроков.'
+    : boxScoreMeta.value?.refreshError
+      ? 'Последнее защищённое обновление не удалось. Показан безопасный кешированный снимок без выдуманных значений.'
+      : 'Статистика ещё не сохранена в D1. Открытие карточки читает только локальный кеш и не обращается к DunkAPI.',
 )
 </script>
 
@@ -107,9 +109,9 @@ const unavailableDetails = computed(() =>
           <header class="game-detail-section-heading">
             <div>
               <span>02 / ИГРОКИ</span>
-              <h2 id="game-leaders-heading">Лидеры матча</h2>
+              <h2 id="game-leaders-heading">Лидеры среди доступных данных</h2>
             </div>
-            <p>По всем строкам box score</p>
+            <p>По полученным строкам box score</p>
           </header>
           <article v-for="leader in leaders" :key="leader.key" class="game-leader-card">
             <span>{{ leader.label }}</span><strong>{{ leader.maximum }}</strong>

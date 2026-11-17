@@ -8,6 +8,7 @@ import {
 import type { BoxScoreCacheRecord, NbaRepository, WorkerEnvironment } from './types'
 import { gameDetailsCacheKey, gamesCacheKey, scheduleCacheKey } from './cacheKeys'
 import { parseNbaGameDate } from '@/server/nba/adapters/normalizers/primitives'
+import { readDunkApiCreditBudget } from '@/server/nba/runtime/creditBudget'
 
 const PROVIDER_URL = 'https://mcp.dunkapi.com/v1/get_game'
 const TIMEOUT_MS = 12_000
@@ -15,9 +16,6 @@ const LOCK_MS = 30_000
 const COOLDOWN_MS = 15 * 60_000
 const FRESH_MS = 24 * 60 * 60_000
 const MAX_STALE_MS = 30 * 24 * 60 * 60_000
-const FREE_MONTHLY_CREDITS = 500
-const REGULAR_APP_CAP = 128
-
 export interface BoxScoreTarget {
   type: 'boxScore'
   date: NbaGameDate
@@ -88,30 +86,10 @@ function errorResult(
 }
 
 function config(env: WorkerEnvironment, now: number) {
-  const month = new Date(now).toISOString().slice(0, 7)
-  const monthSetting = env.DUNKAPI_CREDIT_BASELINE_MONTH
-  const limit = Number(env.DUNKAPI_MONTHLY_CREDIT_LIMIT)
-  const baseline = Number(env.DUNKAPI_CREDITS_USED_BASELINE)
-  const regularLimit = Number(env.DUNKAPI_APP_MONTHLY_CREDIT_BUDGET)
-  const boxLimit = Number(env.DUNKAPI_BOX_SCORE_MONTHLY_CREDIT_BUDGET)
-  if (
-    env.DUNKAPI_BOX_SCORE_REFRESH_ENABLED !== 'true' ||
-    monthSetting !== month ||
-    !Number.isSafeInteger(limit) ||
-    limit < 1 ||
-    limit > FREE_MONTHLY_CREDITS ||
-    !Number.isSafeInteger(baseline) ||
-    baseline < 0 ||
-    baseline >= limit ||
-    !Number.isSafeInteger(regularLimit) ||
-    regularLimit < 1 ||
-    regularLimit > REGULAR_APP_CAP ||
-    !Number.isSafeInteger(boxLimit) ||
-    boxLimit < 5 ||
-    baseline + regularLimit + boxLimit > limit
-  )
+  const budget = readDunkApiCreditBudget(env, now)
+  if (env.DUNKAPI_BOX_SCORE_REFRESH_ENABLED !== 'true' || !budget || budget.boxScoreLimit < 5)
     return null
-  return { month, limit, baseline, regularLimit, boxLimit }
+  return budget
 }
 
 async function cacheFailure(
@@ -192,7 +170,7 @@ export async function refreshGameBoxScore(
       return errorResult(target, 'deferred', now, current.refreshError, current, current.retryAt)
 
     const usage = await repository.getCreditUsage(budget.month)
-    if (usage && usage.baselineCredits !== budget.baseline) {
+    if (usage && usage.baselineCredits !== budget.baselineCredits) {
       const error = createNbaApiError('not_configured', 'dunkapi')
       const record = await cacheFailure(repository, game, current, error, now)
       return errorResult(target, 'deferred', now, error, record)
@@ -207,11 +185,11 @@ export async function refreshGameBoxScore(
     }
     const reserved = await repository.reserveBoxScoreCredits(
       budget.month,
-      budget.baseline,
+      budget.baselineCredits,
       5,
-      budget.boxLimit,
-      budget.regularLimit,
-      budget.limit,
+      budget.boxScoreLimit,
+      budget.regularAppLimit,
+      budget.monthlyLimit,
     )
     if (!reserved) {
       const error = createNbaApiError('quota_exceeded', 'dunkapi')

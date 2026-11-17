@@ -3,12 +3,17 @@ import type { GameBoxScore, PlayerBoxScore } from '@/entities/nba/model'
 
 export type PlayerSortKey = 'minutes' | 'points' | 'rebounds' | 'assists' | 'plusMinus'
 
-function minuteValue(value: string | null): number {
-  if (!value) return -1
-  const parts = value.split(':').map(Number)
-  return parts.length === 2 && parts.every(Number.isFinite)
-    ? parts[0]! * 60 + parts[1]!
-    : Number(value) || -1
+function minuteValue(value: string | null): number | null {
+  if (value === null || value.trim() === '') return null
+  const trimmed = value.trim()
+  const clock = /^(\d+):(\d{1,2})$/.exec(trimmed)
+  if (clock) {
+    const minutes = Number(clock[1])
+    const seconds = Number(clock[2])
+    return seconds < 60 ? minutes * 60 + seconds : null
+  }
+  const minutes = Number(trimmed)
+  return Number.isFinite(minutes) && minutes >= 0 ? minutes * 60 : null
 }
 
 export function sortPlayerLines(
@@ -19,12 +24,13 @@ export function sortPlayerLines(
   return [...players].sort((left, right) => {
     const leftValue = key === 'minutes' ? minuteValue(left.minutes) : left[key]
     const rightValue = key === 'minutes' ? minuteValue(right.minutes) : right[key]
-    if (leftValue === null || leftValue === -1) return 1
-    if (rightValue === null || rightValue === -1) return -1
-    return (
-      (leftValue - rightValue) * (direction === 'ascending' ? 1 : -1) ||
-      (left.player.displayName ?? '').localeCompare(right.player.displayName ?? '')
-    )
+    const byName = (left.player.displayName ?? '').localeCompare(right.player.displayName ?? '')
+    const byId = left.player.id.localeCompare(right.player.id)
+    const tieBreak = byName || byId
+    if (leftValue === null && rightValue === null) return tieBreak
+    if (leftValue === null) return 1
+    if (rightValue === null) return -1
+    return (leftValue - rightValue) * (direction === 'ascending' ? 1 : -1) || tieBreak
   })
 }
 

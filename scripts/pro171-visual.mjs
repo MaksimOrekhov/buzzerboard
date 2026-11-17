@@ -210,6 +210,7 @@ try {
             data: { game, boxScore: boxScoreAvailable ? syntheticBoxScore(game) : null },
             meta: { ...meta },
             boxScoreMeta: boxScoreAvailable ? { ...meta } : null,
+            boxScoreAvailability: boxScoreAvailable ? 'available' : 'unavailable',
           },
         })
       }

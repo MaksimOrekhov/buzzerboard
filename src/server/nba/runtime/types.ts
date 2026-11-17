@@ -77,6 +77,8 @@ export interface NbaRepository {
     baselineCredits: number,
     credits: number,
     monthlyAppLimit: number,
+    boxScoreLimit: number,
+    monthlyLimit: number,
   ): Promise<CreditUsage | null>
   reserveBoxScoreCredits(
     month: string,

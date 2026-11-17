@@ -1,6 +1,8 @@
 import type { NbaCacheRecord, NbaRepository } from '@/server/nba/runtime/types'
 import type { D1Database } from '@/server/nba/runtime/types'
+import type { Game } from '@/entities/nba/model'
 import { parseNbaGameDate } from '@/server/nba/adapters/normalizers/primitives'
+import { isGameBoxScoreForGame, isGameRecord } from '@/shared/api/nba/gameDetailsGuards'
 
 function isGameDateCoverage(value: unknown): value is { from: string; through: string } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
@@ -21,13 +23,8 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
       record.capability === 'boxScore') &&
     (record.provider === 'dunkapi' || record.provider === 'espn') &&
     (record.capability === 'boxScore'
-      ? (record.data === null ||
-          (typeof record.data === 'object' &&
-            record.data !== null &&
-            typeof (record.data as Record<string, unknown>).game === 'object')) &&
-        typeof record.gameId === 'string' &&
-        (record.data === null ||
-          (record.data as { game: { id?: unknown } }).game?.id === record.gameId)
+      ? typeof record.gameId === 'string' &&
+        (record.data === null || isValidBoxScoreData(record.data, record.gameId))
       : Array.isArray(record.data)) &&
     typeof record.fetchedAt === 'string' &&
     (record.providerUpdatedAt === null || typeof record.providerUpdatedAt === 'string') &&
@@ -38,6 +35,12 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
     (record.refreshError === null || typeof record.refreshError === 'object') &&
     (record.capability !== 'schedule' || isGameDateCoverage(record.coverage))
   )
+}
+
+function isValidBoxScoreData(value: unknown, gameId: string): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const game = (value as Record<string, unknown>).game
+  return isGameRecord(game) && game.id === gameId && isGameBoxScoreForGame(value, game as Game)
 }
 
 export class D1NbaRepository implements NbaRepository {
@@ -134,17 +137,22 @@ export class D1NbaRepository implements NbaRepository {
     baselineCredits: number,
     credits: number,
     monthlyAppLimit: number,
+    boxScoreLimit: number,
+    monthlyLimit: number,
   ) {
     return this.database
       .prepare(
         `INSERT INTO nba_credit_usage (month, baseline_credits, app_credits, box_score_credits)
-         SELECT ?1, ?2, ?3, 0 WHERE ?3 <= ?4
+         SELECT ?1, ?2, ?3, 0 WHERE ?3 <= ?4 AND ?2 + ?3 <= ?6
          ON CONFLICT(month) DO UPDATE SET app_credits = app_credits + excluded.app_credits
          WHERE nba_credit_usage.baseline_credits = excluded.baseline_credits
            AND nba_credit_usage.app_credits + excluded.app_credits <= ?4
+           AND nba_credit_usage.box_score_credits <= ?5
+           AND nba_credit_usage.baseline_credits + nba_credit_usage.app_credits
+             + nba_credit_usage.box_score_credits + excluded.app_credits <= ?6
          RETURNING month, baseline_credits AS baselineCredits, app_credits AS appCredits, box_score_credits AS boxScoreCredits`,
       )
-      .bind(month, baselineCredits, credits, monthlyAppLimit)
+      .bind(month, baselineCredits, credits, monthlyAppLimit, boxScoreLimit, monthlyLimit)
       .first<{
         month: string
         baselineCredits: number
@@ -168,8 +176,11 @@ export class D1NbaRepository implements NbaRepository {
          WHERE ?3 <= ?4 AND ?2 + ?3 + ?5 <= ?6
          ON CONFLICT(month) DO UPDATE SET box_score_credits = box_score_credits + excluded.box_score_credits
          WHERE nba_credit_usage.baseline_credits = excluded.baseline_credits
+           AND nba_credit_usage.app_credits <= ?5
            AND nba_credit_usage.box_score_credits + excluded.box_score_credits <= ?4
            AND nba_credit_usage.baseline_credits + nba_credit_usage.app_credits
+             + nba_credit_usage.box_score_credits + excluded.box_score_credits <= ?6
+           AND nba_credit_usage.baseline_credits + ?5
              + nba_credit_usage.box_score_credits + excluded.box_score_credits <= ?6
          RETURNING month, baseline_credits AS baselineCredits, app_credits AS appCredits, box_score_credits AS boxScoreCredits`,
       )

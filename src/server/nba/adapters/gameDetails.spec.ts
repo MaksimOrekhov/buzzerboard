@@ -14,6 +14,7 @@ describe('DunkAPI game details adapter', () => {
     const result = normalizeDunkGameDetails(fixture, game)
 
     expect(result.game.id).toBe(game.id)
+    expect(result.game.scoreByPeriod).toBeNull()
     expect(result.teams.map((team) => team.team.providerId)).toEqual(['20', '9'])
     expect(result.teams[0]?.fieldGoals).toEqual({ made: 36, attempted: 80, percentage: 0.45 })
     expect(result.players[0]).toMatchObject({
@@ -63,6 +64,19 @@ describe('DunkAPI game details adapter', () => {
       'duplicate player id',
       (payload: typeof fixture) => {
         payload.data.players.push({ ...payload.data.players[0]! })
+      },
+    ],
+    [
+      'a mismatched game date',
+      (payload: typeof fixture) => {
+        Reflect.set(payload.data.game, 'date', '2026-11-16')
+      },
+    ],
+    [
+      'a mismatched game score when team totals are missing',
+      (payload: typeof fixture) => {
+        payload.data.team_stats.forEach((row) => Reflect.set(row, 'pts', null))
+        payload.data.game.home.score = 113
       },
     ],
   ])('rejects %s without publishing a partial box score', (_label, mutate) => {

@@ -39,6 +39,7 @@ export interface GameDetailsResponse {
   data: { game: Game; boxScore: GameBoxScore | null }
   meta: NbaApiSnapshot<Game>['meta']
   boxScoreMeta: NbaApiSnapshot<Game>['meta'] | null
+  boxScoreAvailability: 'available' | 'unavailable' | 'snapshot_mismatch'
 }
 export type StandingsResponse = NbaApiSnapshot<readonly StandingsRow[]>
 /** News source is intentionally open until it is researched and selected. */
