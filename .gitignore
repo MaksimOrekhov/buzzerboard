@@ -9,6 +9,7 @@ build/
 coverage/
 artifacts/pro-168/
 artifacts/pro-170/
+artifacts/pro-172/
 .vite/
 .cache/
 .wrangler/

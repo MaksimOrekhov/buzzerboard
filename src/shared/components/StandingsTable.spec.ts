@@ -2,50 +2,49 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import StandingsTable from './StandingsTable.vue'
-import type { ProviderRecordId, StandingsRow, TeamId } from '@/entities/nba/model'
-
-const row: StandingsRow = {
-  team: {
-    id: 'espn:team:bos' as TeamId,
-    providerId: 'bos' as ProviderRecordId,
-    abbreviation: 'BOS',
-    displayName: 'Boston Celtics',
-  },
-  seasonEndYear: null,
-  conference: 'east',
-  record: {
-    wins: 0,
-    losses: 0,
-    conferenceWins: null,
-    conferenceLosses: null,
-    homeWins: null,
-    homeLosses: null,
-    awayWins: null,
-    awayLosses: null,
-    lastTenWins: null,
-    pointsFor: null,
-    pointsAgainst: null,
-    averageMargin: null,
-  },
-  winPercentage: 0,
-  officialRank: null,
-  playoffSeed: null,
-  providerOrder: 1,
-}
+import { makeStandingsRows } from '@/features/standings/standingsTestData'
 
 describe('StandingsTable', () => {
-  it('does not turn provider order into an official rank', () => {
-    const wrapper = mount(StandingsTable, { props: { rows: [row] } })
+  it('renders source-provided rank as unavailable instead of using provider order', () => {
+    const row = makeStandingsRows('east', 1)[0]!
+    const wrapper = mount(StandingsTable, {
+      props: { rows: [row], conference: 'east' },
+    })
 
     expect(wrapper.get('.rank-cell').text()).toBe('—')
-    expect(wrapper.text()).toContain('Boston Celtics')
-    expect(wrapper.text()).toContain('0–0')
+    expect(wrapper.text()).toContain('East Team 1')
+    expect(wrapper.text()).toContain('30–10')
+    expect(wrapper.text()).toContain('.750')
   })
 
-  it('explains the empty state instead of rendering invented teams', () => {
-    const wrapper = mount(StandingsTable, { props: { rows: [] } })
+  it('includes verified metrics in the narrow mobile card layout', () => {
+    const wrapper = mount(StandingsTable, {
+      props: {
+        rows: makeStandingsRows('west', 1),
+        conference: 'west',
+        gamesBehindByTeamId: new Map([[makeStandingsRows('west', 1)[0]!.team.id, 0]]),
+      },
+    })
 
-    expect(wrapper.text()).toContain('Таблица ещё не загружена')
-    expect(wrapper.text()).not.toContain('Boston Celtics')
+    const mobileList = wrapper.get('.mobile-list').text()
+    expect(mobileList).toContain('Запад')
+    expect(mobileList).toContain('Победы–поражения')
+    expect(mobileList).toContain('Дома')
+    expect(mobileList).toContain('В гостях')
+    expect(mobileList).toContain('Победы в последних 10')
+    expect(mobileList).toContain('Средняя разница очков за матч')
+  })
+
+  it('emits sorting and favorite actions to the owning view', async () => {
+    const row = makeStandingsRows('east', 1)[0]!
+    const wrapper = mount(StandingsTable, {
+      props: { rows: [row], conference: 'east' },
+    })
+
+    await wrapper.get('button[aria-label^="Сортировать по полю «проценту"]').trigger('click')
+    await wrapper.get('.favorite-button').trigger('click')
+
+    expect(wrapper.emitted('sort')).toEqual([['winPercentage']])
+    expect(wrapper.emitted('toggleFavorite')).toEqual([[row.team.id]])
   })
 })
