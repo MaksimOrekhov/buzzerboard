@@ -19,6 +19,7 @@ import AppBadge from '@/shared/components/AppBadge.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
+import { gameDetailsPath } from '@/features/games/gameDetailsRoute'
 const {
   selectedDate,
   minDate,
@@ -111,6 +112,7 @@ const gameRows = computed(() =>
             :game="game"
             :favorite="isFavorite(game.id)"
             :expanded="expandedGameId === game.id"
+            :details-to="gameDetailsPath(game, `/?date=${selectedDate}`)"
             @favorite="toggleFavorite(game.id)"
             @details="toggleDetails(game.id)"
           />

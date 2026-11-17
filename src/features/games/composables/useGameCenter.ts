@@ -1,10 +1,11 @@
 import { computed, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { GameId, GameStatus, NbaGameDate, Team } from '@/entities/nba/model'
+import type { Game, GameId, GameStatus, NbaGameDate, Team } from '@/entities/nba/model'
 import { WorkerApiError } from '@/features/games/api'
 import { useGameFavorites } from './useGameFavorites'
 import { useGamesForDate } from './useGamesForDate'
 import { getDefaultNbaGameDate } from '@/shared/utils/nbaDate'
+import { gameCenterReturnTo, gameDetailsPath } from '@/features/games/gameDetailsRoute'
 
 export function shiftGameDate(date: string, days: number): NbaGameDate {
   const shifted = new Date(`${date}T12:00:00Z`)
@@ -34,11 +35,24 @@ export function useGameCenter() {
   })
   const query = useGamesForDate(selectedDate)
   const { favoriteIds, isFavorite, toggleFavorite } = useGameFavorites()
-  const statusFilter = shallowRef<GameStatus | 'all'>('all')
-  const teamFilter = shallowRef('all')
-  const search = shallowRef('')
-  const favoriteOnly = shallowRef(false)
-  const sortDirection = shallowRef('asc')
+  const rawStatus = route.query.status
+  const validStatuses: GameStatus[] = [
+    'final',
+    'scheduled',
+    'postponed',
+    'canceled',
+    'suspended',
+    'unknown',
+  ]
+  const statusFilter = shallowRef<GameStatus | 'all'>(
+    typeof rawStatus === 'string' && validStatuses.includes(rawStatus as GameStatus)
+      ? (rawStatus as GameStatus)
+      : 'all',
+  )
+  const teamFilter = shallowRef(typeof route.query.team === 'string' ? route.query.team : 'all')
+  const search = shallowRef(typeof route.query.q === 'string' ? route.query.q : '')
+  const favoriteOnly = shallowRef(route.query.favorites === '1')
+  const sortDirection = shallowRef(route.query.sort === 'desc' ? 'desc' : 'asc')
   const expandedGameId = shallowRef<GameId | null>(null)
   const games = computed(() => query.data.value?.data ?? [])
   const meta = computed(() => query.data.value?.meta ?? null)
@@ -155,16 +169,35 @@ export function useGameCenter() {
     }),
   )
   function setDate(date: string) {
-    if (date >= minDate && date <= maxDate) void router.replace({ query: { ...route.query, date } })
+    if (date >= minDate && date <= maxDate) {
+      const query: Record<string, string> = { date }
+      if (statusFilter.value !== 'all') query.status = statusFilter.value
+      if (favoriteOnly.value) query.favorites = '1'
+      if (search.value.trim()) query.q = search.value
+      if (sortDirection.value !== 'asc') query.sort = sortDirection.value
+      void router.replace({ path: '/games', query })
+    }
   }
   function resetFilters() {
     statusFilter.value = 'all'
     teamFilter.value = 'all'
     favoriteOnly.value = false
     search.value = ''
+    void router.replace({ path: '/games', query: { date: selectedDate.value } })
   }
   function toggleDetails(id: GameId) {
     expandedGameId.value = expandedGameId.value === id ? null : id
+  }
+  function detailsTo(game: Game) {
+    const returnTo = gameCenterReturnTo({
+      date: selectedDate.value,
+      status: statusFilter.value,
+      team: teamFilter.value,
+      favoriteOnly: favoriteOnly.value,
+      search: search.value,
+      sort: sortDirection.value,
+    })
+    return gameDetailsPath(game, returnTo)
   }
   function teamName(team: Team) {
     return team.displayName ?? team.abbreviation ?? 'Команда неизвестна'
@@ -198,6 +231,7 @@ export function useGameCenter() {
     setDate,
     resetFilters,
     toggleDetails,
+    detailsTo,
     favoriteIds,
     isFavorite,
     toggleFavorite,

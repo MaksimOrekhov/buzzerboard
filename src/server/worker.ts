@@ -1,6 +1,7 @@
 import type { Game, NbaApiError, NbaApiErrorCode, NbaProviderId } from '@/entities/nba/model'
 import type {
   GamesResponse,
+  GameDetailsResponse,
   NbaApiErrorResponse,
   NbaApiSnapshot,
   NbaRevalidationResponse,
@@ -9,8 +10,14 @@ import type {
 } from '@/shared/api/nba/contracts'
 import { createNbaApiError } from '@/server/nba/adapters/errors'
 import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
+import { isGameBoxScoreForGame, isGameRecord } from '@/shared/api/nba/gameDetailsGuards'
 import { D1NbaRepository } from '@/server/nba/runtime/d1Repository'
-import { gamesCacheKey, scheduleCacheKey, standingsCacheKey } from '@/server/nba/runtime/cacheKeys'
+import {
+  gameDetailsCacheKey,
+  gamesCacheKey,
+  scheduleCacheKey,
+  standingsCacheKey,
+} from '@/server/nba/runtime/cacheKeys'
 import {
   refreshNbaResource,
   runScheduledRefresh,
@@ -27,6 +34,12 @@ import type {
   WorkerExecutionContext,
   ScheduledController,
 } from '@/server/nba/runtime/types'
+import {
+  findCachedGame,
+  parseBoxScoreTarget,
+  parseSourceGameId,
+  refreshGameBoxScore,
+} from '@/server/nba/runtime/gameDetails'
 
 const PRIVATE_HEADERS = {
   'cache-control': 'private, no-store',
@@ -236,6 +249,167 @@ async function getStandings(
   )
 }
 
+async function getGameDetails(
+  url: URL,
+  rawGameId: string,
+  repository: NbaRepository,
+  now: number,
+  requestId: string,
+): Promise<Response> {
+  let gameId: string
+  try {
+    gameId = decodeURIComponent(rawGameId)
+  } catch {
+    return errorResponse(createError('invalid_request'), requestId, 400)
+  }
+  const source = parseSourceGameId(gameId)
+  const date = parseNbaGameDate(url.searchParams.get('date'))
+  if (!source || !date) return errorResponse(createError('invalid_request'), requestId, 400)
+
+  const detailsRecord = await usableCache(
+    repository,
+    gameDetailsCacheKey(source.provider, source.id),
+    now,
+  )
+  const boxRecord = detailsRecord?.capability === 'boxScore' ? detailsRecord : null
+  const [exactRecord, scheduleRecord] = await Promise.all([
+    repository.getCache(gamesCacheKey(source.provider, date)),
+    repository.getCache(scheduleCacheKey(source.provider)),
+  ])
+  const exactGameRecord =
+    exactRecord?.capability === 'games' && now < exactRecord.staleUntil ? exactRecord : null
+  const scheduledGameRecord =
+    scheduleRecord?.capability === 'schedule' &&
+    now < scheduleRecord.staleUntil &&
+    date >= scheduleRecord.coverage.from &&
+    date <= scheduleRecord.coverage.through
+      ? scheduleRecord
+      : null
+  const exactGame =
+    exactGameRecord?.data.find((game) => game.id === source.id && game.nbaGameDate === date) ?? null
+  const scheduledGame =
+    scheduledGameRecord?.data.find((game) => game.id === source.id && game.nbaGameDate === date) ??
+    null
+  const gameRecord = exactGame ? exactGameRecord : scheduledGame ? scheduledGameRecord : null
+  const cachedGame = exactGame ?? scheduledGame
+  const storedBoxScore = boxRecord?.data
+  const storedBoxGame =
+    storedBoxScore && isGameRecord(storedBoxScore.game) ? storedBoxScore.game : null
+  const baseGame = cachedGame ?? (storedBoxGame?.nbaGameDate === date ? storedBoxGame : null)
+  if (!baseGame)
+    return errorResponse(createError('cache_miss', source.provider, true), requestId, 503)
+
+  const dataRecord = gameRecord ?? boxRecord
+  if (!dataRecord)
+    return errorResponse(createError('cache_miss', source.provider, true), requestId, 503)
+
+  const boxScoreIsCompatible = Boolean(
+    storedBoxScore && isGameBoxScoreForGame(storedBoxScore, baseGame),
+  )
+  const boxScoreAvailability = boxScoreIsCompatible
+    ? 'available'
+    : storedBoxScore
+      ? 'snapshot_mismatch'
+      : 'unavailable'
+  const fetchedAt = dataRecord.fetchedAt
+  const providerUpdatedAt = dataRecord.providerUpdatedAt
+  const response: GameDetailsResponse = {
+    data: { game: baseGame, boxScore: boxScoreIsCompatible ? (storedBoxScore ?? null) : null },
+    boxScoreAvailability,
+    meta: {
+      source: dataRecord.provider,
+      fetchedAt,
+      providerUpdatedAt,
+      isStale: now >= dataRecord.expiresAt,
+      rejectedRecords: dataRecord.rejectedRecords,
+      refreshError: dataRecord.refreshError,
+    },
+    boxScoreMeta:
+      boxRecord && boxScoreAvailability !== 'snapshot_mismatch'
+        ? {
+            source: boxRecord.provider,
+            fetchedAt: boxRecord.fetchedAt,
+            providerUpdatedAt: boxRecord.providerUpdatedAt,
+            isStale: now >= boxRecord.expiresAt,
+            rejectedRecords: boxRecord.rejectedRecords,
+            refreshError: boxRecord.refreshError,
+          }
+        : null,
+  }
+  return jsonResponse(
+    response,
+    200,
+    response.meta.isStale ? { warning: '110 - "Response is stale"' } : {},
+  )
+}
+
+async function readBoxScoreRefreshDate(request: Request, gameId: string) {
+  const contentLength = Number(request.headers.get('content-length') ?? 0)
+  if (
+    contentLength > 2_048 ||
+    !request.headers.get('content-type')?.toLowerCase().startsWith('application/json')
+  )
+    return null
+  try {
+    const body: unknown = await request.json()
+    const target =
+      body && typeof body === 'object' && !Array.isArray(body)
+        ? { ...(body as Record<string, unknown>), type: 'boxScore', gameId }
+        : null
+    return parseBoxScoreTarget(target)
+  } catch {
+    return null
+  }
+}
+
+async function postGameDetailsRefresh(
+  request: Request,
+  rawGameId: string,
+  env: WorkerEnvironment,
+  repository: NbaRepository,
+  fetcher: typeof fetch,
+  now: number,
+  requestId: string,
+): Promise<Response> {
+  const expectedToken = env.MANUAL_REFRESH_TOKEN
+  const authorization = request.headers.get('authorization') ?? ''
+  const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
+  if (!expectedToken) return errorResponse(createError('not_configured'), requestId, 503)
+  if (!bearer || !constantTimeEqual(bearer, expectedToken))
+    return errorResponse(createError('unauthorized'), requestId, 401)
+
+  let gameId: string
+  try {
+    gameId = decodeURIComponent(rawGameId)
+  } catch {
+    return errorResponse(createError('invalid_request'), requestId, 400)
+  }
+  const target = await readBoxScoreRefreshDate(request, gameId)
+  if (!target || target.gameId !== gameId)
+    return errorResponse(createError('invalid_request'), requestId, 400)
+  const game = await findCachedGame(repository, target.date, target.gameId, now)
+  if (!game) return errorResponse(createError('cache_miss', 'dunkapi', true), requestId, 503)
+
+  const result = await refreshGameBoxScore(target, game, env, repository, fetcher, now)
+  const body = { ...result }
+  const status = result.error
+    ? responseStatusForError(result.error)
+    : result.state === 'in_progress'
+      ? 409
+      : 200
+  return jsonResponse(
+    body,
+    status,
+    result.retryAfter
+      ? {
+          'retry-after': String(
+            Math.max(1, Math.ceil((Date.parse(result.retryAfter) - now) / 1000)),
+          ),
+        }
+      : {},
+  )
+}
+
 function constantTimeEqual(left: string, right: string): boolean {
   const maxLength = Math.max(left.length, right.length)
   let difference = left.length ^ right.length
@@ -352,6 +526,26 @@ async function handleApiRequest(
     if (request.method !== 'GET')
       return errorResponse(createError('invalid_request'), requestId, 405)
     return getGames(url, env, repository, now, requestId)
+  }
+
+  const detailsMatch = /^\/api\/games\/([^/]+)(?:\/(refresh))?$/.exec(url.pathname)
+  if (detailsMatch) {
+    if (detailsMatch[2] === 'refresh') {
+      if (request.method !== 'POST')
+        return errorResponse(createError('invalid_request'), requestId, 405)
+      return postGameDetailsRefresh(
+        request,
+        detailsMatch[1]!,
+        env,
+        repository,
+        fetcher,
+        now,
+        requestId,
+      )
+    }
+    if (request.method !== 'GET')
+      return errorResponse(createError('invalid_request'), requestId, 405)
+    return getGameDetails(url, detailsMatch[1]!, repository, now, requestId)
   }
 
   if (url.pathname === '/api/standings') {

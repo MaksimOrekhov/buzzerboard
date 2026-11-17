@@ -5,7 +5,13 @@ import type { Game, GameStatus } from '@/entities/nba/model'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
-const props = defineProps<{ game: Game; favorite: boolean; expanded: boolean }>()
+import { RouterLink } from 'vue-router'
+const props = defineProps<{
+  game: Game
+  favorite: boolean
+  expanded: boolean
+  detailsTo?: string
+}>()
 const emit = defineEmits<{ favorite: []; details: [] }>()
 const detailsId = useId()
 const labels: Record<GameStatus, string> = {
@@ -122,14 +128,22 @@ const winner = computed(() =>
         >
           <AppIcon name="star" /></button
         ><button
+          v-if="!detailsTo"
           class="gc-icon-button gc-detail-button"
           :aria-expanded="expanded"
           :aria-controls="detailsId"
           :aria-label="expanded ? 'Скрыть детали матча' : 'Детали матча'"
           @click="emit('details')"
         >
-          <AppIcon name="down" :size="16" />
-        </button>
+          <AppIcon name="down" :size="16" /></button
+        ><RouterLink
+          v-else
+          class="gc-icon-button gc-detail-button"
+          :to="detailsTo"
+          aria-label="Открыть карточку матча"
+          title="Полная карточка матча"
+          ><AppIcon name="arrow" :size="16"
+        /></RouterLink>
       </div>
     </div>
     <section v-if="expanded" :id="detailsId" class="gc-match-details" aria-label="Детали матча">

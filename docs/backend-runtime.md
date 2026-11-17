@@ -4,26 +4,31 @@
 
 The Cloudflare Worker serves the built Vue app and `/api/*` from one origin. Provider adapters from PRO-166 remain pure normalizers. The Worker owns authentication, requests, durable caching, rate limits, budget reservations, and scheduled/manual refresh.
 
-| Route                                   | Behavior                                                                                                                                 |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/games?date=YYYY-MM-DD`        | Read the exact date snapshot or a weekly schedule snapshot whose recorded coverage includes that date. Never calls an upstream provider. |
-| `GET /api/standings?seasonEndYear=2027` | Read the season snapshot from D1. Never calls an upstream provider.                                                                      |
-| `GET /api/news`                         | Returns `503 not_configured` until a source and normalizer are selected.                                                                 |
-| `POST /api/revalidate`                  | Protected refresh of one games date, standings season, or upcoming schedule. Requires `Authorization: Bearer <MANUAL_REFRESH_TOKEN>`.    |
+| Route                                          | Behavior                                                                                                                                                           |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/games?date=YYYY-MM-DD`               | Read the exact date snapshot or a weekly schedule snapshot whose recorded coverage includes that date. Never calls an upstream provider.                           |
+| `GET /api/games/:sourceGameId?date=YYYY-MM-DD` | Read the source-scoped game and optional box score from D1. A box-score cache miss returns the known game with `boxScore: null`; never calls an upstream provider. |
+| `GET /api/standings?seasonEndYear=2027`        | Read the season snapshot from D1. Never calls an upstream provider.                                                                                                |
+| `GET /api/news`                                | Returns `503 not_configured` until a source and normalizer are selected.                                                                                           |
+| `POST /api/revalidate`                         | Protected refresh of one games date, standings season, or upcoming schedule. Requires `Authorization: Bearer <MANUAL_REFRESH_TOKEN>`.                              |
+| `POST /api/games/:sourceGameId/refresh`        | Protected manual refresh of one already cached, finished DunkAPI game; request body contains its NBA date. Costs 5 credits when the provider call starts.          |
 
 Successful responses identify `meta.source`, `meta.fetchedAt`, and `meta.isStale`. A stale response carries the last safe `meta.refreshError` when an update failed. If no usable cached value exists, the API returns a typed `cache_miss` error and does not silently fetch on a page view. An empty game list is returned only when an exact-date snapshot confirms no games. Schedule snapshots may provide matching positive game records within their recorded request window, but absent rows do not prove an empty day. A stale cache entry past its retention window is deleted.
 
 The refresh route is intended for an authenticated admin/server integration. The token must not be embedded in Vue code or sent to browsers. There is no public force-refresh route and no frontend refresh button until BuzzerBoard has an authenticated user session.
 
+Box scores are separately disabled by default with `DUNKAPI_BOX_SCORE_REFRESH_ENABLED=false`; the default `DUNKAPI_BOX_SCORE_MONTHLY_CREDIT_BUDGET=5` allows one 5-credit match. Do not raise the cap automatically. A shared config validator fails closed unless baseline + configured regular allocation + configured box-score allocation fits the current monthly ceiling. D1 tracks `box_score_credits` separately from regular `app_credits`; both atomic SQL reservations enforce the actual shared total, each bucket's configured cap, and preserve the regular allocation when reserving box-score credits. Refresh requires an already cached final DunkAPI game, exact source game ID/date/team matching, a shared D1 lock, an upstream rate slot, and a 15-minute per-game cooldown after failures. It never runs from Cron or page reads and performs no retries or backfill. Box-score snapshots are fresh for 24 hours and retained up to 30 days. Failed provider attempts are counted conservatively.
+
 ## Shared cache and refresh policy
 
 D1 is the shared durable cache across Worker instances. Cache keys include provider, NBA league, capability, and date/season/filter dimensions. Refresh locks coalesce concurrent requests for a resource. GET requests read D1 only, so a page reload, visitor, or cache miss cannot trigger DunkAPI spend.
 
-| Data                  | Fresh TTL | Maximum stale retention | Refresh schedule               |
-| --------------------- | --------: | ----------------------: | ------------------------------ |
-| Games for an NBA date |  24 hours |                 30 days | Daily: previous NBA date       |
-| Standings             |  24 hours |                  7 days | Daily                          |
-| Upcoming schedule     |    7 days |                 14 days | Budgeted Sundays, 7-day window |
+| Data                  | Fresh TTL | Maximum stale retention | Refresh schedule                                  |
+| --------------------- | --------: | ----------------------: | ------------------------------------------------- |
+| Games for an NBA date |  24 hours |                 30 days | Daily: previous NBA date                          |
+| Standings             |  24 hours |                  7 days | Daily                                             |
+| Upcoming schedule     |    7 days |                 14 days | Budgeted Sundays, 7-day window                    |
+| One game box score    |  24 hours |                 30 days | Protected per-game manual request only; 5 credits |
 
 At 10:30 UTC the Cron refreshes games for the previous US/Eastern NBA date and current-season standings. A schedule snapshot records the expected seven-calendar-day request window from the NBA date at fetch time through six days later, based on the endpoint's documented up-to-seven-day scope. This window is only used to bound matching positive game records; it is not inferred from returned rows and does not prove that a date without rows had no game. A confirmed empty day requires an exact-date `list_games` snapshot. A date without that snapshot or a matching schedule row returns `cache_miss`, never a false empty day. Refreshes are sequential. A daily provider status is not presented as live: any normalized `live` status is converted to `unknown` before cache storage. No polling, SSE, WebSocket, live-score capability, or paid/live endpoint is enabled.
 
@@ -40,7 +45,7 @@ Provider refresh is disabled in `wrangler.jsonc`. Tests use fixtures and mocked 
 ## Deployment
 
 1. Create the D1 database and replace the placeholder ID in `wrangler.jsonc`.
-2. Apply `migrations/0001_nba_runtime.sql` with `pnpm db:migrate:remote`.
+2. Apply migrations with `pnpm db:migrate:remote`.
 3. Set `DUNKAPI_API_KEY` and a high-entropy `MANUAL_REFRESH_TOKEN` with `wrangler secret put`; do not commit these values.
 4. Confirm the provider account's current-month spend, set the matching baseline month/credits, review the cap, then opt in to refresh.
 5. Build/check with `pnpm worker:check`; deploy only after the operational configuration and rights review are complete.

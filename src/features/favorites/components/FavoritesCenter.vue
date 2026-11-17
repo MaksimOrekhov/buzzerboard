@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import '../favorites.css'
 import { shallowRef } from 'vue'
+import { useRoute } from 'vue-router'
 import { RouterLink } from 'vue-router'
 import { useFavoriteCollections } from '../composables/useFavoriteCollections'
 import { formatRecord, formatPercentage } from '@/features/standings/formatters'
@@ -12,9 +13,11 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
+import { gameDetailsPath } from '@/features/games/gameDetailsRoute'
+const route = useRoute()
 const { center, standings, teams, favoriteGames, favoriteGameGroups, favoriteTeams, unknownGames } =
   useFavoriteCollections()
-const tab = shallowRef<'teams' | 'games'>('teams')
+const tab = shallowRef<'teams' | 'games'>(route.query.tab === 'games' ? 'games' : 'teams')
 const {
   selectedDate,
   minDate,
@@ -152,6 +155,7 @@ const teamIds = teams.favoriteIds
               :game="game"
               :favorite="isFavorite(game.id)"
               :expanded="expandedGameId === game.id"
+              :details-to="gameDetailsPath(game, `/favorites?tab=games&date=${selectedDate}`)"
               @favorite="toggleFavorite(game.id)"
               @details="toggleDetails(game.id)"
             />

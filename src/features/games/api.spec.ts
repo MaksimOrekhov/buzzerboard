@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { fetchGamesForDate, WorkerApiError } from './api'
+import { fetchGameDetails, fetchGamesForDate, WorkerApiError } from './api'
 import type {
   Game,
   GameId,
@@ -97,5 +97,53 @@ describe('fetchGamesForDate', () => {
       expect(error).toMatchObject({ status: 503, requestId: 'request-test' })
       expect((error as WorkerApiError).error.code).toBe('cache_miss')
     }
+  })
+})
+
+describe('fetchGameDetails response guards', () => {
+  it('keeps a valid game and safely drops a malformed nested box score', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: { game, boxScore: { game: null, teams: 'invalid', players: null } },
+            meta: gamesResponse.meta,
+            boxScoreMeta: gamesResponse.meta,
+            boxScoreAvailability: 'available',
+          }),
+          { status: 200 },
+        ),
+      ),
+    )
+
+    const response = await fetchGameDetails(game.id, game.nbaGameDate)
+
+    expect(response.data.game).toEqual(game)
+    expect(response.data.boxScore).toBeNull()
+    expect(response.boxScoreAvailability).toBe('snapshot_mismatch')
+    expect(response.boxScoreMeta).toBeNull()
+  })
+
+  it('rejects a cached game whose date differs from the requested date', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: { game, boxScore: null },
+            meta: gamesResponse.meta,
+            boxScoreMeta: null,
+            boxScoreAvailability: 'unavailable',
+          }),
+          { status: 200 },
+        ),
+      ),
+    )
+
+    await expect(fetchGameDetails(game.id, '2026-11-16' as NbaGameDate)).rejects.toMatchObject({
+      status: 200,
+      error: { code: 'invalid_response' },
+    })
   })
 })

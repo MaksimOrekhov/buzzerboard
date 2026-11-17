@@ -42,6 +42,7 @@ const {
   setDate,
   resetFilters,
   toggleDetails,
+  detailsTo,
   isFavorite,
   toggleFavorite,
 } = useGameCenter()
@@ -237,6 +238,7 @@ const scoredCount = computed(
             :game="game"
             :favorite="isFavorite(game.id)"
             :expanded="expandedGameId === game.id"
+            :details-to="detailsTo(game)"
             @favorite="toggleFavorite(game.id)"
             @details="toggleDetails(game.id)"
           />

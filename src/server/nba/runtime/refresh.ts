@@ -24,14 +24,13 @@ import type {
 } from '@/server/nba/runtime/types'
 import { gamesCacheKey, scheduleCacheKey, standingsCacheKey } from '@/server/nba/runtime/cacheKeys'
 import { getDateKeyInTimeZone, NBA_TIME_ZONE } from '@/shared/utils/nbaDate'
+import { readDunkApiCreditBudget } from '@/server/nba/runtime/creditBudget'
 
 const PROVIDER_URL = 'https://mcp.dunkapi.com/v1'
 const UPSTREAM_TIMEOUT_MS = 12_000
 const LOCK_LEASE_MS = 30_000
 const UPSTREAM_WINDOW_MS = 60_000
 const UPSTREAM_RATE_LIMIT = 10
-const PROVIDER_FREE_MONTHLY_CREDITS = 500
-const APP_MONTHLY_CREDIT_CAP = 128
 const DAILY_REGULAR_REFRESH_CREDITS = 4
 const SCHEDULE_REFRESH_CREDITS = 2
 const RETRY_COOLDOWN_MS = 15 * 60_000
@@ -61,6 +60,8 @@ interface BudgetConfig {
   month: string
   baselineCredits: number
   appLimit: number
+  boxScoreLimit: number
+  monthlyLimit: number
 }
 
 export interface RegularRefreshPlan {
@@ -110,38 +111,15 @@ export function getRegularRefreshPlan(
   }
 }
 
-function parseInteger(value: string | undefined): number | null {
-  if (!value || !/^\d+$/.test(value)) return null
-  const parsed = Number(value)
-  return Number.isSafeInteger(parsed) ? parsed : null
-}
-
 function budgetConfig(env: WorkerEnvironment, now: number): BudgetConfig | null {
-  const month = new Date(now).toISOString().slice(0, 7)
-  const baselineMonth = env.DUNKAPI_CREDIT_BASELINE_MONTH
-  const monthlyLimit = parseInteger(env.DUNKAPI_MONTHLY_CREDIT_LIMIT)
-  const configuredAppLimit = parseInteger(env.DUNKAPI_APP_MONTHLY_CREDIT_BUDGET)
-  const baselineCredits = parseInteger(env.DUNKAPI_CREDITS_USED_BASELINE)
-
-  if (
-    baselineMonth !== month ||
-    monthlyLimit === null ||
-    monthlyLimit < 1 ||
-    monthlyLimit > PROVIDER_FREE_MONTHLY_CREDITS ||
-    configuredAppLimit === null ||
-    configuredAppLimit < 1 ||
-    configuredAppLimit > APP_MONTHLY_CREDIT_CAP ||
-    baselineCredits === null ||
-    baselineCredits < 0 ||
-    baselineCredits >= monthlyLimit
-  ) {
-    return null
-  }
-
+  const configured = readDunkApiCreditBudget(env, now)
+  if (!configured) return null
   return {
-    month,
-    baselineCredits,
-    appLimit: Math.min(configuredAppLimit, monthlyLimit - baselineCredits),
+    month: configured.month,
+    baselineCredits: configured.baselineCredits,
+    appLimit: configured.regularAppLimit,
+    boxScoreLimit: configured.boxScoreLimit,
+    monthlyLimit: configured.monthlyLimit,
   }
 }
 
@@ -437,6 +415,8 @@ export async function refreshNbaResource(
       budget.baselineCredits,
       request.credits,
       budget.appLimit,
+      budget.boxScoreLimit,
+      budget.monthlyLimit,
     )
     if (!reserved) {
       const error = requestError('quota_exceeded', provider)

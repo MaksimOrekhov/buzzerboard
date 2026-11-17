@@ -1,5 +1,7 @@
 import type {
   Game,
+  GameBoxScore,
+  GameId,
   NbaApiError,
   NbaGameDate,
   NbaProviderId,
@@ -33,6 +35,12 @@ export interface NbaApiSnapshot<T> {
 
 export type GamesResponse = NbaApiSnapshot<readonly Game[]>
 export type GameResponse = NbaApiSnapshot<Game>
+export interface GameDetailsResponse {
+  data: { game: Game; boxScore: GameBoxScore | null }
+  meta: NbaApiSnapshot<Game>['meta']
+  boxScoreMeta: NbaApiSnapshot<Game>['meta'] | null
+  boxScoreAvailability: 'available' | 'unavailable' | 'snapshot_mismatch'
+}
 export type StandingsResponse = NbaApiSnapshot<readonly StandingsRow[]>
 /** News source is intentionally open until it is researched and selected. */
 export type NewsResponse = NbaApiSnapshot<readonly NewsItem[]>
@@ -41,6 +49,7 @@ export type NbaRevalidationTarget =
   | { type: 'games'; date: NbaGameDate }
   | { type: 'standings'; seasonEndYear: SeasonEndYear }
   | { type: 'schedule' }
+  | { type: 'boxScore'; date: NbaGameDate; gameId: GameId }
 
 export interface NbaRevalidationResponse {
   target: NbaRevalidationTarget

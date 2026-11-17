@@ -110,13 +110,13 @@ Do not commit artwork, private screenshots or local configuration.
 
 ## Verification and local captures
 
-`pnpm visual:pro186` covers all six routes at 375, 620, 768, 1024, 1280 and 1440 px.
+`pnpm visual:pro171` covers all seven routes, including match details and box-score fallback, at 375, 620, 768, 1024, 1280 and 1440 px.
 It intercepts API reads with isolated synthetic data and blocks external requests.
 Coverage includes 15-game days, 30-team tables, long names, both conferences, search,
 favorites persistence, all original sorts, date/team reset, details, calendar keyboard
 selection, Escape/focus restoration, comparison limits, sticky columns, short-height
 sidebar scrolling, ready/loading/empty/error/stale and tied-PCT GB protection. Public CI
-uploads only `artifacts/pro-186/synthetic/`. No fixture route or payload ships in production.
+uploads only `artifacts/pro-171/synthetic/`. No fixture route or payload ships in production.
 
 Unit tests preserve the backend/API/date/favorite/GB regressions and add source-rank,
 nullable conference records, cross-conference comparison, all-team logo mapping/fallback

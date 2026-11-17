@@ -6,7 +6,7 @@ import { chromium } from 'playwright'
 import { createServer } from 'vite'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const output = path.join(root, 'artifacts/pro-186/synthetic')
+const output = path.join(root, 'artifacts/pro-171/synthetic')
 const checks = []
 const today = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/New_York',
@@ -52,6 +52,65 @@ const meta = {
   rejectedRecords: 0,
   refreshError: null,
 }
+function syntheticBoxScore(game) {
+  if (!game) return null
+  const line = (team, points, id) => ({
+    team,
+    points,
+    fieldGoals: { made: 38, attempted: 82, percentage: 0.463 },
+    threePointers: { made: 11, attempted: 30, percentage: 0.367 },
+    freeThrows: { made: 14, attempted: 17, percentage: 0.824 },
+    rebounds: 45,
+    offensiveRebounds: 11,
+    defensiveRebounds: 34,
+    assists: 25,
+    steals: 8,
+    blocks: 5,
+    turnovers: 11,
+    fouls: 18,
+    plusMinus: id === 'home' ? 3 : -3,
+  })
+  const playerLine = (team, id, points, dnp = false) => ({
+    player: {
+      id: `dunkapi:player:${id}`,
+      provider: 'dunkapi',
+      providerId: id,
+      displayName: dnp ? 'Synthetic reserve' : 'Synthetic scorer',
+      teamId: team.id,
+    },
+    starter: !dnp,
+    didNotPlay: dnp,
+    minutes: dnp ? null : '35:12',
+    points: dnp ? null : points,
+    fieldGoals: { made: dnp ? null : 9, attempted: dnp ? null : 18, percentage: dnp ? null : 0.5 },
+    threePointers: {
+      made: dnp ? null : 3,
+      attempted: dnp ? null : 7,
+      percentage: dnp ? null : 0.429,
+    },
+    freeThrows: { made: dnp ? null : 3, attempted: dnp ? null : 4, percentage: dnp ? null : 0.75 },
+    rebounds: dnp ? null : 5,
+    offensiveRebounds: dnp ? null : 1,
+    defensiveRebounds: dnp ? null : 4,
+    assists: dnp ? null : 8,
+    steals: dnp ? null : 2,
+    blocks: dnp ? null : 0,
+    turnovers: dnp ? null : 3,
+    fouls: dnp ? null : 2,
+    plusMinus: dnp ? null : 7,
+  })
+  return {
+    game,
+    teams: [
+      line(game.awayTeam, game.score.away, 'away'),
+      line(game.homeTeam, game.score.home, 'home'),
+    ],
+    players: [
+      playerLine(game.homeTeam, `scorer-${game.providerId}`, Math.max(1, game.score.home - 86)),
+      playerLine(game.awayTeam, `reserve-${game.providerId}`, null, true),
+    ],
+  }
+}
 const standings = ['east', 'west'].flatMap((conference) =>
   Array.from({ length: 15 }, (_, index) => ({
     team: team(
@@ -92,7 +151,7 @@ const error = {
 }
 await mkdir(output, { recursive: true })
 const server = await createServer({
-  cacheDir: path.join(root, 'node_modules/.vite-pro186'),
+  cacheDir: path.join(root, 'node_modules/.vite-pro171'),
   root,
   configFile: path.join(root, 'vite.config.ts'),
   logLevel: 'error',
@@ -101,7 +160,11 @@ const server = await createServer({
 let browser
 try {
   await server.listen()
-  browser = await chromium.launch({ headless: true, channel: process.env.PW_CHANNEL || undefined })
+  browser = await chromium.launch({
+    headless: true,
+    channel: process.env.PW_CHANNEL || undefined,
+    executablePath: process.env.PW_EXECUTABLE_PATH || undefined,
+  })
   for (const width of [375, 620, 768, 1024, 1280, 1440]) {
     const context = await browser.newContext({
       viewport: { width, height: 1000 },
@@ -110,6 +173,7 @@ try {
     })
     let mode = 'ready'
     let tiedStandings = false
+    let boxScoreAvailable = true
     const calls = []
     await context.route('**/*', async (route) => {
       const request = route.request()
@@ -135,6 +199,21 @@ try {
             meta: { ...meta, isStale: mode === 'stale' },
           },
         })
+      if (/^\/api\/games\/[^/]+$/.test(url.pathname)) {
+        const id = decodeURIComponent(url.pathname.split('/').at(-1))
+        const game = games.find(
+          (item) => item.id === id && item.nbaGameDate === url.searchParams.get('date'),
+        )
+        if (!game) return route.fulfill({ status: 503, json: error })
+        return route.fulfill({
+          json: {
+            data: { game, boxScore: boxScoreAvailable ? syntheticBoxScore(game) : null },
+            meta: { ...meta },
+            boxScoreMeta: boxScoreAvailable ? { ...meta } : null,
+            boxScoreAvailability: boxScoreAvailable ? 'available' : 'unavailable',
+          },
+        })
+      }
       const date = url.searchParams.get('date')
       const records =
         mode === 'empty'
@@ -178,13 +257,13 @@ try {
     await page.getByRole('option', { name: 'Home Test Club 1', exact: true }).click()
     assert.equal(await page.locator('.gc-score-row').count(), 1)
     await page.getByRole('button', { name: 'Предыдущий день', exact: true }).click()
-    await page.waitForURL(`**date=${shift(-1)}`)
+    await page.waitForURL(`**date=${shift(-1)}**`)
     assert.equal(
       await page.getByRole('combobox', { name: 'Фильтр по команде' }).innerText(),
       'Все команды',
     )
     await page.getByRole('button', { name: 'Сегодня', exact: true }).click()
-    await page.waitForURL(`**date=${today}`)
+    await page.waitForURL(`**date=${today}**`)
     await page.locator('.gc-score-row').last().waitFor()
     await page.getByRole('button', { name: 'Предстоящие', exact: false }).click()
     assert.equal(await page.locator('.gc-score-row').count(), 3)
@@ -199,16 +278,45 @@ try {
     await page.reload()
     await page.getByRole('button', { name: 'Только избранные', exact: true }).click()
     assert.equal(await page.locator('.gc-score-row').count(), 1)
-    await page.getByRole('button', { name: 'Детали матча', exact: true }).click()
-    assert.equal(await page.getByText('Synthetic Arena', { exact: true }).isVisible(), true)
-    assert.equal(await page.getByRole('table').isVisible(), true)
+    await page.getByRole('searchbox', { name: 'Поиск команды' }).fill('exceptionally')
+    await page.getByRole('link', { name: 'Открыть карточку матча' }).first().click()
+    await page.getByRole('heading', { name: 'Сравнение команд' }).waitFor()
+    assert.equal(await page.getByRole('heading', { name: 'Статистика игроков' }).isVisible(), true)
+    assert.equal(await page.locator('.game-detail-hero').isVisible(), true)
+    assert.equal(
+      (await page.locator('.player-dnp summary').first().innerText())
+        .replaceAll(/\s+/g, ' ')
+        .trim(),
+      'Не играли 1',
+    )
+    if (width <= 640)
+      await page.getByRole('button', { name: 'Сортировать по: Очки' }).first().click()
+    else await page.locator('.player-sort').filter({ hasText: 'PTS' }).first().click()
+    assert.equal(await page.locator('.game-leader-card').count(), 3)
+    await capture('game-details')
+    await page.getByRole('link', { name: 'К игровому дню' }).click()
+    await page.getByRole('searchbox', { name: 'Поиск команды' }).waitFor()
+    assert.equal(
+      await page.getByRole('searchbox', { name: 'Поиск команды' }).inputValue(),
+      'exceptionally',
+    )
+    assert.equal(await page.locator('.gc-score-row').count(), 1)
+    boxScoreAvailable = false
+    await page.reload()
+    await page.getByRole('searchbox', { name: 'Поиск команды' }).waitFor()
+    await page.getByRole('link', { name: 'Открыть карточку матча' }).first().click()
+    await page.getByRole('heading', { name: 'Подробная статистика пока недоступна' }).waitFor()
+    await capture('game-details-no-box')
+    boxScoreAvailable = true
+    await page.getByRole('link', { name: 'К игровому дню' }).click()
+    await page.getByRole('searchbox', { name: 'Поиск команды' }).waitFor()
     await page.getByRole('button', { name: 'Выбрать игровую дату NBA' }).click()
     await capture('calendar-open')
     await page.keyboard.press('ArrowLeft')
     await page.keyboard.press('Enter')
-    await page.waitForURL(`**date=${shift(-1)}`)
+    await page.waitForURL(`**date=${shift(-1)}**`)
     await page.getByRole('button', { name: 'Сегодня', exact: true }).click()
-    await page.waitForURL(`**date=${today}`)
+    await page.waitForURL(`**date=${today}**`)
     await page.getByRole('button', { name: 'Выбрать игровую дату NBA' }).click()
     await page.keyboard.press('Escape')
     assert.equal(
@@ -353,7 +461,11 @@ try {
     // All network data in public screenshots are generated above.
     assert.ok(
       calls.every(
-        (call) => call.method === 'GET' && ['/api/games', '/api/standings'].includes(call.path),
+        (call) =>
+          call.method === 'GET' &&
+          (call.path === '/api/games' ||
+            call.path === '/api/standings' ||
+            /^\/api\/games\/[^/]+$/.test(call.path)),
       ),
     )
     if (width === 1440) {
@@ -368,7 +480,7 @@ try {
     assert.deepEqual(errors, [])
     checks.push({
       width,
-      routes: 6,
+      routes: 7,
       states: 'ready,loading,empty,error,stale,ambiguous GB',
       interactions:
         'filters, sort, favorites, comparison, sticky columns, date reset, calendar keyboard, focus restoration, GET-only',
@@ -377,7 +489,7 @@ try {
   }
   await writeFile(path.join(output, 'checks.json'), JSON.stringify(checks, null, 2))
   console.info(
-    `BuzzerBoard: ${checks.length} viewports passed, all six routes; only synthetic GET responses, no upstream`,
+    `BuzzerBoard: ${checks.length} viewports passed, all seven routes; only synthetic GET responses, no upstream`,
   )
 } finally {
   await browser?.close()

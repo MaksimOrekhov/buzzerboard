@@ -14,6 +14,12 @@ export const appRoutes: RouteRecordRaw[] = [
     meta: { title: 'Матчи' },
   },
   {
+    path: '/games/:gameId',
+    name: 'game-details',
+    component: () => import('@/pages/GameDetailsView.vue'),
+    meta: { title: 'Матч' },
+  },
+  {
     path: '/standings',
     name: 'standings',
     component: () => import('@/pages/StandingsView.vue'),
