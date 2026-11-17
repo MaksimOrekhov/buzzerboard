@@ -79,7 +79,8 @@ export interface TeamBoxScore {
 export interface PlayerBoxScore {
   player: Player
   starter: boolean | null
-  didNotPlay: boolean
+  /** null means the provider did not supply enough participation data. */
+  didNotPlay: boolean | null
   minutes: string | null
   points: number | null
   fieldGoals: ShootingLine

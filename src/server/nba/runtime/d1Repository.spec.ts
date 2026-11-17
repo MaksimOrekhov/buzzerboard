@@ -57,6 +57,35 @@ class SqliteD1 implements D1Database {
         app_credits INTEGER NOT NULL CHECK (app_credits >= 0),
         box_score_credits INTEGER NOT NULL DEFAULT 0 CHECK (box_score_credits >= 0)
       );
+      CREATE TABLE nba_refresh_locks (
+        lock_key TEXT PRIMARY KEY,
+        token TEXT NOT NULL,
+        lease_expires_at_ms INTEGER NOT NULL
+      );
+      CREATE TABLE nba_cache (
+        cache_key TEXT PRIMARY KEY,
+        capability TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        record_json TEXT NOT NULL,
+        expires_at_ms INTEGER NOT NULL,
+        stale_until_ms INTEGER NOT NULL,
+        updated_at_ms INTEGER NOT NULL
+      );
+      CREATE TABLE nba_rate_limits (
+        rate_key TEXT NOT NULL,
+        window_start_ms INTEGER NOT NULL,
+        request_count INTEGER NOT NULL,
+        expires_at_ms INTEGER NOT NULL,
+        PRIMARY KEY (rate_key, window_start_ms)
+      );
+      CREATE TABLE nba_provider_cooldowns (
+        provider TEXT PRIMARY KEY,
+        retry_at_ms INTEGER NOT NULL DEFAULT 0,
+        error_code TEXT NOT NULL,
+        updated_at_ms INTEGER NOT NULL,
+        remaining INTEGER,
+        reset_at_ms INTEGER
+      );
     `)
   }
 
@@ -171,6 +200,73 @@ describe('D1 atomic credit reservations', () => {
     expect(usage).toMatchObject({ appCredits: 128, boxScoreCredits: 5 })
     expect(usage!.baselineCredits + usage!.appCredits + usage!.boxScoreCredits).toBeLessThanOrEqual(
       500,
+    )
+  })
+})
+
+describe('D1 atomic BBS guards', () => {
+  it('reserves daily and rolling-minute request slots atomically', async () => {
+    const { database, repository } = makeRepository()
+    const start = Date.parse('2026-11-17T10:00:00.000Z')
+
+    expect(await repository.reserveBbsRequest(start, 2, 1)).toMatchObject({ allowed: true })
+    expect(await repository.reserveBbsRequest(start + 1, 2, 1)).toMatchObject({
+      allowed: false,
+      errorCode: 'rate_limited',
+    })
+    expect(
+      database.database
+        .prepare("SELECT request_count FROM nba_rate_limits WHERE rate_key LIKE 'bbs:utc-day:%'")
+        .get(),
+    ).toEqual({ request_count: 1 })
+    expect(await repository.reserveBbsRequest(start + 60_001, 2, 1)).toMatchObject({
+      allowed: true,
+    })
+    expect(await repository.reserveBbsRequest(start + 120_002, 2, 1)).toMatchObject({
+      allowed: false,
+      errorCode: 'quota_exceeded',
+    })
+  })
+
+  it('uses shared provider headroom and a fenced renewable cache lock', async () => {
+    const { database, repository } = makeRepository()
+    const otherIsolate = new D1NbaRepository(database)
+    const now = Date.parse('2026-11-17T10:00:00.000Z')
+    await repository.recordProviderRemaining('bbs', 30, now + 60_000, now)
+    const reservations = await Promise.all(
+      Array.from({ length: 10 }, (_, index) =>
+        (index % 2 === 0 ? repository : otherIsolate).reserveProviderBudget('bbs', now + index, 25),
+      ),
+    )
+    expect(reservations.filter((result) => result.allowed)).toHaveLength(5)
+    expect(
+      reservations
+        .filter((result) => !result.allowed)
+        .every((result) => result.retryAt === now + 60_000),
+    ).toBe(true)
+
+    expect(await repository.tryAcquireLock('bbs:box:test', 'old', now, now + 10)).toBe(true)
+    expect(await repository.renewLock('bbs:box:test', 'old', now + 1, now + 100)).toBe(true)
+    expect(await repository.tryAcquireLock('bbs:box:test', 'new', now + 101, now + 200)).toBe(true)
+    const record = {
+      cacheKey: 'bbs:box:test',
+      capability: 'boxScore' as const,
+      provider: 'bbs' as const,
+      gameId: 'bbs:game:test' as never,
+      data: null,
+      fetchedAt: new Date(now).toISOString() as never,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: now,
+      staleUntil: now + 1_000,
+      retryAt: null,
+      refreshError: null,
+    }
+    expect(await repository.putCacheIfLockOwned(record, 'bbs:box:test', 'old', now + 102)).toBe(
+      false,
+    )
+    expect(await repository.putCacheIfLockOwned(record, 'bbs:box:test', 'new', now + 102)).toBe(
+      true,
     )
   })
 })

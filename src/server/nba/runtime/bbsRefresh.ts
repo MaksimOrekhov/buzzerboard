@@ -7,6 +7,7 @@ import type { BoxScoreCacheRecord, NbaCacheRecord, NbaRepository, WorkerEnvironm
 import { gameDetailsCacheKey, gamesCacheKey } from './cacheKeys'
 import type { NbaRefreshTarget } from './types'
 import type { BoxScoreRefreshOutcome } from './gameDetails'
+import { isSameFinalGameSnapshot } from '@/shared/api/nba/gameDetailsGuards'
 
 const DEFAULT_DAILY_LIMIT = 150
 const DEFAULT_MINUTE_LIMIT = 10
@@ -21,7 +22,6 @@ const BOX_STALE_MS = 30 * DAY_MS
 const COOLDOWN_MS = 15 * MINUTE_MS
 const DEFAULT_REQUEST_INTERVAL_MS = 6_100
 let previousRequestStartedAt = 0
-let providerRemainingBudget: { utcDay: string; remaining: number } | null = null
 
 export interface BbsRefreshOutcome {
   target: NbaRefreshTarget
@@ -70,42 +70,32 @@ function requestHeadroom(env: WorkerEnvironment): number {
   return Number.isSafeInteger(configured) ? Math.max(25, configured) : 25
 }
 
-async function reserveBbsRequest(
-  repository: NbaRepository,
-  env: WorkerEnvironment,
-  now: number,
-): Promise<{
-  allowed: boolean
-  retryAt: number | null
-  code: 'quota_exceeded' | 'rate_limited' | null
-}> {
-  const dayStart = Math.floor(now / DAY_MS) * DAY_MS
-  const dailyAllowed = await repository.consumeRateSlot(
-    `bbs:utc-day:${new Date(dayStart).toISOString().slice(0, 10)}`,
-    now,
-    DAY_MS,
-    configuredLimit(env.BBS_DAILY_REQUEST_LIMIT, DEFAULT_DAILY_LIMIT),
-  )
-  if (!dailyAllowed) return { allowed: false, retryAt: dayStart + DAY_MS, code: 'quota_exceeded' }
-  const minuteAllowed = await repository.consumeRateSlot(
-    'bbs:upstream-minute',
-    now,
-    MINUTE_MS,
-    configuredLimit(env.BBS_PER_MINUTE_REQUEST_LIMIT, DEFAULT_MINUTE_LIMIT),
-  )
-  if (!minuteAllowed)
-    return {
-      allowed: false,
-      retryAt: Math.floor(now / MINUTE_MS) * MINUTE_MS + MINUTE_MS,
-      code: 'rate_limited',
-    }
-  return { allowed: true, retryAt: null, code: null }
-}
-
 function safeRetryAfter(response: Response, now: number): number {
   const value = response.headers.get('retry-after')
-  const seconds = value ? Number(value) : NaN
-  return Number.isFinite(seconds) && seconds >= 0 ? now + seconds * 1000 : now + COOLDOWN_MS
+  const seconds = value === null ? NaN : Number(value)
+  if (Number.isFinite(seconds) && seconds >= 0) return now + seconds * 1000
+  const date = value === null ? NaN : Date.parse(value)
+  return Number.isFinite(date) && date > now ? date : now + COOLDOWN_MS
+}
+
+function resetTime(response: Response, header: string, fallback: number): number {
+  const raw = response.headers.get(header)
+  const seconds = raw === null ? NaN : Number(raw)
+  const resetAt = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : NaN
+  return Number.isFinite(resetAt) && resetAt > Date.now() ? resetAt : fallback
+}
+
+async function lockStillOwned(
+  repository: NbaRepository,
+  lock: { key: string; token: string } | undefined,
+): Promise<void> {
+  if (!lock) return
+  const now = Date.now()
+  if (!(await repository.renewLock(lock.key, lock.token, now, now + LOCK_MS))) {
+    throw Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
+      retryAt: now + LOCK_MS,
+    })
+  }
 }
 
 async function getBbsJson(
@@ -114,6 +104,7 @@ async function getBbsJson(
   repository: NbaRepository,
   fetcher: typeof fetch,
   now: number,
+  lock?: { key: string; token: string },
 ): Promise<unknown> {
   const key = env.BBS_API_KEY
   if (!key || env.BBS_REFRESH_ENABLED !== 'true') throw createNbaApiError('not_configured', 'bbs')
@@ -128,17 +119,42 @@ async function getBbsJson(
     await new Promise((resolve) => setTimeout(resolve, waitMs))
   }
   const requestNow = Math.max(now, Date.now())
-  const utcDay = new Date(requestNow).toISOString().slice(0, 10)
-  if (providerRemainingBudget?.utcDay !== utcDay) providerRemainingBudget = null
-  if (providerRemainingBudget && providerRemainingBudget.remaining <= requestHeadroom(env)) {
-    const nextDay = Date.parse(`${utcDay}T00:00:00.000Z`) + DAY_MS
-    throw Object.assign(createNbaApiError('quota_exceeded', 'bbs', true), { retryAt: nextDay })
+  const currentCooldown = await repository.getProviderCooldown('bbs')
+  if (currentCooldown && currentCooldown.retryAt > requestNow) {
+    throw Object.assign(createNbaApiError(currentCooldown.errorCode, 'bbs', true), {
+      retryAt: currentCooldown.retryAt,
+    })
   }
-  const reservation = await reserveBbsRequest(repository, env, requestNow)
+  if (currentCooldown) await repository.clearProviderCooldown('bbs', requestNow)
+  await lockStillOwned(repository, lock)
+  const reservation = await repository.reserveBbsRequest(
+    requestNow,
+    configuredLimit(env.BBS_DAILY_REQUEST_LIMIT, DEFAULT_DAILY_LIMIT),
+    configuredLimit(env.BBS_PER_MINUTE_REQUEST_LIMIT, DEFAULT_MINUTE_LIMIT),
+  )
   if (!reservation.allowed) {
-    throw Object.assign(createNbaApiError(reservation.code ?? 'quota_exceeded', 'bbs', true), {
+    await repository.setProviderCooldown(
+      'bbs',
+      {
+        retryAt: reservation.retryAt ?? requestNow + COOLDOWN_MS,
+        errorCode: reservation.errorCode ?? 'rate_limited',
+      },
+      requestNow,
+    )
+    throw Object.assign(createNbaApiError(reservation.errorCode ?? 'rate_limited', 'bbs', true), {
       retryAt: reservation.retryAt,
     })
+  }
+  const providerBudget = await repository.reserveProviderBudget(
+    'bbs',
+    requestNow,
+    requestHeadroom(env),
+  )
+  if (!providerBudget.allowed) {
+    const retryAt = providerBudget.retryAt ?? requestNow + MINUTE_MS
+    const errorCode = providerBudget.errorCode ?? 'rate_limited'
+    await repository.setProviderCooldown('bbs', { retryAt, errorCode }, requestNow)
+    throw Object.assign(createNbaApiError(errorCode, 'bbs', true), { retryAt })
   }
   const base = (env.BBS_API_BASE_URL ?? 'https://api.bigballsdata.com').replace(/\/$/, '')
   let response: Response
@@ -155,19 +171,59 @@ async function getBbsJson(
     throw createNbaApiError('timeout', 'bbs', true)
   }
   previousRequestStartedAt = Date.now()
-  const remainingHeader =
-    response.headers.get('x-ratelimit-remaining') ??
+  const responseNow = previousRequestStartedAt
+  const dailyRemainingHeader =
     response.headers.get('x-ratelimit-remaining-day') ??
     response.headers.get('x-ratelimit-day-remaining')
+  const dailyRemaining = dailyRemainingHeader === null ? NaN : Number(dailyRemainingHeader)
+  const remainingHeader = response.headers.get('x-ratelimit-remaining')
   const providerRemaining = remainingHeader === null ? NaN : Number(remainingHeader)
-  if (Number.isSafeInteger(providerRemaining) && providerRemaining >= 0) {
-    providerRemainingBudget = { utcDay, remaining: providerRemaining }
+  const threshold = requestHeadroom(env)
+  const genericReset = resetTime(response, 'x-ratelimit-reset', responseNow + MINUTE_MS)
+  if (Number.isSafeInteger(dailyRemaining) && dailyRemaining <= threshold) {
+    const utcDay = new Date(responseNow).toISOString().slice(0, 10)
+    const retryAt = resetTime(
+      response,
+      'x-ratelimit-reset-day',
+      Date.parse(`${utcDay}T00:00:00.000Z`) + DAY_MS,
+    )
+    await repository.recordProviderRemaining('bbs', dailyRemaining, retryAt, responseNow)
+    await repository.setProviderCooldown(
+      'bbs',
+      { retryAt, errorCode: 'quota_exceeded' },
+      responseNow,
+    )
+  } else if (Number.isSafeInteger(providerRemaining) && providerRemaining >= 0) {
+    await repository.recordProviderRemaining('bbs', providerRemaining, genericReset, responseNow)
+    if (providerRemaining <= threshold) {
+      const retryAt = genericReset
+      await repository.setProviderCooldown(
+        'bbs',
+        { retryAt, errorCode: 'rate_limited' },
+        responseNow,
+      )
+    }
+  } else if (Number.isSafeInteger(dailyRemaining) && dailyRemaining >= 0) {
+    const utcDay = new Date(responseNow).toISOString().slice(0, 10)
+    const retryAt = resetTime(
+      response,
+      'x-ratelimit-reset-day',
+      Date.parse(`${utcDay}T00:00:00.000Z`) + DAY_MS,
+    )
+    await repository.recordProviderRemaining('bbs', dailyRemaining, retryAt, responseNow)
   }
   if (!response.ok) {
     const error = mapHttpStatusToNbaError('bbs', response.status)
-    if (response.status === 429) {
-      const retryAfter = safeRetryAfter(response, now)
-      throw Object.assign(error, { retryAt: retryAfter })
+    const retryAt =
+      response.status === 429
+        ? safeRetryAfter(response, responseNow)
+        : response.status === 401 || response.status === 403 || response.status >= 500
+          ? responseNow + COOLDOWN_MS
+          : null
+    if (retryAt !== null) {
+      const errorCode = error.code === 'unknown' ? 'upstream_unavailable' : error.code
+      await repository.setProviderCooldown('bbs', { retryAt, errorCode }, responseNow)
+      throw Object.assign(error, { retryAt })
     }
     throw error
   }
@@ -233,66 +289,213 @@ async function refreshBox(
   repository: NbaRepository,
   fetcher: typeof fetch,
   now: number,
-): Promise<void> {
-  if (game.provider !== 'bbs' || game.status !== 'final') return
+): Promise<{
+  state: 'refreshed' | 'up_to_date' | 'deferred' | 'in_progress'
+  error: NbaApiError | null
+  retryAt: number | null
+}> {
+  if (game.provider !== 'bbs' || game.status !== 'final')
+    return { state: 'deferred', error: createNbaApiError('invalid_request', 'bbs'), retryAt: null }
   const key = gameDetailsCacheKey('bbs', game.id)
-  const previous = await repository.getCache(key)
-  if (previous?.capability === 'boxScore' && previous.data && now < previous.expiresAt) return
+  const lockKey = `bbs:box:${game.id}`
+  const time = Date.now()
+  const previousCache = await repository.getCache(key)
+  const previous = previousCache?.capability === 'boxScore' ? previousCache : null
+  let preservedBox = previous
+  if (
+    previous?.data &&
+    now < previous.expiresAt &&
+    isSameFinalGameSnapshot(previous.data.game, game)
+  )
+    return { state: 'up_to_date', error: null, retryAt: null }
+  if (previous?.retryAt && previous.retryAt > time)
+    return { state: 'deferred', error: previous.refreshError, retryAt: previous.retryAt }
   const token = crypto.randomUUID()
-  if (!(await repository.tryAcquireLock(key, token, now, now + LOCK_MS))) return
+  if (!(await repository.tryAcquireLock(lockKey, token, time, time + LOCK_MS)))
+    return {
+      state: 'in_progress',
+      error: createNbaApiError('refresh_in_progress', 'bbs', true),
+      retryAt: time + LOCK_MS,
+    }
   try {
     const latest = await repository.getCache(key)
-    if (latest?.capability === 'boxScore' && latest.data && now < latest.expiresAt) return
+    const latestBox = latest?.capability === 'boxScore' ? latest : null
+    preservedBox = latestBox
+    const latestNow = Date.now()
+    if (
+      latestBox?.data &&
+      latestNow < latestBox.expiresAt &&
+      isSameFinalGameSnapshot(latestBox.data.game, game)
+    )
+      return { state: 'up_to_date', error: null, retryAt: null }
+    if (latestBox?.retryAt && latestBox.retryAt > latestNow)
+      return { state: 'deferred', error: latestBox.refreshError, retryAt: latestBox.retryAt }
     const teamsPayload = await getBbsJson(
       `/v1/nba/games/${encodeURIComponent(archiveGameId)}`,
       env,
       repository,
       fetcher,
-      now,
+      Date.now(),
+      { key: lockKey, token },
     )
     const playersPayload = await getBbsJson(
       `/v1/nba/games/${encodeURIComponent(game.providerId)}/box`,
       env,
       repository,
       fetcher,
-      now,
+      Date.now(),
+      { key: lockKey, token },
     )
-    const availabilityPayload = await getBbsJson(
-      `/v1/nba/games/${encodeURIComponent(archiveGameId)}/availability`,
-      env,
-      repository,
-      fetcher,
-      now,
-    )
-    const box = normalizeBbsGameBox(
-      teamsPayload,
-      playersPayload,
-      availabilityPayload,
-      game,
-      archiveGameId,
-    )
+    const box = normalizeBbsGameBox(teamsPayload, playersPayload, null, game, archiveGameId)
+    await lockStillOwned(repository, { key: lockKey, token })
+    const fetchedAt = Date.now()
     const record: BoxScoreCacheRecord = {
       cacheKey: key,
       capability: 'boxScore',
       gameId: game.id,
       provider: 'bbs',
       data: box,
-      fetchedAt: timestamp(now),
+      fetchedAt: timestamp(fetchedAt),
       providerUpdatedAt: null,
       rejectedRecords: 0,
-      expiresAt: now + BOX_TTL_MS,
-      staleUntil: now + BOX_STALE_MS,
+      expiresAt: fetchedAt + BOX_TTL_MS,
+      staleUntil: fetchedAt + BOX_STALE_MS,
       retryAt: null,
       refreshError: null,
     }
-    await repository.putCache(record)
+    if (!(await repository.putCacheIfLockOwned(record, lockKey, token, Date.now())))
+      return {
+        state: 'in_progress',
+        error: createNbaApiError('refresh_in_progress', 'bbs', true),
+        retryAt: Date.now() + LOCK_MS,
+      }
+    return { state: 'refreshed', error: null, retryAt: null }
+  } catch (cause) {
+    const error =
+      cause && typeof cause === 'object' && 'code' in cause
+        ? (cause as NbaApiError)
+        : createNbaApiError('invalid_response', 'bbs')
+    const failedAt = Date.now()
+    const retryAt =
+      Number((cause as { retryAt?: number } | null)?.retryAt) || failedAt + COOLDOWN_MS
+    if (BATCH_STOP_ERRORS.has(error.code))
+      await repository.setProviderCooldown('bbs', { retryAt, errorCode: error.code }, failedAt)
+    const failure: BoxScoreCacheRecord = {
+      cacheKey: key,
+      capability: 'boxScore',
+      gameId: game.id,
+      provider: 'bbs',
+      data: preservedBox?.data ?? null,
+      fetchedAt: preservedBox?.fetchedAt ?? timestamp(failedAt),
+      providerUpdatedAt: preservedBox?.providerUpdatedAt ?? null,
+      rejectedRecords: preservedBox?.rejectedRecords ?? 0,
+      expiresAt: Math.min(preservedBox?.expiresAt ?? failedAt, failedAt),
+      staleUntil: Math.max(preservedBox?.staleUntil ?? 0, failedAt + BOX_STALE_MS),
+      retryAt,
+      refreshError: error,
+    }
+    if (error.code !== 'refresh_in_progress')
+      await repository.putCacheIfLockOwned(failure, lockKey, token, failedAt)
+    return { state: 'deferred', error, retryAt }
   } finally {
     try {
-      await repository.releaseLock(key, token)
+      await repository.releaseLock(lockKey, token)
     } catch {
       /* Lease expires safely. */
     }
   }
+}
+
+const BATCH_STOP_ERRORS = new Set<NbaApiError['code']>([
+  'authentication',
+  'forbidden',
+  'rate_limited',
+  'quota_exceeded',
+  'upstream_unavailable',
+  'timeout',
+  'storage_unavailable',
+])
+
+async function saveBoxFailure(
+  game: Game,
+  repository: NbaRepository,
+  error: NbaApiError,
+  retryAt: number,
+): Promise<void> {
+  const cacheKey = gameDetailsCacheKey('bbs', game.id)
+  const lockKey = `bbs:box:${game.id}`
+  const now = Date.now()
+  const token = crypto.randomUUID()
+  if (!(await repository.tryAcquireLock(lockKey, token, now, now + LOCK_MS))) return
+  try {
+    const current = await repository.getCache(cacheKey)
+    const previous = current?.capability === 'boxScore' ? current : null
+    if (
+      previous?.data &&
+      Date.now() < previous.expiresAt &&
+      isSameFinalGameSnapshot(previous.data.game, game)
+    )
+      return
+    const failure: BoxScoreCacheRecord = {
+      cacheKey,
+      capability: 'boxScore',
+      gameId: game.id,
+      provider: 'bbs',
+      data: previous?.data ?? null,
+      fetchedAt: previous?.fetchedAt ?? timestamp(now),
+      providerUpdatedAt: previous?.providerUpdatedAt ?? null,
+      rejectedRecords: previous?.rejectedRecords ?? 0,
+      expiresAt: Math.min(previous?.expiresAt ?? now, now),
+      staleUntil: Math.max(previous?.staleUntil ?? 0, now + BOX_STALE_MS),
+      retryAt: Math.max(previous?.retryAt ?? 0, retryAt),
+      refreshError: error,
+    }
+    await repository.putCacheIfLockOwned(failure, lockKey, token, Date.now())
+  } finally {
+    await repository.releaseLock(lockKey, token)
+  }
+}
+
+async function refreshCachedBoxes(
+  games: readonly Game[],
+  providerReferences: Readonly<Record<string, string>> | undefined,
+  env: WorkerEnvironment,
+  repository: NbaRepository,
+  fetcher: typeof fetch,
+  now: number,
+): Promise<{ error: NbaApiError | null; retryAt: number | null; refreshed: boolean }> {
+  let firstError: NbaApiError | null = null
+  let retryAt: number | null = null
+  let refreshed = false
+  const finals = games.filter((game) => game.provider === 'bbs' && game.status === 'final')
+  for (let index = 0; index < finals.length; index += 1) {
+    const game = finals[index]!
+    const archiveId = providerReferences?.[game.id]
+    const result = archiveId
+      ? await refreshBox(game, archiveId, env, repository, fetcher, Math.max(now, Date.now()))
+      : {
+          state: 'deferred' as const,
+          error: createNbaApiError('invalid_response', 'bbs'),
+          retryAt: Date.now() + COOLDOWN_MS,
+        }
+    if (!archiveId) await saveBoxFailure(game, repository, result.error!, result.retryAt!)
+    if (result.state === 'refreshed') refreshed = true
+    if (result.error) {
+      firstError ??= result.error
+      retryAt ??= result.retryAt
+      if (BATCH_STOP_ERRORS.has(result.error.code)) {
+        for (const pending of finals.slice(index + 1))
+          await saveBoxFailure(
+            pending,
+            repository,
+            result.error,
+            result.retryAt ?? Date.now() + COOLDOWN_MS,
+          )
+        break
+      }
+    }
+  }
+  return { error: firstError, retryAt, refreshed }
 }
 
 export async function refreshBbsGames(
@@ -304,121 +507,146 @@ export async function refreshBbsGames(
 ): Promise<BbsRefreshOutcome> {
   const key = gamesCacheKey('bbs', target.date)
   const previous = await repository.getCache(key)
-  if (previous && now < previous.expiresAt) {
+  if (previous && Date.now() < previous.expiresAt) {
     if (env.BBS_REFRESH_ENABLED === 'true' && previous.capability === 'games') {
-      for (const game of previous.data) {
-        const archiveId = previous.providerReferences?.[game.id]
-        const box = await repository.getCache(gameDetailsCacheKey('bbs', game.id))
-        if (
-          game.status === 'final' &&
-          archiveId &&
-          (!box || box.capability !== 'boxScore' || !box.data || now >= box.expiresAt)
-        ) {
-          try {
-            await refreshBox(game, archiveId, env, repository, fetcher, now)
-          } catch (cause) {
-            const error =
-              cause && typeof cause === 'object' && 'code' in cause
-                ? (cause as NbaApiError)
-                : createNbaApiError('invalid_response', 'bbs')
-            const retryAt =
-              Number((cause as { retryAt?: number } | null)?.retryAt) || now + COOLDOWN_MS
-            return outcome(target, 'deferred', previous, now, error, retryAt)
-          }
-        }
-      }
+      const boxes = await refreshCachedBoxes(
+        previous.data,
+        previous.providerReferences,
+        env,
+        repository,
+        fetcher,
+        now,
+      )
+      if (boxes.error)
+        return outcome(target, 'deferred', previous, Date.now(), boxes.error, boxes.retryAt)
+      return outcome(
+        target,
+        boxes.refreshed ? 'refreshed' : 'up_to_date',
+        previous,
+        Date.now(),
+        null,
+        null,
+      )
     }
-    return outcome(target, 'up_to_date', previous, now)
+    return outcome(target, 'up_to_date', previous, Date.now())
   }
   if (env.BBS_REFRESH_ENABLED !== 'true' || !env.BBS_API_KEY) {
     const error = createNbaApiError('not_configured', 'bbs')
     return outcome(target, 'deferred', previous, now, error)
   }
   const token = crypto.randomUUID()
-  if (!(await repository.tryAcquireLock(key, token, now, now + LOCK_MS))) {
+  const lockKey = `bbs:games:${target.date}`
+  const lockStartedAt = Date.now()
+  if (!(await repository.tryAcquireLock(lockKey, token, lockStartedAt, lockStartedAt + LOCK_MS))) {
     return outcome(target, 'in_progress', previous, now, null, now + LOCK_MS)
   }
+  let record: Extract<NbaCacheRecord, { capability: 'games' }> | null = null
+  let listRefreshed = false
+  let refreshError: NbaApiError | null = null
+  let refreshRetryAt: number | null = null
   try {
     const latest = await repository.getCache(key)
-    if (latest && now < latest.expiresAt) return outcome(target, 'up_to_date', latest, now)
-    const path = `/v1/matches?league=nba&date=${encodeURIComponent(target.date)}&tz=America%2FNew_York&limit=100`
-    const payload = await getBbsJson(path, env, repository, fetcher, now)
-    const { root, matches } = matchesPayload(payload)
-    const snapshot = normalizeBbsGames(
-      { data: { ...root, matches } },
-      { fetchedAt: timestamp(now), stale: false },
-    )
-    if (snapshot.meta.rejectedRecords > 0) throw createNbaApiError('invalid_response', 'bbs')
-    const data = snapshot.data.filter((game) => game.nbaGameDate === target.date)
-    if (data.length !== snapshot.data.length) throw createNbaApiError('invalid_response', 'bbs')
-    const providerReferences: Record<string, string> = {}
-    for (const raw of matches) {
-      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue
-      const rawRecord = raw as Record<string, unknown>
-      const rawId = rawRecord.id ?? rawRecord.match_id ?? rawRecord.match_uuid
-      const archiveId = rawRecord.archive_game_id
-      if (
-        (typeof rawId === 'string' || typeof rawId === 'number') &&
-        (typeof archiveId === 'string' || typeof archiveId === 'number')
-      ) {
-        const normalizedGameId = `bbs:game:${String(rawId)}`
-        providerReferences[normalizedGameId] = String(archiveId)
+    const latestGames = latest?.capability === 'games' ? latest : null
+    if (latest && Date.now() < latest.expiresAt) {
+      if (latestGames) record = latestGames
+      else throw createNbaApiError('invalid_response', 'bbs')
+    } else {
+      const path = `/v1/matches?league=nba&date=${encodeURIComponent(target.date)}&tz=America%2FNew_York&limit=100`
+      const payload = await getBbsJson(path, env, repository, fetcher, Date.now(), {
+        key: lockKey,
+        token,
+      })
+      const { root, matches } = matchesPayload(payload)
+      const fetchedAt = Date.now()
+      const snapshot = normalizeBbsGames(
+        { data: { ...root, matches } },
+        { fetchedAt: timestamp(fetchedAt), stale: false },
+      )
+      if (snapshot.meta.rejectedRecords > 0) throw createNbaApiError('invalid_response', 'bbs')
+      const data = snapshot.data.filter((game) => game.nbaGameDate === target.date)
+      if (data.length !== snapshot.data.length) throw createNbaApiError('invalid_response', 'bbs')
+      const providerReferences: Record<string, string> = {}
+      for (const raw of matches) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue
+        const rawRecord = raw as Record<string, unknown>
+        const rawId = rawRecord.id ?? rawRecord.match_id ?? rawRecord.match_uuid
+        const archiveId = rawRecord.archive_game_id
+        if (
+          (typeof rawId === 'string' || typeof rawId === 'number') &&
+          (typeof archiveId === 'string' || typeof archiveId === 'number')
+        ) {
+          const normalizedGameId = `bbs:game:${String(rawId)}`
+          providerReferences[normalizedGameId] = String(archiveId)
+        }
       }
-    }
-    if (data.some((game) => game.status === 'final' && !providerReferences[game.id])) {
-      throw createNbaApiError('invalid_response', 'bbs')
-    }
-    const record = {
-      cacheKey: key,
-      capability: 'games' as const,
-      provider: 'bbs' as const,
-      data,
-      providerReferences,
-      fetchedAt: snapshot.meta.fetchedAt,
-      providerUpdatedAt: snapshot.meta.providerUpdatedAt,
-      rejectedRecords: snapshot.meta.rejectedRecords,
-      expiresAt: now + GAME_TTL_MS,
-      staleUntil: now + GAME_STALE_MS,
-      retryAt: null,
-      refreshError: null,
-    }
-    const previousGames = previous?.capability === 'games' ? previous.data : []
-    for (const game of data) {
-      const prior = previousGames.find((candidate) => candidate.id === game.id)
-      if (
-        prior &&
-        (prior.status !== game.status ||
-          prior.homeTeam.id !== game.homeTeam.id ||
-          prior.awayTeam.id !== game.awayTeam.id ||
-          prior.score.home !== game.score.home ||
-          prior.score.away !== game.score.away)
-      ) {
-        await repository.deleteCache(gameDetailsCacheKey('bbs', game.id))
+      if (data.some((game) => game.status === 'final' && !providerReferences[game.id])) {
+        throw createNbaApiError('invalid_response', 'bbs')
       }
+      const freshRecord: Extract<NbaCacheRecord, { capability: 'games' }> = {
+        cacheKey: key,
+        capability: 'games',
+        provider: 'bbs',
+        data,
+        providerReferences,
+        fetchedAt: snapshot.meta.fetchedAt,
+        providerUpdatedAt: snapshot.meta.providerUpdatedAt,
+        rejectedRecords: snapshot.meta.rejectedRecords,
+        expiresAt: fetchedAt + GAME_TTL_MS,
+        staleUntil: fetchedAt + GAME_STALE_MS,
+        retryAt: null,
+        refreshError: null,
+      }
+      if (!(await repository.putCacheIfLockOwned(freshRecord, lockKey, token, Date.now())))
+        throw Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
+          retryAt: Date.now() + LOCK_MS,
+        })
+      record = freshRecord
+      listRefreshed = true
     }
-    await repository.putCache(record)
-    for (const game of data) {
-      const archiveId = providerReferences[game.id]
-      if (game.status === 'final' && archiveId)
-        await refreshBox(game, archiveId, env, repository, fetcher, now)
-    }
-    return outcome(target, 'refreshed', record, now, null, null)
   } catch (cause) {
-    const error =
+    refreshError =
       cause && typeof cause === 'object' && 'code' in cause
         ? (cause as NbaApiError)
         : createNbaApiError('invalid_response', 'bbs')
-    const retryAt = Number((cause as { retryAt?: number } | null)?.retryAt) || now + COOLDOWN_MS
-    const failed = cacheFailure(previous, error, now, retryAt)
-    if (failed) await repository.putCache(failed)
-    return outcome(target, 'deferred', failed, now, error, retryAt)
+    refreshRetryAt =
+      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
+    const failed = cacheFailure(previous, refreshError, Date.now(), refreshRetryAt)
+    if (failed) await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())
   } finally {
     try {
-      await repository.releaseLock(key, token)
+      await repository.releaseLock(lockKey, token)
     } catch {
       /* Lease expires safely. */
     }
   }
+  if (refreshError)
+    return outcome(target, 'deferred', previous, Date.now(), refreshError, refreshRetryAt)
+  if (!record)
+    return outcome(
+      target,
+      'deferred',
+      previous,
+      Date.now(),
+      createNbaApiError('invalid_response', 'bbs'),
+    )
+  const boxes = await refreshCachedBoxes(
+    record.data,
+    record.providerReferences,
+    env,
+    repository,
+    fetcher,
+    Date.now(),
+  )
+  if (boxes.error)
+    return outcome(target, 'deferred', record, Date.now(), boxes.error, boxes.retryAt)
+  return outcome(
+    target,
+    listRefreshed || boxes.refreshed ? 'refreshed' : 'up_to_date',
+    record,
+    Date.now(),
+    null,
+    null,
+  )
 }
 
 export async function refreshBbsGameBoxScore(
@@ -452,22 +680,33 @@ export async function refreshBbsGameBoxScore(
   ) {
     return result('deferred', createNbaApiError('invalid_request', 'bbs'))
   }
-  if (record?.data && now < record.expiresAt) return result('up_to_date', null, null)
+  if (record?.data && now < record.expiresAt && isSameFinalGameSnapshot(record.data.game, game))
+    return result('up_to_date', null, null)
+  if (record?.retryAt && record.retryAt > now)
+    return result('deferred', record.refreshError, record.retryAt)
   try {
     const games = await repository.getCache(gamesCacheKey('bbs', game.nbaGameDate))
     const archiveId =
       games?.capability === 'games' ? games.providerReferences?.[game.id] : undefined
     if (!archiveId) throw createNbaApiError('cache_miss', 'bbs', true)
-    await refreshBox(game, archiveId, env, repository, fetcher, now)
+    const boxResult = await refreshBox(game, archiveId, env, repository, fetcher, Date.now())
     const latest = await repository.getCache(cacheKey)
     const latestBox = latest?.capability === 'boxScore' ? latest : null
-    return result(latestBox?.data ? 'refreshed' : 'deferred', latestBox?.refreshError ?? null)
+    return {
+      target,
+      state: boxResult.state,
+      isStale: !latestBox?.data || Date.now() >= latestBox.expiresAt,
+      fetchedAt: latestBox?.fetchedAt ?? null,
+      retryAfter: boxResult.retryAt === null ? null : timestamp(boxResult.retryAt),
+      error: boxResult.error ?? latestBox?.refreshError ?? null,
+    }
   } catch (cause) {
     const error =
       cause && typeof cause === 'object' && 'code' in cause
         ? (cause as NbaApiError)
         : createNbaApiError('invalid_response', 'bbs')
-    const retryAt = Number((cause as { retryAt?: number } | null)?.retryAt) || now + COOLDOWN_MS
+    const retryAt =
+      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
     return result('deferred', error, retryAt)
   }
 }
@@ -517,7 +756,10 @@ export async function runScheduledBbsRefresh(
       result.error?.code === 'forbidden' ||
       result.error?.code === 'authentication' ||
       result.error?.code === 'rate_limited' ||
-      result.error?.code === 'quota_exceeded'
+      result.error?.code === 'quota_exceeded' ||
+      result.error?.code === 'upstream_unavailable' ||
+      result.error?.code === 'timeout' ||
+      result.error?.code === 'storage_unavailable'
     )
       break
   }

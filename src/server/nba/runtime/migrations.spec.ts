@@ -32,6 +32,7 @@ describe('BBS D1 migration', () => {
         .run()
 
       database.exec(migration('0003_bbs_provider.sql'))
+      database.exec(migration('0004_provider_cooldowns.sql'))
       const prior = database
         .prepare('SELECT provider, record_json FROM nba_cache WHERE cache_key = ?')
         .get('dunkapi:nba:games:date=2026-11-15') as { provider: string; record_json: string }
@@ -50,6 +51,13 @@ describe('BBS D1 migration', () => {
           )
           .run(),
       ).not.toThrow()
+      expect(
+        database
+          .prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name = 'nba_provider_cooldowns'",
+          )
+          .get(),
+      ).toEqual({ name: 'nba_provider_cooldowns' })
     } finally {
       database.close()
     }

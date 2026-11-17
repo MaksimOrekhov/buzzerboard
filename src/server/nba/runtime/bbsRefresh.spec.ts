@@ -6,9 +6,10 @@ import type {
   NbaRepository,
   WorkerEnvironment,
   CreditUsage,
+  ProviderCooldown,
 } from '@/server/nba/runtime/types'
 import { gameDetailsCacheKey, gamesCacheKey } from '@/server/nba/runtime/cacheKeys'
-import { refreshBbsGames } from '@/server/nba/runtime/bbsRefresh'
+import { refreshBbsGames, runScheduledBbsRefresh } from '@/server/nba/runtime/bbsRefresh'
 import { createNbaWorker } from '@/server/worker'
 
 const now = Date.parse('2026-11-17T10:00:00.000Z')
@@ -25,7 +26,10 @@ const environment: WorkerEnvironment = {
 class MemoryRepository implements NbaRepository {
   cache = new Map<string, NbaCacheRecord>()
   slots = new Map<string, number>()
-  locks = new Set<string>()
+  locks = new Map<string, { token: string; expiresAt: number }>()
+  providerCooldowns = new Map<string, ProviderCooldown>()
+  providerRemaining = new Map<string, { remaining: number; resetAt: number }>()
+  bbsRequests: number[] = []
   async getCache(key: string) {
     return this.cache.get(key) ?? null
   }
@@ -35,13 +39,26 @@ class MemoryRepository implements NbaRepository {
   async deleteCache(key: string) {
     this.cache.delete(key)
   }
-  async tryAcquireLock(key: string) {
-    if (this.locks.has(key)) return false
-    this.locks.add(key)
+  async tryAcquireLock(key: string, token: string, now: number, expiresAt: number) {
+    const current = this.locks.get(key)
+    if (current && current.expiresAt > now) return false
+    this.locks.set(key, { token, expiresAt })
     return true
   }
-  async releaseLock(key: string) {
-    this.locks.delete(key)
+  async renewLock(key: string, token: string, now: number, expiresAt: number) {
+    const current = this.locks.get(key)
+    if (!current || current.token !== token || current.expiresAt <= now) return false
+    this.locks.set(key, { token, expiresAt })
+    return true
+  }
+  async putCacheIfLockOwned(record: NbaCacheRecord, key: string, token: string, now: number) {
+    const current = this.locks.get(key)
+    if (!current || current.token !== token || current.expiresAt <= now) return false
+    this.cache.set(record.cacheKey, record)
+    return true
+  }
+  async releaseLock(key: string, token: string) {
+    if (this.locks.get(key)?.token === token) this.locks.delete(key)
   }
   async getCreditUsage(): Promise<CreditUsage | null> {
     return null
@@ -58,6 +75,58 @@ class MemoryRepository implements NbaRepository {
     if (count >= limit) return false
     this.slots.set(slot, count + 1)
     return true
+  }
+  async reserveBbsRequest(now: number, dailyLimit: number, minuteLimit: number) {
+    const dayStart = Math.floor(now / 86_400_000) * 86_400_000
+    const daySlot = `bbs:utc-day:${new Date(dayStart).toISOString().slice(0, 10)}`
+    const dayCount = this.slots.get(daySlot) ?? 0
+    if (dayCount >= dailyLimit)
+      return {
+        allowed: false,
+        retryAt: dayStart + 86_400_000,
+        errorCode: 'quota_exceeded' as const,
+      }
+    const minuteRequests = this.bbsRequests.filter((requestAt) => requestAt > now - 60_000)
+    if (minuteRequests.length >= minuteLimit)
+      return {
+        allowed: false,
+        retryAt: minuteRequests[0]! + 60_000,
+        errorCode: 'rate_limited' as const,
+      }
+    this.slots.set(daySlot, dayCount + 1)
+    this.bbsRequests.push(now)
+    return { allowed: true, retryAt: null, errorCode: null }
+  }
+  async getProviderCooldown(provider: string) {
+    return this.providerCooldowns.get(provider) ?? null
+  }
+  async setProviderCooldown(provider: string, cooldown: ProviderCooldown) {
+    const existing = this.providerCooldowns.get(provider)
+    this.providerCooldowns.set(
+      provider,
+      existing && existing.retryAt > cooldown.retryAt ? existing : cooldown,
+    )
+  }
+  async clearProviderCooldown(provider: string, now: number) {
+    const existing = this.providerCooldowns.get(provider)
+    if (existing && existing.retryAt <= now) this.providerCooldowns.delete(provider)
+  }
+  async reserveProviderBudget(provider: string, now: number, headroom: number) {
+    const state = this.providerRemaining.get(provider)
+    if (state && state.resetAt > now) {
+      if (state.remaining <= headroom)
+        return { allowed: false, retryAt: state.resetAt, errorCode: 'rate_limited' as const }
+      state.remaining -= 1
+    }
+    return { allowed: true, retryAt: null, errorCode: null }
+  }
+  async recordProviderRemaining(provider: string, remaining: number, resetAt: number) {
+    const existing = this.providerRemaining.get(provider)
+    this.providerRemaining.set(provider, {
+      remaining:
+        existing?.resetAt === resetAt ? Math.min(existing.remaining, remaining) : remaining,
+      resetAt,
+    })
   }
   async cleanupExpired() {}
 }
@@ -104,8 +173,8 @@ function fakeBbsFetch(options: { status?: number; total?: number } = {}) {
         JSON.stringify({
           data: {
             id: 'synthetic-final-match-uuid',
-            home: [{ player_id: 'bos-player-1', player_name: 'Synthetic Home Player', pts: 28 }],
-            away: [{ player_id: 'nyk-player-1', player_name: 'Synthetic Away Player', pts: 22 }],
+            home: [{ player_id: 'bos-player-1', player_name: 'Synthetic Home Player', pts: 112 }],
+            away: [{ player_id: 'nyk-player-1', player_name: 'Synthetic Away Player', pts: 108 }],
           },
         }),
         { status: 200 },
@@ -168,7 +237,7 @@ function busyDayFixture() {
   return { data: matches, pagination: { total: matches.length, limit: 100, offset: 0 } }
 }
 
-function busyDayFetch() {
+function busyDayFetch(options: { teamStatus?: number; boxStatusForFirst?: number } = {}) {
   const paths: string[] = []
   const fetcher = vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(String(input))
@@ -177,6 +246,10 @@ function busyDayFetch() {
       return new Response(JSON.stringify(busyDayFixture()), { status: 200 })
     }
     if (url.pathname.startsWith('/v1/nba/games/') && !url.pathname.endsWith('/box')) {
+      const gameIndex = Number(url.pathname.split('/').at(-1)) - 91000000
+      const match = busyDayFixture().data[gameIndex]!
+      if (gameIndex === 0 && options.teamStatus)
+        return new Response('{}', { status: options.teamStatus })
       if (url.pathname.endsWith('/availability')) {
         return new Response(
           JSON.stringify({
@@ -203,8 +276,14 @@ function busyDayFetch() {
         JSON.stringify({
           data: {
             id: Number(url.pathname.split('/').at(-1)),
-            home: { pts: 112 },
-            away: { pts: 108 },
+            home: {
+              team_id: match.home.team_id,
+              pts: 112,
+            },
+            away: {
+              team_id: match.away.team_id,
+              pts: 108,
+            },
           },
         }),
         { status: 200 },
@@ -212,12 +291,14 @@ function busyDayFetch() {
     }
     const uuid = url.pathname.split('/').at(-2)!
     const index = Number(uuid.split('-').at(-1)) - 1
+    if (index === 0 && options.boxStatusForFirst)
+      return new Response('{}', { status: options.boxStatusForFirst })
     return new Response(
       JSON.stringify({
         data: {
           id: uuid,
-          home: [{ player_id: `home-${index}`, player_name: 'Synthetic Home Player', pts: 28 }],
-          away: [{ player_id: `away-${index}`, player_name: 'Synthetic Away Player', pts: 22 }],
+          home: [{ player_id: `home-${index}`, player_name: 'Synthetic Home Player', pts: 112 }],
+          away: [{ player_id: `away-${index}`, player_name: 'Synthetic Away Player', pts: 108 }],
         },
       }),
       { status: 200 },
@@ -238,12 +319,11 @@ describe('BBS cached refresh flow', () => {
       now,
     )
     expect(result.state).toBe('refreshed')
-    expect(paths).toHaveLength(4)
+    expect(paths).toHaveLength(3)
     expect(paths.map((path) => new URL(`https://bbs.test${path}`).pathname)).toEqual([
       '/v1/matches',
       '/v1/nba/games/90000001',
       '/v1/nba/games/synthetic-final-match-uuid/box',
-      '/v1/nba/games/90000001/availability',
     ])
     const games = repository.cache.get(gamesCacheKey('bbs', date))
     expect(games?.capability).toBe('games')
@@ -271,8 +351,13 @@ describe('BBS cached refresh flow', () => {
       environment,
     )
     expect(details.status).toBe(200)
-    expect(((await details.json()) as { boxScoreAvailability: string }).boxScoreAvailability).toBe(
-      'available',
+    const detailsBody = (await details.json()) as {
+      boxScoreAvailability: string
+      data: { boxScore: { players: { didNotPlay: boolean | null }[] } | null }
+    }
+    expect(detailsBody.boxScoreAvailability).toBe('available')
+    expect(detailsBody.data.boxScore?.players.every((player) => player.didNotPlay === null)).toBe(
+      true,
     )
     expect(noNetwork).not.toHaveBeenCalled()
   })
@@ -301,6 +386,7 @@ describe('BBS cached refresh flow', () => {
 
   it('stops after a provider 429 without retrying or spending more requests', async () => {
     const repository = new MemoryRepository()
+    vi.spyOn(Date, 'now').mockReturnValue(now)
     const { fetcher, paths } = fakeBbsFetch({ status: 429 })
     const result = await refreshBbsGames(
       { type: 'games', date },
@@ -312,6 +398,7 @@ describe('BBS cached refresh flow', () => {
     expect(result.error?.code).toBe('rate_limited')
     expect(result.retryAfter).toBe(new Date(now + 120_000).toISOString())
     expect(paths).toHaveLength(1)
+    vi.restoreAllMocks()
   })
 
   it('reserves every BBS request against its own daily cap before sending it', async () => {
@@ -335,7 +422,8 @@ describe('BBS cached refresh flow', () => {
       [...repository.slots.entries()]
         .filter(([key]) => key.includes('bbs:upstream-minute'))
         .map(([, count]) => count),
-    ).toEqual([2])
+    ).toEqual([])
+    expect(repository.bbsRequests).toHaveLength(2)
   })
 
   it('ingests all 15 synthetic final games and full boxes without exceeding a 10/minute bucket', async () => {
@@ -358,7 +446,7 @@ describe('BBS cached refresh flow', () => {
         now,
       )
       expect(result.state).toBe('refreshed')
-      expect(paths).toHaveLength(46)
+      expect(paths).toHaveLength(31)
       const games = repository.cache.get(gamesCacheKey('bbs', date))
       if (games?.capability !== 'games') throw new Error('Expected all BBS games to be cached')
       expect(games.data).toHaveLength(15)
@@ -377,10 +465,169 @@ describe('BBS cached refresh flow', () => {
         [...repository.slots.entries()]
           .filter(([key]) => key.includes('bbs:utc-day:'))
           .map(([, count]) => count),
-      ).toEqual([46])
+      ).toEqual([31])
     } finally {
       vi.restoreAllMocks()
     }
+  })
+
+  it('keeps a bad game isolated and continues caching the other games', async () => {
+    const repository = new MemoryRepository()
+    let simulatedNow = now
+    vi.spyOn(Date, 'now').mockImplementation(() => simulatedNow)
+    const { fetcher: unpaced, paths } = busyDayFetch({ boxStatusForFirst: 404 })
+    const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await unpaced(input, init)
+      simulatedNow += 7_000
+      return response
+    }) as typeof fetch
+    const result = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fetcher,
+      now,
+    )
+    const list = repository.cache.get(gamesCacheKey('bbs', date))
+    if (list?.capability !== 'games') throw new Error('Expected fresh game list')
+    const first = repository.cache.get(gameDetailsCacheKey('bbs', list.data[0]!.id))
+    const rest = list.data
+      .slice(1)
+      .map((game) => repository.cache.get(gameDetailsCacheKey('bbs', game.id)))
+    expect(result.error?.code).toBe('not_found')
+    expect(paths).toHaveLength(31)
+    expect(first).toMatchObject({
+      capability: 'boxScore',
+      data: null,
+      refreshError: { code: 'not_found' },
+    })
+    expect(rest.every((box) => box?.capability === 'boxScore' && box.data !== null)).toBe(true)
+    vi.restoreAllMocks()
+  })
+
+  it('retains a compatible stale box through a cached failure and recovers after its cooldown', async () => {
+    const repository = new MemoryRepository()
+    let simulatedNow = now
+    vi.spyOn(Date, 'now').mockImplementation(() => simulatedNow)
+    await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fakeBbsFetch().fetcher,
+      now,
+    )
+    const games = repository.cache.get(gamesCacheKey('bbs', date))
+    if (games?.capability !== 'games') throw new Error('Expected game list')
+    const game = games.data[0]!
+    const key = gameDetailsCacheKey('bbs', game.id)
+    const oldBox = repository.cache.get(key)
+    if (oldBox?.capability !== 'boxScore' || !oldBox.data) throw new Error('Expected old box')
+    await repository.putCache({ ...oldBox, expiresAt: now - 1, retryAt: null, refreshError: null })
+
+    const bad = fakeBbsFetch({ status: 404 })
+    const failed = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      bad.fetcher,
+      now,
+    )
+    const afterFailure = repository.cache.get(key)
+    expect(failed.error?.code).toBe('not_found')
+    expect(afterFailure).toMatchObject({
+      capability: 'boxScore',
+      data: oldBox.data,
+      refreshError: { code: 'not_found' },
+    })
+
+    const duringCooldown = fakeBbsFetch()
+    await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      duringCooldown.fetcher,
+      now,
+    )
+    expect(duringCooldown.paths).toHaveLength(0)
+    simulatedNow += 15 * 60_000 + 1
+    const recovered = fakeBbsFetch()
+    const recoveredResult = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      recovered.fetcher,
+      simulatedNow,
+    )
+    expect(recoveredResult.state).toBe('refreshed')
+    expect(recovered.paths).toHaveLength(2)
+    vi.restoreAllMocks()
+  })
+
+  it('stops a date on provider outage, preserves its list, and shares the cooldown with other targets', async () => {
+    const repository = new MemoryRepository()
+    const simulatedNow = now
+    vi.spyOn(Date, 'now').mockImplementation(() => simulatedNow)
+    const { fetcher, paths } = busyDayFetch({ teamStatus: 503 })
+    const result = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fetcher,
+      now,
+    )
+    const list = repository.cache.get(gamesCacheKey('bbs', date))
+    expect(result.error?.code).toBe('upstream_unavailable')
+    expect(paths).toHaveLength(2)
+    expect(list?.capability).toBe('games')
+    expect(repository.cache.size).toBe(16)
+    const before = paths.length
+    const anotherDate = await refreshBbsGames(
+      { type: 'games', date: '2026-11-16' as NbaGameDate },
+      environment,
+      repository,
+      fetcher,
+      simulatedNow,
+    )
+    expect(anotherDate.error?.code).toBe('upstream_unavailable')
+    expect(paths).toHaveLength(before)
+    vi.restoreAllMocks()
+  })
+
+  it('recovers after a per-game lock expires without writing from the stale owner', async () => {
+    const repository = new MemoryRepository()
+    let simulatedNow = now
+    vi.spyOn(Date, 'now').mockImplementation(() => simulatedNow)
+    const initial = fakeBbsFetch()
+    const delayed = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await initial.fetcher(input, init)
+      if (new URL(String(input)).pathname === '/v1/nba/games/90000001') simulatedNow += 31_000
+      return response
+    }) as typeof fetch
+    const interrupted = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      delayed,
+      simulatedNow,
+    )
+    const games = repository.cache.get(gamesCacheKey('bbs', date))
+    if (games?.capability !== 'games') throw new Error('Expected persisted game list')
+    expect(interrupted.error?.code).toBe('refresh_in_progress')
+    expect(repository.cache.get(gameDetailsCacheKey('bbs', games.data[0]!.id))).toBeUndefined()
+
+    simulatedNow += 31_000
+    const recovery = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fakeBbsFetch().fetcher,
+      simulatedNow,
+    )
+    expect(recovery.state).toBe('refreshed')
+    expect(repository.cache.get(gameDetailsCacheKey('bbs', games.data[0]!.id))?.capability).toBe(
+      'boxScore',
+    )
+    vi.restoreAllMocks()
   })
 
   it('serializes concurrent workers and refreshes the UTC daily counter at midnight', async () => {
@@ -391,7 +638,7 @@ describe('BBS cached refresh flow', () => {
       refreshBbsGames({ type: 'games', date }, environment, repository, fetcher, now),
     ])
     expect(concurrent.map((result) => result.state).sort()).toEqual(['in_progress', 'refreshed'])
-    expect(paths).toHaveLength(4)
+    expect(paths).toHaveLength(3)
 
     const midnightRepository = new MemoryRepository()
     const emptyFixture = { data: [], pagination: { total: 0, limit: 100, offset: 0 } }
@@ -401,22 +648,28 @@ describe('BBS cached refresh flow', () => {
     const once = { ...environment, BBS_DAILY_REQUEST_LIMIT: '1' }
     const beforeMidnight = Date.parse('2026-11-17T23:59:59.000Z')
     const afterMidnight = Date.parse('2026-11-18T00:00:01.000Z')
-    await refreshBbsGames(
-      { type: 'games', date: '2026-11-17' as NbaGameDate },
-      once,
-      midnightRepository,
-      midnightFetch,
-      beforeMidnight,
-    )
-    const nextDay = await refreshBbsGames(
-      { type: 'games', date: '2026-11-18' as NbaGameDate },
-      once,
-      midnightRepository,
-      midnightFetch,
-      afterMidnight,
-    )
-    expect(nextDay.state).toBe('refreshed')
-    expect(midnightFetch).toHaveBeenCalledTimes(2)
+    vi.spyOn(Date, 'now').mockReturnValue(beforeMidnight)
+    try {
+      await refreshBbsGames(
+        { type: 'games', date: '2026-11-17' as NbaGameDate },
+        once,
+        midnightRepository,
+        midnightFetch,
+        beforeMidnight,
+      )
+      vi.spyOn(Date, 'now').mockReturnValue(afterMidnight)
+      const nextDay = await refreshBbsGames(
+        { type: 'games', date: '2026-11-18' as NbaGameDate },
+        once,
+        midnightRepository,
+        midnightFetch,
+        afterMidnight,
+      )
+      expect(nextDay.state).toBe('refreshed')
+      expect(midnightFetch).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.restoreAllMocks()
+    }
   })
 
   it('atomically prevents concurrent dates from exceeding one daily request', async () => {
@@ -461,6 +714,31 @@ describe('BBS cached refresh flow', () => {
     expect(paths).toHaveLength(1)
   })
 
+  it('honors an HTTP-date Retry-After and stops scheduled targets on provider auth failure', async () => {
+    const repository = new MemoryRepository()
+    vi.spyOn(Date, 'now').mockReturnValue(now)
+    const retryAt = new Date(now + 90_000).toUTCString()
+    const dateFetcher = vi.fn(
+      async () => new Response('{}', { status: 429, headers: { 'retry-after': retryAt } }),
+    ) as typeof fetch
+    const limited = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      dateFetcher,
+      now,
+    )
+    expect(limited.retryAfter).toBe(new Date(retryAt).toISOString())
+
+    const authRepository = new MemoryRepository()
+    const { fetcher, paths } = fakeBbsFetch({ status: 403 })
+    const scheduled = await runScheduledBbsRefresh(environment, authRepository, fetcher, now)
+    expect(scheduled).toHaveLength(1)
+    expect(scheduled[0]?.error?.code).toBe('forbidden')
+    expect(paths).toHaveLength(1)
+    vi.restoreAllMocks()
+  })
+
   it('preserves provider quota headroom when the tightest remaining bucket reaches 25', async () => {
     const repository = new MemoryRepository()
     const fetcher = vi.fn(
@@ -478,7 +756,7 @@ describe('BBS cached refresh flow', () => {
       now,
     )
     expect(result.state).toBe('deferred')
-    expect(result.error?.code).toBe('quota_exceeded')
+    expect(result.error?.code).toBe('rate_limited')
     expect(fetcher).toHaveBeenCalledTimes(1)
     expect(repository.cache.get(gamesCacheKey('bbs', date))?.capability).toBe('games')
   })
@@ -502,6 +780,6 @@ describe('BBS cached refresh flow', () => {
       now + 24 * 60 * 60_000,
     )
     expect(result.state).toBe('refreshed')
-    expect(paths).toHaveLength(4)
+    expect(paths).toHaveLength(3)
   })
 })

@@ -67,12 +67,26 @@ export interface CreditUsage {
   boxScoreCredits: number
 }
 
+export interface ProviderCooldown {
+  retryAt: number
+  errorCode: NbaApiError['code']
+  remaining?: number | null
+  resetAt?: number | null
+}
+
 export interface NbaRepository {
   getCache(cacheKey: string): Promise<NbaCacheRecord | null>
   putCache(record: NbaCacheRecord): Promise<void>
   deleteCache(cacheKey: string): Promise<void>
   tryAcquireLock(lockKey: string, token: string, now: number, expiresAt: number): Promise<boolean>
+  renewLock(lockKey: string, token: string, now: number, expiresAt: number): Promise<boolean>
   releaseLock(lockKey: string, token: string): Promise<void>
+  putCacheIfLockOwned(
+    record: NbaCacheRecord,
+    lockKey: string,
+    token: string,
+    now: number,
+  ): Promise<boolean>
   getCreditUsage(month: string): Promise<CreditUsage | null>
   reserveCredits(
     month: string,
@@ -91,6 +105,33 @@ export interface NbaRepository {
     monthlyLimit: number,
   ): Promise<CreditUsage | null>
   consumeRateSlot(key: string, now: number, windowMs: number, limit: number): Promise<boolean>
+  reserveBbsRequest(
+    now: number,
+    dailyLimit: number,
+    minuteLimit: number,
+  ): Promise<{
+    allowed: boolean
+    retryAt: number | null
+    errorCode: 'quota_exceeded' | 'rate_limited' | null
+  }>
+  getProviderCooldown(provider: NbaProviderId): Promise<ProviderCooldown | null>
+  setProviderCooldown(
+    provider: NbaProviderId,
+    cooldown: ProviderCooldown,
+    now: number,
+  ): Promise<void>
+  clearProviderCooldown(provider: NbaProviderId, now: number): Promise<void>
+  reserveProviderBudget(
+    provider: NbaProviderId,
+    now: number,
+    headroom: number,
+  ): Promise<{ allowed: boolean; retryAt: number | null; errorCode: NbaApiError['code'] | null }>
+  recordProviderRemaining(
+    provider: NbaProviderId,
+    remaining: number,
+    resetAt: number,
+    now: number,
+  ): Promise<void>
   cleanupExpired(now: number): Promise<void>
 }
 

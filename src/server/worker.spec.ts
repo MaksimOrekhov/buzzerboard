@@ -41,6 +41,16 @@ class MemoryNbaRepository implements NbaRepository {
   readonly cache = new Map<string, NbaCacheRecord>()
   readonly locks = new Map<string, { token: string; expiresAt: number }>()
   readonly windows = new Map<string, { count: number; expiresAt: number }>()
+  readonly bbsRequests: number[] = []
+  readonly providerControls = new Map<
+    string,
+    {
+      retryAt: number
+      errorCode: NbaApiError['code']
+      remaining?: number | null
+      resetAt?: number | null
+    }
+  >()
   readonly usage = new Map<string, CreditUsage>()
 
   async getCache(cacheKey: string) {
@@ -59,6 +69,20 @@ class MemoryNbaRepository implements NbaRepository {
     const current = this.locks.get(lockKey)
     if (current && current.expiresAt > currentTime) return false
     this.locks.set(lockKey, { token, expiresAt })
+    return true
+  }
+
+  async renewLock(lockKey: string, token: string, currentTime: number, expiresAt: number) {
+    const current = this.locks.get(lockKey)
+    if (!current || current.token !== token || current.expiresAt <= currentTime) return false
+    this.locks.set(lockKey, { token, expiresAt })
+    return true
+  }
+
+  async putCacheIfLockOwned(record: NbaCacheRecord, lockKey: string, token: string, now: number) {
+    const current = this.locks.get(lockKey)
+    if (!current || current.token !== token || current.expiresAt <= now) return false
+    this.cache.set(record.cacheKey, record)
     return true
   }
 
@@ -136,6 +160,78 @@ class MemoryNbaRepository implements NbaRepository {
       expiresAt: windowStart + windowMs,
     })
     return true
+  }
+
+  async reserveBbsRequest(currentTime: number, dailyLimit: number, minuteLimit: number) {
+    const dayStart = Math.floor(currentTime / 86_400_000) * 86_400_000
+    const dayKey = `bbs-day:${dayStart}`
+    const currentDay = this.windows.get(dayKey)?.count ?? 0
+    if (currentDay >= dailyLimit)
+      return {
+        allowed: false,
+        retryAt: dayStart + 86_400_000,
+        errorCode: 'quota_exceeded' as const,
+      }
+    const minute = this.bbsRequests.filter((time) => time > currentTime - 60_000)
+    if (minute.length >= minuteLimit)
+      return { allowed: false, retryAt: minute[0]! + 60_000, errorCode: 'rate_limited' as const }
+    this.windows.set(dayKey, { count: currentDay + 1, expiresAt: dayStart + 86_400_000 })
+    this.bbsRequests.push(currentTime)
+    return { allowed: true, retryAt: null, errorCode: null }
+  }
+
+  async getProviderCooldown(provider: string) {
+    return this.providerControls.get(provider) ?? null
+  }
+
+  async setProviderCooldown(
+    provider: string,
+    cooldown: { retryAt: number; errorCode: NbaApiError['code'] },
+  ) {
+    const existing = this.providerControls.get(provider)
+    this.providerControls.set(
+      provider,
+      existing && existing.retryAt > cooldown.retryAt ? existing : cooldown,
+    )
+  }
+
+  async clearProviderCooldown(provider: string, currentTime: number) {
+    const current = this.providerControls.get(provider)
+    if (current && current.retryAt <= currentTime) this.providerControls.delete(provider)
+  }
+
+  async reserveProviderBudget(provider: string, currentTime: number, headroom: number) {
+    const state = this.providerControls.get(provider)
+    if (
+      state?.remaining !== null &&
+      state?.remaining !== undefined &&
+      state.resetAt &&
+      state.resetAt > currentTime
+    ) {
+      if (state.remaining <= headroom)
+        return { allowed: false, retryAt: state.resetAt, errorCode: state.errorCode }
+      state.remaining -= 1
+    }
+    return { allowed: true, retryAt: null, errorCode: null }
+  }
+
+  async recordProviderRemaining(
+    provider: string,
+    remaining: number,
+    resetAt: number,
+    updatedAt: number,
+  ) {
+    const state = this.providerControls.get(provider)
+    this.providerControls.set(provider, {
+      retryAt: state?.retryAt ?? 0,
+      errorCode: state?.errorCode ?? 'rate_limited',
+      remaining:
+        state?.resetAt === resetAt && state.remaining !== null && state.remaining !== undefined
+          ? Math.min(state.remaining, remaining)
+          : remaining,
+      resetAt,
+    })
+    void updatedAt
   }
 
   async cleanupExpired(currentTime: number) {

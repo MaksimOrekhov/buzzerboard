@@ -114,7 +114,7 @@ function isPlayerBoxScore(value: unknown): value is PlayerBoxScore {
     (player.displayName === null || typeof player.displayName === 'string') &&
     (player.teamId === null || typeof player.teamId === 'string') &&
     (value.starter === null || typeof value.starter === 'boolean') &&
-    typeof value.didNotPlay === 'boolean' &&
+    (value.didNotPlay === null || typeof value.didNotPlay === 'boolean') &&
     (value.minutes === null || typeof value.minutes === 'string') &&
     hasBoxScoreMetrics(value)
   )

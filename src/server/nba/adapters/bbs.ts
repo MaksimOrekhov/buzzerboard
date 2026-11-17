@@ -66,12 +66,11 @@ function startTime(value: Record<string, unknown>) {
   return parseUtcTimestamp(value.kickoff_utc ?? value.starts_at ?? value.start_time)
 }
 
-function bbsSeasonEndYear(value: unknown, date: string): SeasonEndYear | null {
+function bbsSeasonEndYear(value: unknown): SeasonEndYear | null {
   const year =
     readNumber(value) ?? (typeof value === 'string' ? readNumber(value.slice(0, 4)) : null)
   if (year === null || !Number.isInteger(year)) return null
-  const month = Number(date.slice(5, 7))
-  const endYear = year + (month >= 8 ? 1 : 0)
+  const endYear = year + 1
   return endYear >= 1946 && endYear <= 2200 ? (endYear as SeasonEndYear) : null
 }
 
@@ -122,7 +121,7 @@ export function normalizeBbsGame(value: unknown): Game | null {
     id: createGameId(provider, providerId),
     provider,
     providerId,
-    seasonEndYear: bbsSeasonEndYear(value.season ?? value.season_year, nbaGameDate),
+    seasonEndYear: bbsSeasonEndYear(value.season ?? value.season_year),
     nbaGameDate,
     startsAt,
     status: /finish|complete|final/i.test(
@@ -215,7 +214,7 @@ function teamBox(row: unknown, game: Game, side: 'home' | 'away'): TeamBoxScore 
   if (!isRecord(row)) return null
   const team = side === 'home' ? game.homeTeam : game.awayTeam
   const reportedId = row.team_id ?? row.teamId ?? (isRecord(row.team) ? row.team.id : null)
-  if (reportedId !== null && String(reportedId) !== String(team.providerId)) return null
+  if (reportedId === null || String(reportedId) !== String(team.providerId)) return null
   return { team, ...stats(row) }
 }
 
@@ -255,7 +254,11 @@ function playerBox(
     row.did_not_play === false ||
     (typeof rawMinutes === 'number' && rawMinutes > 0) ||
     (typeof rawMinutes === 'string' && /[1-9]/.test(rawMinutes))
-  if (!explicitlyDidNotPlay && !explicitlyPlayed) return null
+  if (
+    (row.team_id !== undefined && String(row.team_id) !== String(team.providerId)) ||
+    (row.teamId !== undefined && String(row.teamId) !== String(team.providerId))
+  )
+    return null
   return {
     player,
     starter:
@@ -264,44 +267,60 @@ function playerBox(
         : typeof availability?.starter === 'boolean'
           ? availability.starter
           : null,
-    didNotPlay: explicitlyDidNotPlay,
+    didNotPlay: explicitlyDidNotPlay ? true : explicitlyPlayed ? false : null,
     minutes,
     ...stats(row),
   }
 }
 
-function ensureIdentity(
-  root: Record<string, unknown>,
-  game: Game,
-  archiveGameId: string,
-  archiveRecord: boolean,
-) {
-  const id = readIdentifier(root.match_id ?? root.match_uuid ?? (archiveRecord ? null : root.id))
-  const date = parseNbaGameDate(root.game_date ?? root.date)
-  const archiveId = readIdentifier(
-    root.archive_game_id ?? root.game_id ?? (archiveRecord ? root.id : null),
-  )
+function ensureIdentity(root: Record<string, unknown>, game: Game, archiveGameId: string) {
+  const expectedIds = new Set([game.providerId, archiveGameId])
+  const identityValues = [
+    root.id,
+    root.match_id,
+    root.match_uuid,
+    root.archive_game_id,
+    root.game_id,
+  ].filter((value) => value !== undefined && value !== null)
+  const identityIds = identityValues.map(readIdentifier)
+  const rawDate = root.game_date ?? root.date
+  const date = rawDate === undefined || rawDate === null ? null : parseNbaGameDate(rawDate)
+  // These endpoints are addressed with different IDs. BBS may include either
+  // or both IDs in its response envelope, so validate every reported value
+  // against the list snapshot's exact UUID/archive-ID crosswalk.
   return (
-    (!id || id === game.providerId) &&
-    (!archiveId || !archiveRecord || archiveId === archiveGameId) &&
-    (!date || date === game.nbaGameDate)
+    identityIds.length > 0 &&
+    identityIds.every((reportedId) => reportedId !== null && expectedIds.has(reportedId)) &&
+    (rawDate === undefined || rawDate === null || (date !== null && date === game.nbaGameDate))
   )
 }
 
 export function normalizeBbsGameBox(
   teamPayload: unknown,
   playerPayload: unknown,
-  availabilityPayload: unknown,
+  availabilityPayload: unknown | null,
   game: Game,
   archiveGameId: string,
 ): GameBoxScore {
   const teamRoot = rootOf(teamPayload)
   const playerRoot = rootOf(playerPayload)
-  const availabilityRoot = rootOf(availabilityPayload)
+  let availabilityRoot: Record<string, unknown> | null = null
+  if (availabilityPayload !== null) {
+    try {
+      const optionalAvailability = rootOf(availabilityPayload)
+      if (
+        ensureIdentity(optionalAvailability, game, archiveGameId) &&
+        Array.isArray(optionalAvailability.home) &&
+        Array.isArray(optionalAvailability.away)
+      )
+        availabilityRoot = optionalAvailability
+    } catch {
+      // Optional participation enrichment must never invalidate core box-score data.
+    }
+  }
   if (
-    !ensureIdentity(teamRoot, game, archiveGameId, true) ||
-    !ensureIdentity(playerRoot, game, archiveGameId, false) ||
-    !ensureIdentity(availabilityRoot, game, archiveGameId, true)
+    !ensureIdentity(teamRoot, game, archiveGameId) ||
+    !ensureIdentity(playerRoot, game, archiveGameId)
   ) {
     throw new NbaAdapterError(invalidResponseError(provider))
   }
@@ -311,8 +330,8 @@ export function normalizeBbsGameBox(
   ]
   const homePlayers = playerRows(playerRoot, 'home')
   const awayPlayers = playerRows(playerRoot, 'away')
-  const homeAvailability = playerRows(availabilityRoot, 'home')
-  const awayAvailability = playerRows(availabilityRoot, 'away')
+  const homeAvailability = availabilityRoot ? playerRows(availabilityRoot, 'home') : []
+  const awayAvailability = availabilityRoot ? playerRows(availabilityRoot, 'away') : []
   if (
     !teams[0] ||
     !teams[1] ||
@@ -324,8 +343,12 @@ export function normalizeBbsGameBox(
     throw new NbaAdapterError(invalidResponseError(provider))
   }
   if (
-    (game.score.home !== null && teams[0].points !== null && game.score.home !== teams[0].points) ||
-    (game.score.away !== null && teams[1].points !== null && game.score.away !== teams[1].points)
+    game.score.home === null ||
+    game.score.away === null ||
+    teams[0].points === null ||
+    teams[1].points === null ||
+    game.score.home !== teams[0].points ||
+    game.score.away !== teams[1].points
   )
     throw new NbaAdapterError(invalidResponseError(provider))
   const seen = new Set<string>()
@@ -359,8 +382,22 @@ export function normalizeBbsGameBox(
       players.push(playerBox({ ...row, dnp: true }, game, side, row))
     }
   }
+  const playerTotals = { home: 0, away: 0 }
+  for (const player of players) {
+    if (!player || seen.has(player.player.id))
+      throw new NbaAdapterError(invalidResponseError(provider))
+    seen.add(player.player.id)
+    if (player.didNotPlay !== true) {
+      if (player.points === null) throw new NbaAdapterError(invalidResponseError(provider))
+      const side = player.player.teamId === game.homeTeam.id ? 'home' : 'away'
+      playerTotals[side] += player.points
+    }
+  }
   if (
-    players.some((player) => !player || seen.has(player.player.id) || !seen.add(player.player.id))
+    playerTotals.home !== teams[0].points ||
+    playerTotals.away !== teams[1].points ||
+    !teams[0].team.providerId ||
+    !teams[1].team.providerId
   ) {
     throw new NbaAdapterError(invalidResponseError(provider))
   }

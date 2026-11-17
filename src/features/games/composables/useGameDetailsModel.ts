@@ -42,8 +42,12 @@ export function useGameDetailsModel(boxScore: () => GameBoxScore | null) {
     if (!score) return []
     return sortPlayerLines(score.players, sortBy.value, direction.value)
   })
-  const activePlayers = computed(() => sortedPlayers.value.filter((player) => !player.didNotPlay))
-  const didNotPlay = computed(() => sortedPlayers.value.filter((player) => player.didNotPlay))
+  const activePlayers = computed(() =>
+    sortedPlayers.value.filter((player) => player.didNotPlay !== true),
+  )
+  const didNotPlay = computed(() =>
+    sortedPlayers.value.filter((player) => player.didNotPlay === true),
+  )
   const leaders = computed(() => {
     const played = activePlayers.value
     return [
