@@ -21,9 +21,9 @@
     "dunkapi:smoke": "node scripts/dunkapi-smoke.mjs",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "vue-tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,vue,css}\" \"scripts/**/*.mjs\" docs/design-system-v2-pro186.md docs/dunkapi-spike.md docs/nba-data-contracts.md docs/backend-runtime.md docs/fixtures/dunkapi-timezone-cases.json docs/fixtures/nba-normalization-fixtures.json index.html package.json tsconfig.json vite.config.ts eslint.config.js .github/workflows/ci.yml README.md .prettierrc.json pnpm-lock.yaml wrangler.jsonc",
-    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\" \"scripts/**/*.mjs\" docs/design-system-v2-pro186.md docs/dunkapi-spike.md docs/nba-data-contracts.md docs/backend-runtime.md docs/fixtures/dunkapi-timezone-cases.json docs/fixtures/nba-normalization-fixtures.json index.html package.json tsconfig.json vite.config.ts eslint.config.js .github/workflows/ci.yml README.md .prettierrc.json pnpm-lock.yaml wrangler.jsonc",
-    "visual:pro186": "node scripts/pro186-visual.mjs"
+    "format": "prettier --write \"src/**/*.{ts,vue,css}\" \"scripts/**/*.mjs\" docs/design-system-v2-pro186.md docs/dunkapi-spike.md docs/nba-data-contracts.md docs/backend-runtime.md docs/fixtures/dunkapi-timezone-cases.json docs/fixtures/nba-normalization-fixtures.json docs/fixtures/game-details.synthetic.json index.html package.json tsconfig.json vite.config.ts eslint.config.js .github/workflows/ci.yml README.md .prettierrc.json pnpm-lock.yaml wrangler.jsonc",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\" \"scripts/**/*.mjs\" docs/design-system-v2-pro186.md docs/dunkapi-spike.md docs/nba-data-contracts.md docs/backend-runtime.md docs/fixtures/dunkapi-timezone-cases.json docs/fixtures/nba-normalization-fixtures.json docs/fixtures/game-details.synthetic.json index.html package.json tsconfig.json vite.config.ts eslint.config.js .github/workflows/ci.yml README.md .prettierrc.json pnpm-lock.yaml wrangler.jsonc",
+    "visual:pro171": "node scripts/pro171-visual.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",

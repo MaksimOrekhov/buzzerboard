@@ -53,6 +53,55 @@ export interface Game {
   venue: string | null
 }
 
+export interface ShootingLine {
+  made: number | null
+  attempted: number | null
+  percentage: number | null
+}
+
+export interface TeamBoxScore {
+  team: Team
+  points: number | null
+  fieldGoals: ShootingLine
+  threePointers: ShootingLine
+  freeThrows: ShootingLine
+  rebounds: number | null
+  offensiveRebounds: number | null
+  defensiveRebounds: number | null
+  assists: number | null
+  steals: number | null
+  blocks: number | null
+  turnovers: number | null
+  fouls: number | null
+  plusMinus: number | null
+}
+
+export interface PlayerBoxScore {
+  player: Player
+  starter: boolean | null
+  didNotPlay: boolean
+  minutes: string | null
+  points: number | null
+  fieldGoals: ShootingLine
+  threePointers: ShootingLine
+  freeThrows: ShootingLine
+  rebounds: number | null
+  offensiveRebounds: number | null
+  defensiveRebounds: number | null
+  assists: number | null
+  steals: number | null
+  blocks: number | null
+  turnovers: number | null
+  fouls: number | null
+  plusMinus: number | null
+}
+
+export interface GameBoxScore {
+  game: Game
+  teams: readonly TeamBoxScore[]
+  players: readonly PlayerBoxScore[]
+}
+
 export interface Player {
   /** Provider-qualified until a verified cross-provider player mapping exists. */
   id: PlayerId

@@ -17,9 +17,18 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
     typeof record.cacheKey === 'string' &&
     (record.capability === 'games' ||
       record.capability === 'standings' ||
-      record.capability === 'schedule') &&
+      record.capability === 'schedule' ||
+      record.capability === 'boxScore') &&
     (record.provider === 'dunkapi' || record.provider === 'espn') &&
-    Array.isArray(record.data) &&
+    (record.capability === 'boxScore'
+      ? (record.data === null ||
+          (typeof record.data === 'object' &&
+            record.data !== null &&
+            typeof (record.data as Record<string, unknown>).game === 'object')) &&
+        typeof record.gameId === 'string' &&
+        (record.data === null ||
+          (record.data as { game: { id?: unknown } }).game?.id === record.gameId)
+      : Array.isArray(record.data)) &&
     typeof record.fetchedAt === 'string' &&
     (record.providerUpdatedAt === null || typeof record.providerUpdatedAt === 'string') &&
     typeof record.rejectedRecords === 'number' &&
@@ -109,10 +118,15 @@ export class D1NbaRepository implements NbaRepository {
   async getCreditUsage(month: string) {
     return this.database
       .prepare(
-        'SELECT month, baseline_credits AS baselineCredits, app_credits AS appCredits FROM nba_credit_usage WHERE month = ?1',
+        'SELECT month, baseline_credits AS baselineCredits, app_credits AS appCredits, box_score_credits AS boxScoreCredits FROM nba_credit_usage WHERE month = ?1',
       )
       .bind(month)
-      .first<{ month: string; baselineCredits: number; appCredits: number }>()
+      .first<{
+        month: string
+        baselineCredits: number
+        appCredits: number
+        boxScoreCredits: number
+      }>()
   }
 
   async reserveCredits(
@@ -123,15 +137,49 @@ export class D1NbaRepository implements NbaRepository {
   ) {
     return this.database
       .prepare(
-        `INSERT INTO nba_credit_usage (month, baseline_credits, app_credits)
-         SELECT ?1, ?2, ?3 WHERE ?3 <= ?4
+        `INSERT INTO nba_credit_usage (month, baseline_credits, app_credits, box_score_credits)
+         SELECT ?1, ?2, ?3, 0 WHERE ?3 <= ?4
          ON CONFLICT(month) DO UPDATE SET app_credits = app_credits + excluded.app_credits
          WHERE nba_credit_usage.baseline_credits = excluded.baseline_credits
            AND nba_credit_usage.app_credits + excluded.app_credits <= ?4
-         RETURNING month, baseline_credits AS baselineCredits, app_credits AS appCredits`,
+         RETURNING month, baseline_credits AS baselineCredits, app_credits AS appCredits, box_score_credits AS boxScoreCredits`,
       )
       .bind(month, baselineCredits, credits, monthlyAppLimit)
-      .first<{ month: string; baselineCredits: number; appCredits: number }>()
+      .first<{
+        month: string
+        baselineCredits: number
+        appCredits: number
+        boxScoreCredits: number
+      }>()
+  }
+
+  async reserveBoxScoreCredits(
+    month: string,
+    baselineCredits: number,
+    credits: number,
+    boxScoreLimit: number,
+    regularAppLimit: number,
+    monthlyLimit: number,
+  ) {
+    return this.database
+      .prepare(
+        `INSERT INTO nba_credit_usage (month, baseline_credits, app_credits, box_score_credits)
+         SELECT ?1, ?2, 0, ?3
+         WHERE ?3 <= ?4 AND ?2 + ?3 + ?5 <= ?6
+         ON CONFLICT(month) DO UPDATE SET box_score_credits = box_score_credits + excluded.box_score_credits
+         WHERE nba_credit_usage.baseline_credits = excluded.baseline_credits
+           AND nba_credit_usage.box_score_credits + excluded.box_score_credits <= ?4
+           AND nba_credit_usage.baseline_credits + nba_credit_usage.app_credits
+             + nba_credit_usage.box_score_credits + excluded.box_score_credits <= ?6
+         RETURNING month, baseline_credits AS baselineCredits, app_credits AS appCredits, box_score_credits AS boxScoreCredits`,
+      )
+      .bind(month, baselineCredits, credits, boxScoreLimit, regularAppLimit, monthlyLimit)
+      .first<{
+        month: string
+        baselineCredits: number
+        appCredits: number
+        boxScoreCredits: number
+      }>()
   }
 
   async consumeRateSlot(

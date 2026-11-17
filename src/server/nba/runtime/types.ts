@@ -1,5 +1,7 @@
 import type {
   Game,
+  GameBoxScore,
+  GameId,
   NbaGameDate,
   NbaApiError,
   NbaProviderId,
@@ -8,7 +10,7 @@ import type {
   UtcTimestamp,
 } from '@/entities/nba/model'
 
-export type NbaCacheCapability = 'games' | 'standings' | 'schedule'
+export type NbaCacheCapability = 'games' | 'standings' | 'schedule' | 'boxScore'
 
 export type NbaRefreshTarget =
   | { type: 'games'; date: NbaGameDate }
@@ -48,12 +50,19 @@ export type StandingsCacheRecord = CacheRecordBase & {
   data: readonly StandingsRow[]
 }
 
-export type NbaCacheRecord = GamesCacheRecord | StandingsCacheRecord
+export type BoxScoreCacheRecord = CacheRecordBase & {
+  capability: 'boxScore'
+  gameId: GameId
+  data: GameBoxScore | null
+}
+
+export type NbaCacheRecord = GamesCacheRecord | StandingsCacheRecord | BoxScoreCacheRecord
 
 export interface CreditUsage {
   month: string
   baselineCredits: number
   appCredits: number
+  boxScoreCredits: number
 }
 
 export interface NbaRepository {
@@ -68,6 +77,14 @@ export interface NbaRepository {
     baselineCredits: number,
     credits: number,
     monthlyAppLimit: number,
+  ): Promise<CreditUsage | null>
+  reserveBoxScoreCredits(
+    month: string,
+    baselineCredits: number,
+    credits: number,
+    boxScoreLimit: number,
+    regularAppLimit: number,
+    monthlyLimit: number,
   ): Promise<CreditUsage | null>
   consumeRateSlot(key: string, now: number, windowMs: number, limit: number): Promise<boolean>
   cleanupExpired(now: number): Promise<void>
@@ -102,6 +119,8 @@ export interface WorkerEnvironment {
   MANUAL_REFRESH_TOKEN?: string
   DUNKAPI_MONTHLY_CREDIT_LIMIT?: string
   DUNKAPI_APP_MONTHLY_CREDIT_BUDGET?: string
+  DUNKAPI_BOX_SCORE_REFRESH_ENABLED?: string
+  DUNKAPI_BOX_SCORE_MONTHLY_CREDIT_BUDGET?: string
   DUNKAPI_CREDITS_USED_BASELINE?: string
   DUNKAPI_CREDIT_BASELINE_MONTH?: string
   NBA_GAMES_PROVIDER_ORDER?: string

@@ -1,0 +1,97 @@
+{
+  "note": "Полностью синтетический fixture для тестов. Не содержит ответа DunkAPI или реального матча.",
+  "data": {
+    "game": {
+      "game_id": "dunk-game-001",
+      "home": { "team_id": "9", "score": 112 },
+      "away": { "team_id": "20", "score": 108 }
+    },
+    "team_stats": [
+      {
+        "team_id": "20",
+        "home": false,
+        "pts": 108,
+        "fgm": 36,
+        "fga": 80,
+        "fg_pct": 0.45,
+        "fg3m": 12,
+        "fg3a": 32,
+        "fg3_pct": 0.375,
+        "ftm": 14,
+        "fta": 18,
+        "ft_pct": 0.778,
+        "reb": 42,
+        "oreb": 9,
+        "dreb": 33,
+        "ast": 22,
+        "stl": 7,
+        "blk": 4,
+        "tov": 13,
+        "pf": 19,
+        "plus_minus": -3
+      },
+      {
+        "team_id": "9",
+        "home": true,
+        "pts": 112,
+        "fgm": 38,
+        "fga": 82,
+        "fg_pct": 0.463,
+        "fg3m": 11,
+        "fg3a": 30,
+        "fg3_pct": 0.367,
+        "ftm": 14,
+        "fta": 17,
+        "ft_pct": 0.824,
+        "reb": 45,
+        "oreb": 11,
+        "dreb": 34,
+        "ast": 25,
+        "stl": 8,
+        "blk": 5,
+        "tov": 11,
+        "pf": 18,
+        "plus_minus": 3
+      }
+    ],
+    "players": [
+      {
+        "player_id": "fixture-player-1",
+        "player_name": "Fixture Guard",
+        "team_id": "9",
+        "starter": true,
+        "minutes": "35:12",
+        "pts": 24,
+        "fgm": 9,
+        "fga": 18,
+        "fg_pct": 0.5,
+        "fg3m": 3,
+        "fg3a": 7,
+        "fg3_pct": 0.429,
+        "ftm": 3,
+        "fta": 4,
+        "ft_pct": 0.75,
+        "reb": 5,
+        "oreb": 1,
+        "dreb": 4,
+        "ast": 8,
+        "stl": 2,
+        "blk": 0,
+        "tov": 3,
+        "pf": 2,
+        "plus_minus": 7
+      },
+      {
+        "player_id": "fixture-player-2",
+        "player_name": "Fixture Center",
+        "team_id": "20",
+        "starter": false,
+        "minutes": null,
+        "dnp": true,
+        "pts": null,
+        "reb": null,
+        "ast": null
+      }
+    ]
+  }
+}

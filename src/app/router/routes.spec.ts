@@ -8,6 +8,7 @@ describe('application routes', () => {
   it.each([
     ['/', 'home', 'Главная'],
     ['/games', 'games', 'Матчи'],
+    ['/games/dunkapi%3Agame%3Asynthetic-1?date=2026-11-15', 'game-details', 'Матч'],
     ['/standings', 'standings', 'Турнирная таблица'],
     ['/news', 'news', 'Новости'],
     ['/favorites', 'favorites', 'Избранное'],
