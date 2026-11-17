@@ -44,7 +44,7 @@ export function isGameRecord(value: unknown): value is Game {
   if (
     !isRecord(value) ||
     typeof value.id !== 'string' ||
-    (value.provider !== 'dunkapi' && value.provider !== 'espn') ||
+    (value.provider !== 'dunkapi' && value.provider !== 'espn' && value.provider !== 'bbs') ||
     typeof value.providerId !== 'string' ||
     !isNbaDate(value.nbaGameDate) ||
     (value.seasonEndYear !== null && typeof value.seasonEndYear !== 'number') ||
@@ -109,12 +109,12 @@ function isPlayerBoxScore(value: unknown): value is PlayerBoxScore {
   const player = value.player
   return (
     typeof player.id === 'string' &&
-    (player.provider === 'dunkapi' || player.provider === 'espn') &&
+    (player.provider === 'dunkapi' || player.provider === 'espn' || player.provider === 'bbs') &&
     typeof player.providerId === 'string' &&
     (player.displayName === null || typeof player.displayName === 'string') &&
     (player.teamId === null || typeof player.teamId === 'string') &&
     (value.starter === null || typeof value.starter === 'boolean') &&
-    typeof value.didNotPlay === 'boolean' &&
+    (value.didNotPlay === null || typeof value.didNotPlay === 'boolean') &&
     (value.minutes === null || typeof value.minutes === 'string') &&
     hasBoxScoreMetrics(value)
   )

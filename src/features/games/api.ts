@@ -12,7 +12,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isGamesResponse(payload: unknown): payload is GamesResponse {
   if (!isRecord(payload) || !Array.isArray(payload.data) || !isRecord(payload.meta)) return false
   return (
-    (payload.meta.source === 'dunkapi' || payload.meta.source === 'espn') &&
+    (payload.meta.source === 'dunkapi' ||
+      payload.meta.source === 'espn' ||
+      payload.meta.source === 'bbs') &&
     typeof payload.meta.fetchedAt === 'string' &&
     typeof payload.meta.isStale === 'boolean' &&
     typeof payload.meta.rejectedRecords === 'number'
@@ -48,7 +50,9 @@ export async function fetchGameDetails(
       payload.data.game.id === gameId &&
       'boxScore' in payload.data &&
       isRecord(payload.meta) &&
-      (payload.meta.source === 'dunkapi' || payload.meta.source === 'espn') &&
+      (payload.meta.source === 'dunkapi' ||
+        payload.meta.source === 'espn' ||
+        payload.meta.source === 'bbs') &&
       typeof payload.meta.fetchedAt === 'string' &&
       typeof payload.meta.isStale === 'boolean' &&
       (payload.boxScoreMeta === null || isRecord(payload.boxScoreMeta)) &&

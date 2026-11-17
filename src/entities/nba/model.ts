@@ -1,6 +1,6 @@
 export type Brand<Value, Name extends string> = Value & { readonly __brand: Name }
 
-export type NbaProviderId = 'dunkapi' | 'espn'
+export type NbaProviderId = 'dunkapi' | 'espn' | 'bbs'
 export type TeamId = Brand<string, 'TeamId'>
 export type GameId = Brand<string, 'GameId'>
 export type PlayerId = Brand<string, 'PlayerId'>
@@ -79,7 +79,8 @@ export interface TeamBoxScore {
 export interface PlayerBoxScore {
   player: Player
   starter: boolean | null
-  didNotPlay: boolean
+  /** null means the provider did not supply enough participation data. */
+  didNotPlay: boolean | null
   minutes: string | null
   points: number | null
   fieldGoals: ShootingLine

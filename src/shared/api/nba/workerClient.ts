@@ -49,7 +49,10 @@ function parseApiError(payload: unknown): NbaApiError | null {
     code: value.code as NbaApiErrorCode,
     message: value.message,
     retryable: value.retryable,
-    provider: value.provider === 'dunkapi' || value.provider === 'espn' ? value.provider : null,
+    provider:
+      value.provider === 'dunkapi' || value.provider === 'espn' || value.provider === 'bbs'
+        ? value.provider
+        : null,
     upstreamStatus: typeof value.upstreamStatus === 'number' ? value.upstreamStatus : null,
   }
 }

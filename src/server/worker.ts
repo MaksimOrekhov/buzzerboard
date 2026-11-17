@@ -40,6 +40,7 @@ import {
   parseSourceGameId,
   refreshGameBoxScore,
 } from '@/server/nba/runtime/gameDetails'
+import { parseBbsBoxTarget, refreshBbsGameBoxScore } from '@/server/nba/runtime/bbsRefresh'
 
 const PRIVATE_HEADERS = {
   'cache-control': 'private, no-store',
@@ -356,7 +357,7 @@ async function readBoxScoreRefreshDate(request: Request, gameId: string) {
       body && typeof body === 'object' && !Array.isArray(body)
         ? { ...(body as Record<string, unknown>), type: 'boxScore', gameId }
         : null
-    return parseBoxScoreTarget(target)
+    return parseBoxScoreTarget(target) ?? parseBbsBoxTarget(target)
   } catch {
     return null
   }
@@ -388,9 +389,25 @@ async function postGameDetailsRefresh(
   if (!target || target.gameId !== gameId)
     return errorResponse(createError('invalid_request'), requestId, 400)
   const game = await findCachedGame(repository, target.date, target.gameId, now)
-  if (!game) return errorResponse(createError('cache_miss', 'dunkapi', true), requestId, 503)
+  if (!game) {
+    return errorResponse(
+      createError('cache_miss', parseSourceGameId(target.gameId)?.provider ?? null, true),
+      requestId,
+      503,
+    )
+  }
 
-  const result = await refreshGameBoxScore(target, game, env, repository, fetcher, now)
+  const result =
+    game.provider === 'bbs'
+      ? await refreshBbsGameBoxScore(
+          target as { type: 'boxScore'; date: typeof target.date; gameId: typeof target.gameId },
+          game,
+          env,
+          repository,
+          fetcher,
+          now,
+        )
+      : await refreshGameBoxScore(target, game, env, repository, fetcher, now)
   const body = { ...result }
   const status = result.error
     ? responseStatusForError(result.error)
@@ -604,7 +621,7 @@ export function createNbaWorker(dependencies: WorkerDependencies = {}) {
       }
 
       const scheduledAt = controller.scheduledTime || now()
-      if (env.DUNKAPI_REFRESH_ENABLED !== 'true') {
+      if (env.DUNKAPI_REFRESH_ENABLED !== 'true' && env.BBS_REFRESH_ENABLED !== 'true') {
         await repository.cleanupExpired(scheduledAt)
         console.info('Scheduled NBA refresh skipped: refresh_disabled')
         return
