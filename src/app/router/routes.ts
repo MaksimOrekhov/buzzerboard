@@ -26,6 +26,18 @@ export const appRoutes: RouteRecordRaw[] = [
     meta: { title: 'Турнирная таблица' },
   },
   {
+    path: '/teams',
+    name: 'teams',
+    component: () => import('@/pages/TeamsView.vue'),
+    meta: { title: 'Команды' },
+  },
+  {
+    path: '/teams/:teamCode',
+    name: 'team-profile',
+    component: () => import('@/pages/TeamProfileView.vue'),
+    meta: { title: 'Профиль команды' },
+  },
+  {
     path: '/news',
     name: 'news',
     component: () => import('@/pages/NewsView.vue'),

@@ -203,7 +203,8 @@
   gap: 9px;
   min-width: 0;
 }
-.gc-match-team > div {
+.gc-match-team > div,
+.gc-match-team > .gc-team-profile-copy {
   min-width: 0;
 }
 .gc-team-name {

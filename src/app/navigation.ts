@@ -1,7 +1,7 @@
 import type { AppIconName } from '@/shared/icons'
 
 export interface NavigationItem {
-  id: 'home' | 'games' | 'standings' | 'news' | 'favorites'
+  id: 'home' | 'games' | 'standings' | 'teams' | 'news' | 'favorites'
   label: string
   shortLabel: string
   to: string
@@ -9,7 +9,7 @@ export interface NavigationItem {
 }
 
 export interface ComingSoonItem {
-  id: 'teams' | 'players' | 'analytics'
+  id: 'players' | 'analytics'
   label: string
   icon: AppIconName
 }
@@ -24,6 +24,7 @@ export const navigationItems = [
     to: '/standings',
     icon: 'trophy',
   },
+  { id: 'teams', label: 'Команды', shortLabel: 'Команды', to: '/teams', icon: 'users' },
   { id: 'news', label: 'Новости', shortLabel: 'Новости', to: '/news', icon: 'news' },
   {
     id: 'favorites',
@@ -35,7 +36,6 @@ export const navigationItems = [
 ] as const satisfies readonly NavigationItem[]
 
 export const comingSoonItems = [
-  { id: 'teams', label: 'Команды', icon: 'users' },
   { id: 'players', label: 'Игроки', icon: 'basketball' },
   { id: 'analytics', label: 'Аналитика', icon: 'chart' },
 ] as const satisfies readonly ComingSoonItem[]

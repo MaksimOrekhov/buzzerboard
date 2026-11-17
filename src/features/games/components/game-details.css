@@ -49,17 +49,20 @@
   grid-template-columns: auto 76px minmax(0, 1fr);
   text-align: right;
 }
-.game-detail-side > div {
+.game-detail-side > div,
+.game-detail-side > .game-detail-team-link {
   min-width: 0;
 }
-.game-detail-side > div > span {
+.game-detail-side > div > span,
+.game-detail-side > .game-detail-team-link > span {
   display: block;
   color: var(--gc-secondary);
   font-size: 16px;
   font-weight: 650;
   line-height: 1.35;
 }
-.game-detail-side--winner > div > span {
+.game-detail-side--winner > div > span,
+.game-detail-side--winner > .game-detail-team-link > span {
   color: var(--gc-text);
 }
 .game-detail-side small {
@@ -526,11 +529,13 @@
     grid-column: 1;
     grid-row: 1;
   }
-  .game-detail-side--home > div {
+  .game-detail-side--home > div,
+  .game-detail-side--home > .game-detail-team-link {
     grid-column: 2;
     grid-row: 1;
   }
-  .game-detail-side > div > span {
+  .game-detail-side > div > span,
+  .game-detail-side > .game-detail-team-link > span {
     font-size: 11px;
   }
   .game-detail-side small {

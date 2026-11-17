@@ -31,7 +31,8 @@ const provider = 'bbs' as const
 
 function rootOf(value: unknown): Record<string, unknown> {
   const root = unwrapProviderPayload(value)
-  if (!root || 'error' in root) throw new NbaAdapterError(invalidResponseError(provider))
+  if (!root || ('error' in root && root.error !== null && root.error !== undefined))
+    throw new NbaAdapterError(invalidResponseError(provider))
   return root
 }
 

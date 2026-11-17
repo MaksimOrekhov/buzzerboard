@@ -10,16 +10,20 @@ import type {
 } from '@/entities/nba/model'
 import { dunkApiAdapter } from '@/server/nba/adapters/dunkApi'
 import { normalizeDunkGameDetails } from '@/server/nba/adapters/gameDetails'
+import { normalizeBbsTeamSeason } from '@/server/nba/adapters/bbsTeams'
+import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import {
   gameDetailsCacheKey,
   gamesCacheKey,
   scheduleCacheKey,
   standingsCacheKey,
+  teamSeasonCacheKey,
 } from '@/server/nba/runtime/cacheKeys'
 import type {
   CreditUsage,
   NbaCacheRecord,
   NbaRepository,
+  TeamSeasonCacheRecord,
   WorkerEnvironment,
 } from '@/server/nba/runtime/types'
 import {
@@ -629,6 +633,82 @@ describe('NBA Worker cache API', () => {
 
     expect(response.status).toBe(503)
     expect(payload).toMatchObject({ error: { code: 'cache_miss', provider: 'dunkapi' } })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('serves the 30-team directory and individual BBS profiles from D1 only', async () => {
+    const repository = new MemoryNbaRepository()
+    const reference = findNbaTeam('BOS')!
+    const normalized = normalizeBbsTeamSeason(
+      {
+        team_meta: { id: 'synthetic-bbs-team-id', abbreviation: 'BOS', name: 'Boston Celtics' },
+        season: '2026-27',
+        record: '31-15',
+        standings: { overall_rank: 3, conference_rank: null, games_back: 2 },
+        home_away_splits: { home: { wins: 18, losses: 5 }, away: null },
+        season_stats: {
+          games_played: 46,
+          ppg: 118.3,
+          fg_pct: 47.1,
+          three_pt_pct: 37.1,
+          reb_pg: 44.2,
+          ast_pg: 28.4,
+          tov_pg: 12.1,
+        },
+        last_10: null,
+        top_players: [],
+        next_game: null,
+      },
+      reference,
+      seasonEndYear,
+    )
+    const record: TeamSeasonCacheRecord = {
+      cacheKey: teamSeasonCacheKey('bbs', reference.team.id, seasonEndYear),
+      capability: 'teamSeason',
+      provider: 'bbs',
+      teamId: reference.team.id,
+      seasonEndYear,
+      providerTeamId: normalized.providerTeamId,
+      data: normalized.data,
+      fetchedAt: context.fetchedAt as UtcTimestamp,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: now + 60_000,
+      staleUntil: now + 7 * 24 * 60 * 60_000,
+      retryAt: null,
+      refreshError: null,
+    }
+    repository.cache.set(record.cacheKey, record)
+    const fetcher = vi.fn<typeof fetch>()
+    const worker = createWorker(repository, fetcher)
+
+    const directoryResponse = await worker.fetch(
+      new Request('https://buzzerboard.test/api/teams?seasonEndYear=2027'),
+      env,
+    )
+    const directory = await directoryResponse.json()
+    expect(directoryResponse.status).toBe(200)
+    expect(directory.data).toHaveLength(30)
+    expect(directory.coverage).toEqual({ available: 1, total: 30 })
+    expect(directory.data.find((entry: { code: string }) => entry.code === 'BOS')).toMatchObject({
+      team: { id: 'nba:team:BOS', providerId: null },
+      season: { wins: 31, losses: 15, overallRank: 3, stats: { pointsPerGame: 118.3 } },
+    })
+
+    const profileResponse = await worker.fetch(
+      new Request('https://buzzerboard.test/api/teams/BOS?seasonEndYear=2027'),
+      env,
+    )
+    expect(profileResponse.status).toBe(200)
+    const profilePayload = await profileResponse.json()
+    expect(profilePayload).toMatchObject({
+      data: {
+        team: { id: 'nba:team:BOS', providerId: null },
+        winPercentage: 31 / 46,
+      },
+      meta: { source: 'bbs', isStale: false },
+    })
+    expect(profilePayload.data.stats.fieldGoalPercentage).toBeCloseTo(0.471)
     expect(fetcher).not.toHaveBeenCalled()
   })
 

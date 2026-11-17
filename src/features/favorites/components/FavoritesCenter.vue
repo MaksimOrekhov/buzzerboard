@@ -11,6 +11,7 @@ import AppSegmented from '@/shared/components/AppSegmented.vue'
 import AppDatePicker from '@/shared/components/AppDatePicker.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
+import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
 import { gameDetailsPath } from '@/features/games/gameDetailsRoute'
@@ -69,16 +70,18 @@ const teamIds = teams.favoriteIds
           <header>
             <TeamLogo :team="row.team" :size="46" />
             <div>
-              <h2>{{ row.team.displayName ?? row.team.abbreviation }}</h2>
-              <p>
-                {{
-                  row.conference === 'east'
-                    ? 'Восточная конференция'
-                    : row.conference === 'west'
-                      ? 'Западная конференция'
-                      : 'Конференция не указана'
-                }}
-              </p>
+              <TeamProfileLink :team="row.team" class="favorite-team-profile-link">
+                <h2>{{ row.team.displayName ?? row.team.abbreviation }}</h2>
+                <p>
+                  {{
+                    row.conference === 'east'
+                      ? 'Восточная конференция'
+                      : row.conference === 'west'
+                        ? 'Западная конференция'
+                        : 'Конференция не указана'
+                  }}
+                </p>
+              </TeamProfileLink>
             </div>
             <button
               class="gc-icon-button gc-favorite"

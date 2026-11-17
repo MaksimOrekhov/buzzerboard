@@ -29,13 +29,20 @@ const route = useRoute()
             :key="item.id"
             :to="item.to"
             class="gc-nav-link"
+            :class="{
+              'gc-nav-link--active': item.id === 'teams' && route.path.startsWith('/teams'),
+            }"
             active-class="gc-nav-link--active"
             :aria-label="item.label"
             :title="item.label"
             ><AppIcon :name="item.id === 'games' ? 'basketball' : item.icon" :size="20" /><span>{{
               item.id === 'games' ? 'Game Center' : item.id === 'standings' ? 'Таблица' : item.label
             }}</span
-            ><span v-if="route.name === item.id" class="gc-nav-active-dot"
+            ><span
+              v-if="
+                route.name === item.id || (item.id === 'teams' && route.path.startsWith('/teams'))
+              "
+              class="gc-nav-active-dot"
           /></RouterLink>
         </nav>
         <div class="gc-upcoming">
@@ -86,6 +93,9 @@ const route = useRoute()
           :key="item.id"
           :to="item.to"
           active-class="gc-mobile-nav--active"
+          :class="{
+            'gc-mobile-nav--active': item.id === 'teams' && route.path.startsWith('/teams'),
+          }"
           ><AppIcon :name="item.id === 'games' ? 'basketball' : item.icon" :size="21" /><span>{{
             item.shortLabel
           }}</span></RouterLink

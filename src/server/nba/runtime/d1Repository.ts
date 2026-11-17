@@ -13,6 +13,63 @@ function isGameDateCoverage(value: unknown): value is { from: string; through: s
   return from !== null && through !== null && from <= through
 }
 
+function isNullableCount(value: unknown): boolean {
+  return value === null || (Number.isSafeInteger(value) && Number(value) >= 0)
+}
+
+function isTeamSeasonData(value: unknown, teamId: string, seasonEndYear: number): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const profile = value as Record<string, unknown>
+  const team = profile.team
+  const stats = profile.stats
+  if (!team || typeof team !== 'object' || !stats || typeof stats !== 'object') return false
+  const teamRecord = team as Record<string, unknown>
+  const statsRecord = stats as Record<string, unknown>
+  const nullableNumber = (item: unknown) =>
+    item === null || (typeof item === 'number' && Number.isFinite(item))
+  return (
+    teamRecord.id === teamId &&
+    Number(profile.seasonEndYear) === seasonEndYear &&
+    isNullableCount(profile.wins) &&
+    isNullableCount(profile.losses) &&
+    nullableNumber(profile.winPercentage) &&
+    nullableNumber(profile.overallRank) &&
+    nullableNumber(profile.conferenceRank) &&
+    nullableNumber(profile.gamesBack) &&
+    nullableNumber(statsRecord.gamesPlayed) &&
+    nullableNumber(statsRecord.pointsPerGame) &&
+    nullableNumber(statsRecord.fieldGoalPercentage) &&
+    nullableNumber(statsRecord.threePointPercentage) &&
+    nullableNumber(statsRecord.reboundsPerGame) &&
+    nullableNumber(statsRecord.assistsPerGame) &&
+    nullableNumber(statsRecord.turnoversPerGame) &&
+    (profile.lastTen === null || Array.isArray(profile.lastTen)) &&
+    Array.isArray(profile.leaders) &&
+    (profile.nextGame === null || typeof profile.nextGame === 'object')
+  )
+}
+
+function isTeamDirectoryData(value: unknown): boolean {
+  if (!Array.isArray(value) || value.length !== 30) return false
+  const teamIds = new Set<string>()
+  const providerIds = new Set<string>()
+  return value.every((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false
+    const row = entry as Record<string, unknown>
+    if (
+      typeof row.teamId !== 'string' ||
+      !row.teamId.startsWith('nba:team:') ||
+      typeof row.providerTeamId !== 'string' ||
+      teamIds.has(row.teamId) ||
+      providerIds.has(row.providerTeamId)
+    )
+      return false
+    teamIds.add(row.teamId)
+    providerIds.add(row.providerTeamId)
+    return true
+  })
+}
+
 function isCacheRecord(value: unknown): value is NbaCacheRecord {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const record = value as Record<string, unknown>
@@ -21,12 +78,24 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
     (record.capability === 'games' ||
       record.capability === 'standings' ||
       record.capability === 'schedule' ||
-      record.capability === 'boxScore') &&
+      record.capability === 'boxScore' ||
+      record.capability === 'teamSeason' ||
+      record.capability === 'teamDirectory') &&
     (record.provider === 'dunkapi' || record.provider === 'espn' || record.provider === 'bbs') &&
     (record.capability === 'boxScore'
       ? typeof record.gameId === 'string' &&
         (record.data === null || isValidBoxScoreData(record.data, record.gameId))
-      : Array.isArray(record.data)) &&
+      : record.capability === 'teamSeason'
+        ? record.provider === 'bbs' &&
+          typeof record.teamId === 'string' &&
+          typeof record.providerTeamId === 'string' &&
+          Number.isSafeInteger(record.seasonEndYear) &&
+          isTeamSeasonData(record.data, record.teamId, Number(record.seasonEndYear))
+        : record.capability === 'teamDirectory'
+          ? record.provider === 'bbs' &&
+            Number.isSafeInteger(record.seasonEndYear) &&
+            isTeamDirectoryData(record.data)
+          : Array.isArray(record.data)) &&
     (record.providerReferences === undefined ||
       (record.provider === 'bbs' &&
         typeof record.providerReferences === 'object' &&

@@ -8,8 +8,10 @@ import type {
   NewsItem,
   SeasonEndYear,
   StandingsRow,
+  TeamSeasonProfile,
   UtcTimestamp,
 } from '@/entities/nba/model'
+import type { NbaTeamReference } from '@/entities/nba/model'
 
 export interface GamesQuery {
   date: NbaGameDate
@@ -42,12 +44,36 @@ export interface GameDetailsResponse {
   boxScoreAvailability: 'available' | 'unavailable' | 'snapshot_mismatch'
 }
 export type StandingsResponse = NbaApiSnapshot<readonly StandingsRow[]>
+export type TeamSeasonResponse = NbaApiSnapshot<TeamSeasonProfile>
+
+export interface TeamSeasonCard {
+  wins: number | null
+  losses: number | null
+  winPercentage: number | null
+  overallRank: number | null
+  gamesBack: number | null
+  stats: TeamSeasonProfile['stats']
+  isStale: boolean
+}
+
+export interface TeamDirectoryEntry extends Omit<NbaTeamReference, 'team'> {
+  team: NbaTeamReference['team']
+  season: TeamSeasonCard | null
+}
+
+export interface TeamsResponse {
+  data: readonly TeamDirectoryEntry[]
+  coverage: { available: number; total: number }
+  meta: NbaApiSnapshot<readonly TeamDirectoryEntry[]>['meta'] | null
+}
 /** News source is intentionally open until it is researched and selected. */
 export type NewsResponse = NbaApiSnapshot<readonly NewsItem[]>
 
 export type NbaRevalidationTarget =
   | { type: 'games'; date: NbaGameDate }
   | { type: 'standings'; seasonEndYear: SeasonEndYear }
+  | { type: 'teamSeason'; teamCode: string; seasonEndYear: SeasonEndYear }
+  | { type: 'teamDirectory'; seasonEndYear: SeasonEndYear }
   | { type: 'schedule' }
   | { type: 'boxScore'; date: NbaGameDate; gameId: GameId }
 

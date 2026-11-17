@@ -1,4 +1,12 @@
-import type { Game, NbaApiError, NbaApiErrorCode, NbaProviderId } from '@/entities/nba/model'
+import type {
+  Game,
+  NbaApiError,
+  NbaApiErrorCode,
+  NbaProviderId,
+  SeasonEndYear,
+  TeamSeasonProfile,
+} from '@/entities/nba/model'
+import { NBA_TEAMS, findNbaTeam } from '@/entities/nba/teamCatalog'
 import type {
   GamesResponse,
   GameDetailsResponse,
@@ -7,6 +15,8 @@ import type {
   NbaRevalidationResponse,
   NbaRevalidationTarget,
   StandingsResponse,
+  TeamsResponse,
+  TeamSeasonResponse,
 } from '@/shared/api/nba/contracts'
 import { createNbaApiError } from '@/server/nba/adapters/errors'
 import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
@@ -17,6 +27,7 @@ import {
   gamesCacheKey,
   scheduleCacheKey,
   standingsCacheKey,
+  teamSeasonCacheKey,
 } from '@/server/nba/runtime/cacheKeys'
 import {
   refreshNbaResource,
@@ -29,6 +40,7 @@ import type {
   NbaCacheRecord,
   NbaRefreshTarget,
   NbaRepository,
+  TeamSeasonCacheRecord,
   WorkerDependencies,
   WorkerEnvironment,
   WorkerExecutionContext,
@@ -250,6 +262,192 @@ async function getStandings(
   )
 }
 
+function readTeamSeasonEndYear(url: URL): SeasonEndYear | null {
+  const rawYear = url.searchParams.get('seasonEndYear')
+  const seasonEndYear = parseSeasonEndYear(rawYear)
+  return seasonEndYear && String(seasonEndYear) === rawYear ? seasonEndYear : null
+}
+
+async function getTeams(
+  url: URL,
+  repository: NbaRepository,
+  now: number,
+  requestId: string,
+): Promise<Response> {
+  const seasonEndYear = readTeamSeasonEndYear(url)
+  if (!seasonEndYear) return errorResponse(createError('invalid_request'), requestId, 400)
+
+  const cacheRows = await Promise.all(
+    NBA_TEAMS.map(async (reference) => {
+      const record = await usableCache(
+        repository,
+        teamSeasonCacheKey('bbs', reference.team.id, seasonEndYear),
+        now,
+      )
+      return record?.capability === 'teamSeason' && record.data.team.id === reference.team.id
+        ? record
+        : null
+    }),
+  )
+  const records = cacheRows.filter((record): record is TeamSeasonCacheRecord => record !== null)
+  const data: TeamsResponse['data'] = NBA_TEAMS.map((reference, index) => {
+    const record = cacheRows[index]
+    const profile = record?.data
+    return {
+      ...reference,
+      season: profile
+        ? {
+            wins: profile.wins,
+            losses: profile.losses,
+            winPercentage: profile.winPercentage,
+            overallRank: profile.overallRank,
+            gamesBack: profile.gamesBack,
+            stats: profile.stats,
+            isStale: now >= record.expiresAt,
+          }
+        : null,
+    }
+  })
+  const latest = records.reduce<TeamSeasonCacheRecord | null>(
+    (current, record) => (!current || record.fetchedAt > current.fetchedAt ? record : current),
+    null,
+  )
+  const response: TeamsResponse = {
+    data,
+    coverage: { available: records.length, total: NBA_TEAMS.length },
+    meta: latest
+      ? {
+          source: 'bbs',
+          fetchedAt: latest.fetchedAt,
+          providerUpdatedAt: latest.providerUpdatedAt,
+          isStale: records.some((record) => now >= record.expiresAt),
+          rejectedRecords: records.reduce((count, record) => count + record.rejectedRecords, 0),
+          refreshError: records.find((record) => record.refreshError)?.refreshError ?? null,
+        }
+      : null,
+  }
+  return jsonResponse(response, 200)
+}
+
+function recentGameMatchesCache(
+  profile: TeamSeasonProfile,
+  row: NonNullable<TeamSeasonProfile['lastTen']>[number],
+  record: GamesCacheRecord,
+): boolean {
+  return record.data.some((game) => {
+    if (
+      game.provider !== 'bbs' ||
+      game.id !== row.gameId ||
+      game.nbaGameDate !== row.nbaGameDate ||
+      game.status !== 'final'
+    )
+      return false
+    const isHome = game.homeTeam.id === profile.team.id
+    const isAway = game.awayTeam.id === profile.team.id
+    if (!isHome && !isAway) return false
+    const teamPoints = isHome ? game.score.home : game.score.away
+    const opponentPoints = isHome ? game.score.away : game.score.home
+    const opponentCode = isHome ? game.awayTeam.abbreviation : game.homeTeam.abbreviation
+    return (
+      teamPoints === row.pointsFor &&
+      opponentPoints === row.pointsAgainst &&
+      opponentCode === row.opponentCode &&
+      (isHome ? 'home' : 'away') === row.venue
+    )
+  })
+}
+
+function upcomingGameMatchesCache(
+  profile: TeamSeasonProfile,
+  record: Extract<GamesCacheRecord, { capability: 'schedule' }> | null,
+) {
+  if (!record) return null
+  const scheduled = record.data.find((game) => {
+    if (game.provider !== 'bbs' || game.id !== profile.nextGame?.gameId) return false
+    const isHome = game.homeTeam.id === profile.team.id
+    const isAway = game.awayTeam.id === profile.team.id
+    if (!isHome && !isAway) return false
+    const opponent = isHome ? game.awayTeam : game.homeTeam
+    return (
+      (profile.nextGame?.opponentCode === null ||
+        opponent.abbreviation === profile.nextGame?.opponentCode) &&
+      (profile.nextGame?.isHome === null || isHome === profile.nextGame?.isHome)
+    )
+  })
+  if (!scheduled) return null
+  const opponent =
+    scheduled.homeTeam.id === profile.team.id ? scheduled.awayTeam : scheduled.homeTeam
+  return {
+    gameId: scheduled.id,
+    nbaGameDate: scheduled.nbaGameDate,
+    startsAt: scheduled.startsAt,
+    isHome: scheduled.homeTeam.id === profile.team.id,
+    opponentCode: opponent.abbreviation,
+  }
+}
+
+async function getTeamSeason(
+  url: URL,
+  rawTeamCode: string,
+  repository: NbaRepository,
+  now: number,
+  requestId: string,
+): Promise<Response> {
+  let teamCode: string
+  try {
+    teamCode = decodeURIComponent(rawTeamCode)
+  } catch {
+    return errorResponse(createError('invalid_request'), requestId, 400)
+  }
+  const reference = findNbaTeam(teamCode)
+  const seasonEndYear = readTeamSeasonEndYear(url)
+  if (!reference || !seasonEndYear)
+    return errorResponse(createError('invalid_request'), requestId, 400)
+
+  const cache = await usableCache(
+    repository,
+    teamSeasonCacheKey('bbs', reference.team.id, seasonEndYear),
+    now,
+  )
+  if (cache?.capability !== 'teamSeason')
+    return errorResponse(createError('cache_miss', 'bbs', true), requestId, 503)
+
+  const cachedProfile = cache.data
+  const [recentRecords, schedule] = await Promise.all([
+    Promise.all(
+      [...new Set(cachedProfile.lastTen?.map((game) => game.nbaGameDate) ?? [])].map((date) =>
+        usableCache(repository, gamesCacheKey('bbs', date), now),
+      ),
+    ),
+    usableCache(repository, scheduleCacheKey('bbs'), now),
+  ])
+  const gameRecords = recentRecords.filter(
+    (record): record is GamesCacheRecord =>
+      record !== null && (record.capability === 'games' || record.capability === 'schedule'),
+  )
+  const profile: TeamSeasonProfile = {
+    ...cachedProfile,
+    team: { ...reference.team, displayName: cachedProfile.team.displayName ?? reference.name },
+    lastTen:
+      cachedProfile.lastTen?.map((row) => ({
+        ...row,
+        gameId: gameRecords.some((record) => recentGameMatchesCache(cachedProfile, row, record))
+          ? row.gameId
+          : null,
+      })) ?? null,
+    nextGame: upcomingGameMatchesCache(
+      cachedProfile,
+      schedule?.capability === 'schedule' ? schedule : null,
+    ),
+  }
+  const snapshot: TeamSeasonResponse = apiSnapshot(cache, profile, now)
+  return jsonResponse(
+    snapshot,
+    200,
+    snapshot.meta.isStale ? { warning: '110 - "Response is stale"' } : {},
+  )
+}
+
 async function getGameDetails(
   url: URL,
   rawGameId: string,
@@ -457,6 +655,17 @@ async function readRefreshTarget(request: Request): Promise<NbaRefreshTarget | n
       const seasonEndYear = parseSeasonEndYear(target.seasonEndYear)
       return seasonEndYear ? { type: 'standings', seasonEndYear } : null
     }
+    if (target.type === 'teamSeason') {
+      const seasonEndYear = parseSeasonEndYear(target.seasonEndYear)
+      const reference = typeof target.teamCode === 'string' ? findNbaTeam(target.teamCode) : null
+      return seasonEndYear && reference
+        ? { type: 'teamSeason', teamCode: reference.code, seasonEndYear }
+        : null
+    }
+    if (target.type === 'teamDirectory') {
+      const seasonEndYear = parseSeasonEndYear(target.seasonEndYear)
+      return seasonEndYear ? { type: 'teamDirectory', seasonEndYear } : null
+    }
     if (target.type === 'schedule') return { type: 'schedule' }
   } catch {
     return null
@@ -467,6 +676,8 @@ async function readRefreshTarget(request: Request): Promise<NbaRefreshTarget | n
 function refreshResponseTarget(target: NbaRefreshTarget): NbaRevalidationTarget {
   if (target.type === 'games') return { type: 'games', date: target.date }
   if (target.type === 'standings') return target
+  if (target.type === 'teamSeason') return target
+  if (target.type === 'teamDirectory') return target
   return target
 }
 
@@ -488,14 +699,15 @@ async function postRevalidate(
     return errorResponse(createError('unauthorized'), requestId, 401)
   }
 
-  const allowed = await repository.consumeRateSlot('manual:revalidate', now, 5 * 60_000, 1)
-  if (!allowed) {
-    const retryAfter = Math.ceil((5 * 60_000 - (now % (5 * 60_000))) / 1000)
-    return errorResponse(createError('rate_limited'), requestId, 429, retryAfter)
-  }
-
   const target = await readRefreshTarget(request)
   if (!target) return errorResponse(createError('invalid_request'), requestId, 400)
+  if (target.type !== 'teamSeason' && target.type !== 'teamDirectory') {
+    const allowed = await repository.consumeRateSlot('manual:revalidate', now, 5 * 60_000, 1)
+    if (!allowed) {
+      const retryAfter = Math.ceil((5 * 60_000 - (now % (5 * 60_000))) / 1000)
+      return errorResponse(createError('rate_limited'), requestId, 429, retryAfter)
+    }
+  }
 
   const result = await refreshNbaResource(target, env, repository, fetcher, now)
   const body: NbaRevalidationResponse = {
@@ -569,6 +781,19 @@ async function handleApiRequest(
     if (request.method !== 'GET')
       return errorResponse(createError('invalid_request'), requestId, 405)
     return getStandings(url, env, repository, now, requestId)
+  }
+
+  if (url.pathname === '/api/teams') {
+    if (request.method !== 'GET')
+      return errorResponse(createError('invalid_request'), requestId, 405)
+    return getTeams(url, repository, now, requestId)
+  }
+
+  const teamSeasonMatch = /^\/api\/teams\/([^/]+)$/.exec(url.pathname)
+  if (teamSeasonMatch) {
+    if (request.method !== 'GET')
+      return errorResponse(createError('invalid_request'), requestId, 405)
+    return getTeamSeason(url, teamSeasonMatch[1]!, repository, now, requestId)
   }
 
   if (url.pathname === '/api/revalidate') {
