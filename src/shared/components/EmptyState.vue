@@ -107,8 +107,8 @@ withDefaults(
   position: absolute;
   right: 1.5rem;
   bottom: 1.2rem;
-  color: #666c73;
-  font-size: 0.57rem;
+  color: var(--subtle);
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.17em;
 }

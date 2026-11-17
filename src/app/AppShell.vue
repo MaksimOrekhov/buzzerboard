@@ -247,7 +247,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   border: 1px solid transparent;
   border-radius: 0.78rem;
   padding: 0 0.72rem;
-  color: #9ea7a7;
+  color: var(--muted);
   font-size: 0.82rem;
   font-weight: 590;
   text-decoration: none;
@@ -478,7 +478,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 }
 
 .footer-brand {
-  color: #7c8586;
+  color: var(--subtle);
   font-size: var(--font-size-caption);
   font-weight: 790;
   letter-spacing: 0.11em;
@@ -680,7 +680,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
     justify-items: center;
     gap: 0.28rem;
     border-radius: 0.65rem;
-    color: #788284;
+    color: var(--subtle);
     font-size: var(--font-size-caption);
     font-weight: 620;
     text-decoration: none;
