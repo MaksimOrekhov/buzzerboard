@@ -201,7 +201,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   align-items: center;
   gap: 0.55rem;
   color: var(--lime);
-  font-size: 0.61rem;
+  font-size: var(--font-size-caption);
   font-weight: 770;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -248,7 +248,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   gap: 0.43rem;
   margin-top: 1.35rem;
   color: #7d8988;
-  font-size: 0.62rem;
+  font-size: var(--font-size-caption);
 }
 
 .hero-trust :deep(svg) {
@@ -287,7 +287,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   top: 1.3rem;
   right: 1.5rem;
   color: #818a87;
-  font-size: 0.59rem;
+  font-size: var(--font-size-caption);
   font-weight: 760;
   letter-spacing: 0.17em;
 }
@@ -369,7 +369,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   justify-items: start;
   gap: 0.35rem;
   color: #e6e7d7;
-  font-size: 0.56rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   letter-spacing: 0.16em;
 }
@@ -385,7 +385,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   right: 1.5rem;
   bottom: 1.3rem;
   color: #697271;
-  font-size: 0.51rem;
+  font-size: var(--font-size-caption);
   font-weight: 750;
   letter-spacing: 0.14em;
   writing-mode: vertical-rl;
@@ -425,7 +425,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 .section-caption {
   padding-bottom: 0.15rem;
   color: var(--muted);
-  font-size: 0.67rem;
+  font-size: var(--font-size-caption);
 }
 
 .overview-grid {
@@ -487,7 +487,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 .panel-kicker {
   margin: 0 0 0.13rem;
   color: var(--muted);
-  font-size: 0.57rem;
+  font-size: var(--font-size-caption);
 }
 
 .panel-heading h3 {
@@ -507,7 +507,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   gap: 0.2rem;
   border-radius: 0.35rem;
   color: #aeb6b1;
-  font-size: 0.62rem;
+  font-size: var(--font-size-caption);
   font-weight: 680;
   text-decoration: none;
   white-space: nowrap;
@@ -564,7 +564,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 
 .coming-index {
   color: var(--subtle);
-  font-size: 0.54rem;
+  font-size: var(--font-size-caption);
   font-weight: 760;
   letter-spacing: 0.12em;
 }
@@ -577,7 +577,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   overflow: hidden;
   margin: 0;
   color: var(--ink-soft);
-  font-size: 0.78rem;
+  font-size: var(--font-size-caption);
   font-weight: 690;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -586,7 +586,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 .coming-card-bottom > span {
   flex: 0 0 auto;
   color: var(--subtle);
-  font-size: 0.56rem;
+  font-size: var(--font-size-caption);
 }
 
 .data-principle {
@@ -612,7 +612,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 .data-principle p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: var(--font-size-caption);
   line-height: 1.5;
 }
 
@@ -624,7 +624,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   flex: 0 0 auto;
   margin-left: auto;
   color: var(--subtle);
-  font-size: 0.51rem;
+  font-size: var(--font-size-caption);
   font-weight: 760;
   letter-spacing: 0.12em;
   white-space: nowrap;
@@ -731,7 +731,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   .art-stamp {
     right: 11%;
     bottom: 16%;
-    font-size: 0.5rem;
+    font-size: var(--font-size-caption);
   }
 
   .art-side-label {
@@ -764,7 +764,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   }
 
   .coming-card-bottom h3 {
-    font-size: 0.7rem;
+    font-size: var(--font-size-caption);
   }
 
   .data-principle {
@@ -792,7 +792,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   .hero-actions .button {
     min-height: 2.65rem;
     padding: 0.6rem 0.7rem;
-    font-size: 0.72rem;
+    font-size: var(--font-size-caption);
   }
 
   .panel-heading {
@@ -804,11 +804,11 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   }
 
   .text-link {
-    font-size: 0.58rem;
+    font-size: var(--font-size-caption);
   }
 
   .coming-card-bottom h3 {
-    font-size: 0.64rem;
+    font-size: var(--font-size-caption);
   }
 }
 

@@ -202,7 +202,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 
 .brand-caption {
   color: var(--muted);
-  font-size: 0.55rem;
+  font-size: var(--font-size-caption);
   font-weight: 740;
   letter-spacing: 0.16em;
 }
@@ -218,7 +218,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 .nav-label {
   margin: 0 0 0.7rem 0.8rem;
   color: var(--subtle);
-  font-size: 0.57rem;
+  font-size: var(--font-size-caption);
   font-weight: 760;
   letter-spacing: 0.17em;
   text-transform: uppercase;
@@ -303,7 +303,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 .nav-coming-soon {
   margin-left: auto;
   color: #677172;
-  font-size: 0.55rem;
+  font-size: var(--font-size-caption);
   font-weight: 660;
 }
 
@@ -341,14 +341,14 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 
 .sidebar-data-label {
   color: var(--muted);
-  font-size: 0.58rem;
+  font-size: var(--font-size-caption);
   font-weight: 620;
 }
 
 .sidebar-data-status {
   overflow: hidden;
   color: var(--ink-soft);
-  font-size: 0.65rem;
+  font-size: var(--font-size-caption);
   font-weight: 690;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -367,14 +367,14 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 .sidebar-footnote {
   margin: 0.7rem 0.25rem 1rem;
   color: var(--subtle);
-  font-size: 0.62rem;
+  font-size: var(--font-size-caption);
   line-height: 1.55;
 }
 
 .sidebar-signature {
   padding-left: 0.25rem;
   color: #556063;
-  font-size: 0.53rem;
+  font-size: var(--font-size-caption);
   font-weight: 780;
   letter-spacing: 0.15em;
 }
@@ -416,7 +416,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 
 .topbar-overline {
   color: var(--subtle);
-  font-size: 0.54rem;
+  font-size: var(--font-size-caption);
   font-weight: 760;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -435,7 +435,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 
 .topbar-date {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-caption);
   text-transform: capitalize;
 }
 
@@ -461,12 +461,12 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   margin: 0 clamp(1.3rem, 3.5vw, 3.4rem);
   padding: 1.05rem 0 1.2rem;
   color: var(--subtle);
-  font-size: 0.63rem;
+  font-size: var(--font-size-caption);
 }
 
 .footer-brand {
   color: #7c8586;
-  font-size: 0.57rem;
+  font-size: var(--font-size-caption);
   font-weight: 790;
   letter-spacing: 0.11em;
   white-space: nowrap;
@@ -586,14 +586,14 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   }
 
   .brand--compact .brand-name {
-    font-size: 0.72rem;
+    font-size: var(--font-size-caption);
     letter-spacing: 0.055em;
   }
 
   .mobile-header :deep(.badge) {
     min-height: 1.45rem;
     padding-inline: 0.45rem;
-    font-size: 0.52rem;
+    font-size: var(--font-size-caption);
     letter-spacing: 0.05em;
   }
 
@@ -605,7 +605,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
     flex-direction: column;
     gap: 0.5rem;
     margin: 0 1rem 5.5rem;
-    font-size: 0.6rem;
+    font-size: var(--font-size-caption);
   }
 
   .mobile-nav {
@@ -633,7 +633,7 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
     gap: 0.28rem;
     border-radius: 0.65rem;
     color: #788284;
-    font-size: 0.56rem;
+    font-size: var(--font-size-caption);
     font-weight: 620;
     text-decoration: none;
     white-space: nowrap;

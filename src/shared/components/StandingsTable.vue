@@ -148,7 +148,7 @@ function sortLabel(field: StandingsSortKey, label: string): string {
   border-bottom: 1px solid var(--line-strong);
   padding: 0.85rem 1rem;
   color: var(--muted);
-  font-size: 0.61rem;
+  font-size: var(--font-size-caption);
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -159,7 +159,7 @@ function sortLabel(field: StandingsSortKey, label: string): string {
   border-bottom: 1px solid var(--line);
   padding: 0.82rem 1rem;
   color: var(--ink-soft);
-  font-size: 0.79rem;
+  font-size: var(--font-size-caption);
 }
 
 .standings-table tbody tr:last-child td {
@@ -213,7 +213,7 @@ function sortLabel(field: StandingsSortKey, label: string): string {
   border-radius: 0.6rem;
   background: var(--surface-3);
   color: var(--ink-soft);
-  font-size: 0.54rem;
+  font-size: var(--font-size-caption);
   font-weight: 790;
 }
 

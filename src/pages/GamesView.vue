@@ -168,7 +168,7 @@ function shiftDate(days: number): void {
   gap: 0.45rem;
   margin: 1rem 0 0;
   color: var(--subtle);
-  font-size: 0.67rem;
+  font-size: var(--font-size-caption);
   line-height: 1.5;
 }
 

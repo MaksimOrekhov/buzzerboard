@@ -24,7 +24,7 @@ withDefaults(
   border: 1px solid var(--line);
   border-radius: 99px;
   padding: 0.22rem 0.56rem;
-  font-size: 0.59rem;
+  font-size: var(--font-size-caption);
   font-weight: 760;
   letter-spacing: 0.095em;
   line-height: 1;

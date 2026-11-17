@@ -129,7 +129,7 @@ function changeSort(field: StandingsSortKey): void {
   background: transparent;
   padding: 0.4rem 0.7rem;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-caption);
   font-weight: 670;
   transition:
     background-color 140ms ease,
@@ -153,7 +153,7 @@ function changeSort(field: StandingsSortKey): void {
   align-items: center;
   gap: 0.55rem;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--font-size-caption);
 }
 
 .sort-control select {
@@ -164,7 +164,7 @@ function changeSort(field: StandingsSortKey): void {
   background: var(--surface-2);
   padding: 0.5rem 0.65rem;
   color: var(--ink-soft);
-  font-size: 0.7rem;
+  font-size: var(--font-size-caption);
 }
 
 .sort-control select:disabled {
@@ -178,7 +178,7 @@ function changeSort(field: StandingsSortKey): void {
   gap: 0.8rem;
   margin: 0 0 0.65rem;
   color: var(--ink-soft);
-  font-size: 0.74rem;
+  font-size: var(--font-size-caption);
   font-weight: 680;
 }
 
@@ -194,7 +194,7 @@ function changeSort(field: StandingsSortKey): void {
 
 .rank-disclosure {
   color: var(--subtle);
-  font-size: 0.63rem;
+  font-size: var(--font-size-caption);
   font-weight: 520;
   text-align: right;
 }
@@ -213,7 +213,7 @@ function changeSort(field: StandingsSortKey): void {
 
   .filter-button {
     padding-inline: 0.35rem;
-    font-size: 0.68rem;
+    font-size: var(--font-size-caption);
   }
 
   .sort-control {

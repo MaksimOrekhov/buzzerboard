@@ -205,7 +205,7 @@ const sourceLabel = computed(() => {
   right: 1rem;
   bottom: 0.9rem;
   color: var(--subtle);
-  font-size: 0.53rem;
+  font-size: var(--font-size-caption);
   font-weight: 760;
   letter-spacing: 0.14em;
 }
@@ -219,7 +219,7 @@ const sourceLabel = computed(() => {
   background: rgb(228 182 107 / 7%);
   padding: 0.65rem 0.8rem;
   color: #e8c77f;
-  font-size: 0.71rem;
+  font-size: var(--font-size-caption);
   line-height: 1.45;
 }
 
@@ -320,7 +320,7 @@ const sourceLabel = computed(() => {
 }
 
 .resource-state-wrap--compact .state-copy > p:last-child {
-  font-size: 0.74rem;
+  font-size: var(--font-size-caption);
 }
 
 @media (max-width: 580px) {

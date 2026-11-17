@@ -131,7 +131,7 @@ function score(value: number | null): string {
 .match-date,
 .match-card-footer {
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: var(--font-size-caption);
 }
 
 .match-lineup {
@@ -155,7 +155,7 @@ function score(value: number | null): string {
   border-radius: 0.75rem;
   background: var(--surface-3);
   color: var(--ink-soft);
-  font-size: 0.58rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   letter-spacing: 0.04em;
 }
@@ -169,7 +169,7 @@ function score(value: number | null): string {
 .team-name {
   overflow: hidden;
   color: var(--ink-soft);
-  font-size: 0.78rem;
+  font-size: var(--font-size-caption);
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -189,7 +189,7 @@ function score(value: number | null): string {
   justify-content: center;
   margin: 0.45rem 0 0 2.95rem;
   color: var(--subtle);
-  font-size: 0.48rem;
+  font-size: var(--font-size-caption);
   font-weight: 780;
   letter-spacing: 0.15em;
 }
