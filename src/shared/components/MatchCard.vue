@@ -7,6 +7,13 @@ import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 
 const props = defineProps<{
   game: Game
+  favorite?: boolean
+  detailsExpanded?: boolean
+}>()
+
+const emit = defineEmits<{
+  toggleFavorite: []
+  toggleDetails: []
 }>()
 
 const statusLabels: Record<GameStatus, string> = {
@@ -100,10 +107,57 @@ function score(value: number | null): string {
     </div>
 
     <footer class="match-card-footer">
-      <span>Кипр · Europe/Nicosia</span>
+      <span>Местное время · {{ VIEWER_TIME_ZONE }}</span>
       <time v-if="game.startsAt" :datetime="game.startsAt">{{ displayLocalStart }}</time>
       <span v-else>{{ displayLocalStart }}</span>
     </footer>
+
+    <div class="match-card-actions">
+      <button
+        class="match-action"
+        type="button"
+        :aria-pressed="favorite"
+        :aria-label="favorite ? 'Убрать матч из избранного' : 'Добавить матч в избранное'"
+        @click="emit('toggleFavorite')"
+      >
+        <AppIcon name="bookmark" :size="15" />
+        {{ favorite ? 'В избранном' : 'В избранное' }}
+      </button>
+      <button
+        class="match-action"
+        type="button"
+        :aria-expanded="detailsExpanded"
+        @click="emit('toggleDetails')"
+      >
+        {{ detailsExpanded ? 'Скрыть детали' : 'Детали матча' }}
+      </button>
+    </div>
+
+    <section v-if="detailsExpanded" class="match-details" aria-label="Детали матча">
+      <p v-if="game.venue">Арена · {{ game.venue }}</p>
+      <table v-if="game.scoreByPeriod?.length" class="period-table">
+        <caption>
+          Счёт по периодам
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Период</th>
+            <th scope="col">Гости</th>
+            <th scope="col">Хозяева</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="period in game.scoreByPeriod" :key="period.period">
+            <th scope="row">{{ period.period }}</th>
+            <td>{{ score(period.away) }}</td>
+            <td>{{ score(period.home) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-if="!game.venue && !game.scoreByPeriod?.length">
+        Источник не передал арену или счёт по периодам для этого матча.
+      </p>
+    </section>
   </article>
 </template>
 
@@ -217,6 +271,75 @@ function score(value: number | null): string {
   border-top: 1px solid var(--line);
   margin-top: 0.9rem;
   padding-top: 0.7rem;
+}
+
+.match-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 0.8rem;
+  margin-top: 0.7rem;
+}
+
+.match-action {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  padding: 0.25rem;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+
+.match-action:hover,
+.match-action[aria-pressed='true'] {
+  color: var(--lime);
+}
+
+.match-action:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+.match-details {
+  border-top: 1px solid var(--line);
+  margin-top: 0.55rem;
+  padding-top: 0.75rem;
+  color: var(--muted);
+  font-size: var(--font-size-caption);
+}
+
+.match-details p {
+  margin: 0;
+}
+
+.period-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.period-table caption {
+  margin-bottom: 0.4rem;
+  color: var(--ink-soft);
+  font-weight: 650;
+  text-align: left;
+}
+
+.period-table th,
+.period-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.4rem 0.25rem;
+}
+
+.period-table th:first-child {
+  text-align: left;
 }
 
 .match-card-footer time,

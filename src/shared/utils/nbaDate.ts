@@ -1,5 +1,5 @@
 export const NBA_TIME_ZONE = 'America/New_York'
-export const VIEWER_TIME_ZONE = 'Europe/Nicosia'
+export const VIEWER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 
 export function getDateKeyInTimeZone(instant: Date, timeZone: string): string {
   if (Number.isNaN(instant.getTime())) {

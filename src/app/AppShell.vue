@@ -8,6 +8,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 
 const route = useRoute()
 const currentPageTitle = computed(() => String(route.meta.title ?? 'Обзор'))
+const isGameCenter = computed(() => route.name === 'games')
 const todayLabel = new Intl.DateTimeFormat('ru-RU', {
   weekday: 'long',
   day: 'numeric',
@@ -71,7 +72,9 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
           <div class="sidebar-data-icon"><AppIcon name="database" :size="17" /></div>
           <div class="sidebar-data-copy">
             <span class="sidebar-data-label">Источник данных</span>
-            <span class="sidebar-data-status">Ожидает подключения</span>
+            <span class="sidebar-data-status">{{
+              isGameCenter ? 'Worker + D1' : 'По разделам'
+            }}</span>
           </div>
           <span class="status-pip" aria-hidden="true" />
         </div>
@@ -90,7 +93,9 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
           <span class="brand-mark"><AppIcon name="basketball" :size="21" /></span>
           <span class="brand-name">BuzzerBoard</span>
         </RouterLink>
-        <AppBadge tone="warning" dot>Нет данных</AppBadge>
+        <AppBadge :tone="isGameCenter ? 'success' : 'warning'" dot>
+          {{ isGameCenter ? 'Worker + D1' : 'Источники' }}
+        </AppBadge>
       </header>
 
       <header class="topbar">
@@ -101,7 +106,9 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
         <div class="topbar-meta">
           <span class="topbar-date">{{ todayLabel }}</span>
           <span class="topbar-divider" aria-hidden="true" />
-          <AppBadge tone="warning" dot>Источник не подключён</AppBadge>
+          <AppBadge :tone="isGameCenter ? 'success' : 'warning'" dot>
+            {{ isGameCenter ? 'Worker + D1' : 'Источники по разделам' }}
+          </AppBadge>
         </div>
       </header>
 
@@ -115,7 +122,10 @@ const todayLabel = new Intl.DateTimeFormat('ru-RU', {
 
       <footer class="app-footer">
         <span class="footer-brand">BUZZERBOARD <span>·</span> NBA, разборчиво</span>
-        <span>Результаты появятся после подключения проверенного источника.</span>
+        <span v-if="isGameCenter"
+          >Матчи читаются через Worker и общий кеш D1. Live-обновления отключены.</span
+        >
+        <span v-else>Результаты появятся после подключения проверенного источника.</span>
       </footer>
     </div>
 
