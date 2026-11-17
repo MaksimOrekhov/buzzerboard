@@ -1,454 +1,638 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 
+import { comingSoonItems } from '@/app/navigation'
+import AppBadge from '@/shared/components/AppBadge.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
-import PageHeading from '@/shared/components/PageHeading.vue'
-import type { AppIconName } from '@/shared/icons'
+import ResourceState from '@/shared/components/ResourceState.vue'
 
-interface HubSection {
-  title: string
-  description: string
-  to: string
-  icon: AppIconName
-  index: string
-}
-
-const sections: HubSection[] = [
-  {
-    title: 'Матчи',
-    description: 'Расписание и результаты после подключения проверенного источника данных.',
-    to: '/games',
-    icon: 'calendar',
-    index: '01',
-  },
-  {
-    title: 'Таблица',
-    description: 'Борьба команд Восточной и Западной конференций.',
-    to: '/standings',
-    icon: 'trophy',
-    index: '02',
-  },
-  {
-    title: 'Новости',
-    description: 'Главные истории и события вокруг NBA.',
-    to: '/news',
-    icon: 'news',
-    index: '03',
-  },
-  {
-    title: 'Избранное',
-    description: 'Любимые команды и матчи всегда под рукой.',
-    to: '/favorites',
-    icon: 'bookmark',
-    index: '04',
-  },
-]
+const todayLabel = new Intl.DateTimeFormat('ru-RU', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+}).format(new Date())
 </script>
 
 <template>
   <div class="home-view">
-    <PageHeading
-      eyebrow="Ваш NBA-хаб"
-      title="Игра — в центре внимания."
-      description="Матчи, турнирная таблица, новости и любимые команды — в одном месте."
-    />
-
-    <section class="welcome-panel" aria-labelledby="welcome-title">
-      <div class="welcome-copy">
-        <div class="welcome-kicker">
-          <span class="welcome-kicker-line" />
-          <span class="eyebrow">В центре игры</span>
+    <section class="hero-panel" aria-labelledby="hero-title">
+      <div class="hero-grid-lines" aria-hidden="true" />
+      <div class="hero-copy">
+        <div class="hero-overline">
+          <span class="hero-overline-mark" />
+          <span>Ваше пространство NBA</span>
         </div>
-        <h2 id="welcome-title">Весь сезон<br /><span>на одной площадке.</span></h2>
+        <h1 id="hero-title">Игра.<br /><span>В деталях.</span></h1>
         <p>
-          Выберите, с чего начать. Расписание, таблица и новости появятся после подключения
-          источников данных.
+          Матчи, таблица и истории лиги — собранные в одном месте. Только проверенные данные и ясный
+          контекст.
         </p>
-        <RouterLink class="welcome-link focus-ring" to="/games">
-          Открыть матчи
-          <AppIcon name="arrow-up-right" :size="17" />
-        </RouterLink>
+        <div class="hero-actions">
+          <RouterLink class="button button--primary focus-ring" to="/games">
+            Смотреть матчи
+            <AppIcon name="arrow-up-right" :size="16" />
+          </RouterLink>
+          <RouterLink class="button button--secondary focus-ring" to="/standings">
+            Турнирная таблица
+          </RouterLink>
+        </div>
+        <div class="hero-trust">
+          <AppIcon name="database" :size="14" />
+          <span>Неподтверждённые результаты не показываются</span>
+        </div>
       </div>
 
-      <div class="welcome-visual" aria-hidden="true">
-        <div class="court-lines" />
-        <div class="visual-orbit visual-orbit--one" />
-        <div class="visual-orbit visual-orbit--two" />
-        <div class="hero-ball">
-          <svg viewBox="0 0 160 160" fill="none">
-            <circle cx="80" cy="80" r="76" />
-            <path d="M19 34c34 10 59 50 61 122M141 34c-34 10-59 50-61 122M4 80h152" />
-            <path d="M30 13c5 34 53 40 100 7M30 147c5-34 53-40 100-7" />
-          </svg>
+      <div class="hero-art" aria-hidden="true">
+        <div class="art-coordinates">BB <span>/</span> NBA</div>
+        <div class="court-arc court-arc--one" />
+        <div class="court-arc court-arc--two" />
+        <div class="court-center-line" />
+        <div class="art-ball-shadow" />
+        <div class="art-ball"><AppIcon name="basketball" :size="112" /></div>
+        <div class="art-stamp">
+          <span>ОТ ИГРЫ</span>
+          <span class="art-stamp-line" />
+          <span>К СЕЗОНУ</span>
         </div>
-        <div class="visual-label visual-label--top">01 / 05</div>
-        <div class="visual-label visual-label--bottom">NBA В ФОКУСЕ</div>
+        <div class="art-side-label">BUZZERBOARD / 01</div>
       </div>
+      <span class="hero-index" aria-hidden="true">01</span>
     </section>
 
-    <section class="hub-section" aria-labelledby="hub-section-title">
-      <div class="hub-section-heading">
+    <section class="overview-section" aria-labelledby="overview-title">
+      <div class="section-heading">
         <div>
-          <p class="eyebrow">Для вашего обзора</p>
-          <h2 id="hub-section-title">Выберите раздел.</h2>
+          <p class="eyebrow">{{ todayLabel }}</p>
+          <h2 id="overview-title">Ваш обзор</h2>
         </div>
-        <p>Главное о лиге — в одном месте.</p>
+        <span class="section-caption">Матчи и турнирная таблица</span>
       </div>
 
-      <div class="hub-grid">
-        <RouterLink
-          v-for="section in sections"
-          :key="section.to"
-          class="hub-card focus-ring"
-          :to="section.to"
-        >
-          <div class="hub-card-top">
-            <span class="hub-card-icon"><AppIcon :name="section.icon" :size="19" /></span>
-            <span class="hub-card-index">{{ section.index }}</span>
-          </div>
-          <div class="hub-card-bottom">
-            <div>
-              <h3>{{ section.title }}</h3>
-              <p>{{ section.description }}</p>
+      <div class="overview-grid">
+        <article class="overview-panel overview-panel--games">
+          <div class="panel-heading">
+            <div class="panel-title-wrap">
+              <span class="panel-icon panel-icon--accent"
+                ><AppIcon name="calendar" :size="17"
+              /></span>
+              <div>
+                <p class="panel-kicker">Расписание и результаты</p>
+                <h3>Матчи</h3>
+              </div>
             </div>
-            <AppIcon class="hub-card-arrow" name="arrow-up-right" :size="18" />
+            <RouterLink
+              class="text-link focus-ring"
+              to="/games"
+              aria-label="Перейти к расписанию матчей"
+            >
+              Все матчи <AppIcon name="arrow-up-right" :size="15" />
+            </RouterLink>
           </div>
-        </RouterLink>
+          <ResourceState
+            status="empty"
+            icon="basketball"
+            title="Нет подключённого источника"
+            description="Когда появятся проверенные данные, здесь будет календарь лиги."
+            compact
+          />
+        </article>
+
+        <article class="overview-panel overview-panel--standings">
+          <div class="panel-heading">
+            <div class="panel-title-wrap">
+              <span class="panel-icon panel-icon--lime"><AppIcon name="trophy" :size="17" /></span>
+              <div>
+                <p class="panel-kicker">Восток и Запад</p>
+                <h3>Таблица</h3>
+              </div>
+            </div>
+            <RouterLink
+              class="text-link focus-ring"
+              to="/standings"
+              aria-label="Перейти к турнирной таблице"
+            >
+              Открыть <AppIcon name="arrow-up-right" :size="15" />
+            </RouterLink>
+          </div>
+          <ResourceState
+            status="empty"
+            icon="trophy"
+            title="Позиции пока не загружены"
+            description="Позиции появятся только после получения подтверждённого официального ранга."
+            compact
+          />
+        </article>
       </div>
     </section>
 
-    <div class="home-note">
-      <span class="home-note-icon"><AppIcon name="sparkles" :size="16" /></span>
+    <section class="coming-section" aria-labelledby="coming-title">
+      <div class="section-heading section-heading--compact">
+        <div>
+          <p class="eyebrow">Следующие главы</p>
+          <h2 id="coming-title">Хаб будет расти вместе с сезоном</h2>
+        </div>
+        <AppBadge tone="neutral">План развития</AppBadge>
+      </div>
+
+      <div class="coming-grid">
+        <article v-for="(item, index) in comingSoonItems" :key="item.id" class="coming-card">
+          <div class="coming-card-top">
+            <span class="coming-icon"><AppIcon :name="item.icon" :size="18" /></span>
+            <span class="coming-index">0{{ index + 1 }}</span>
+          </div>
+          <div class="coming-card-bottom">
+            <h3>{{ item.label }}</h3>
+            <span>Скоро</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <aside class="data-principle" aria-label="Принцип данных BuzzerBoard">
+      <span class="principle-mark"><AppIcon name="sparkles" :size="15" /></span>
       <p>
-        <strong>Всё главное об NBA.</strong> Актуальные данные появятся после подключения источника.
+        <strong>Честно о данных.</strong> Источник и время обновления будут видны рядом с каждым
+        матчем и каждой таблицей.
       </p>
-    </div>
+      <span class="principle-code">DATA STANDARD · 01</span>
+    </aside>
   </div>
 </template>
 
 <style scoped>
 .home-view {
-  animation: content-arrive 420ms ease both;
+  display: grid;
+  gap: clamp(2.2rem, 4vw, 3.3rem);
+  animation: page-arrive 340ms ease both;
 }
 
-.welcome-panel {
+.hero-panel {
   position: relative;
   display: grid;
   min-height: 22rem;
-  grid-template-columns: minmax(0, 1.08fr) minmax(18rem, 0.92fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(17rem, 0.92fr);
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 8%);
-  border-radius: 1.5rem;
+  border: 1px solid rgb(233 240 235 / 11%);
+  border-radius: var(--radius-xl);
   background:
-    radial-gradient(ellipse at 78% 42%, rgb(255 112 72 / 14%), transparent 36%),
-    linear-gradient(135deg, #15181c, #101216 62%, #0d1013);
-  box-shadow: 0 1.5rem 5rem rgb(0 0 0 / 20%);
+    radial-gradient(ellipse at 79% 39%, rgb(242 122 86 / 12%), transparent 36%),
+    linear-gradient(117deg, #171b1d 0%, #101416 55%, #0d1112 100%);
+  box-shadow: var(--shadow-panel);
 }
 
-.welcome-copy {
+.hero-grid-lines {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgb(255 255 255 / 2.5%) 1px, transparent 1px);
+  background-size: 100% 4.4rem;
+  mask-image: linear-gradient(90deg, #000 0%, transparent 82%);
+  pointer-events: none;
+}
+
+.hero-copy {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   align-self: center;
-  padding: clamp(1.6rem, 5vw, 3.6rem);
+  padding: clamp(1.5rem, 4.5vw, 3.4rem);
 }
 
-.welcome-kicker {
+.hero-overline {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.55rem;
+  color: var(--lime);
+  font-size: 0.61rem;
+  font-weight: 770;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-.welcome-kicker-line {
-  width: 1.5rem;
+.hero-overline-mark {
+  width: 1.1rem;
   height: 1px;
-  background: var(--accent);
+  background: var(--lime);
+  box-shadow: 0 0 10px rgb(217 236 121 / 55%);
 }
 
-.welcome-copy h2 {
-  margin: 1.15rem 0 0;
+.hero-copy h1 {
+  margin: 1rem 0 0;
   color: var(--ink);
-  font-size: clamp(2.2rem, 5vw, 3.8rem);
-  font-weight: 720;
-  letter-spacing: -0.065em;
-  line-height: 0.98;
+  font-size: clamp(3rem, 6.4vw, 5.55rem);
+  font-weight: 790;
+  letter-spacing: -0.09em;
+  line-height: 0.9;
 }
 
-.welcome-copy h2 span {
-  color: #b8b8b3;
-  font-weight: 480;
+.hero-copy h1 span {
+  color: var(--accent-bright);
 }
 
-.welcome-copy > p {
-  max-width: 33rem;
-  margin: 1.1rem 0 0;
-  color: #a4a9ae;
-  font-size: 0.93rem;
-  line-height: 1.7;
+.hero-copy > p {
+  max-width: 29rem;
+  margin: 1.15rem 0 0;
+  color: #a5aeac;
+  font-size: clamp(0.83rem, 1.4vw, 0.96rem);
+  line-height: 1.65;
 }
 
-.welcome-link {
-  display: inline-flex;
-  align-items: center;
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
-  margin-top: 1.6rem;
-  border: 1px solid rgb(255 112 72 / 40%);
-  border-radius: 0.8rem;
-  background: rgb(255 112 72 / 10%);
-  padding: 0.7rem 0.9rem;
-  color: #ffd4c7;
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-decoration: none;
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease;
+  margin-top: 1.45rem;
 }
 
-.welcome-link:hover {
-  border-color: var(--accent);
-  background: rgb(255 112 72 / 17%);
+.hero-trust {
+  display: flex;
+  align-items: center;
+  gap: 0.43rem;
+  margin-top: 1.35rem;
+  color: #7d8988;
+  font-size: 0.62rem;
 }
 
-.welcome-visual {
+.hero-trust :deep(svg) {
+  color: var(--lime);
+}
+
+.hero-art {
   position: relative;
   min-height: 22rem;
   overflow: hidden;
+  isolation: isolate;
 }
 
-.court-lines {
+.hero-art::before {
   position: absolute;
-  inset: 14% 5% 13% 0;
-  border: 1px solid rgb(255 255 255 / 6%);
-  border-radius: 50% 0 0 50%;
-  opacity: 0.75;
+  inset: 8% 6% 7% 0;
+  border: 1px solid rgb(241 239 223 / 11%);
+  border-radius: 50%;
+  transform: rotate(-19deg) scaleY(0.77);
+  content: '';
 }
 
-.court-lines::before,
-.court-lines::after {
+.hero-art::after {
   position: absolute;
   top: 50%;
   left: 0;
-  border: 1px solid rgb(255 255 255 / 6%);
-  border-radius: 50%;
+  width: 92%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(241 239 223 / 12%), transparent);
   content: '';
-  transform: translate(-50%, -50%);
 }
 
-.court-lines::before {
-  width: 58%;
-  aspect-ratio: 1;
-}
-
-.court-lines::after {
-  width: 18%;
-  aspect-ratio: 1;
-}
-
-.visual-orbit {
+.art-coordinates {
   position: absolute;
-  top: 50%;
-  left: 52%;
-  border: 1px solid rgb(255 112 72 / 16%);
-  border-radius: 50%;
-  transform: translate(-50%, -50%) rotate(-26deg);
+  z-index: 2;
+  top: 1.3rem;
+  right: 1.5rem;
+  color: #818a87;
+  font-size: 0.59rem;
+  font-weight: 760;
+  letter-spacing: 0.17em;
 }
 
-.visual-orbit--one {
-  width: 19rem;
-  height: 9rem;
-}
-
-.visual-orbit--two {
-  width: 24rem;
-  height: 12rem;
-  border-color: rgb(255 255 255 / 7%);
-  transform: translate(-50%, -50%) rotate(28deg);
-}
-
-.hero-ball {
-  position: absolute;
-  top: 50%;
-  left: 53%;
-  display: grid;
-  width: clamp(11rem, 23vw, 17rem);
-  aspect-ratio: 1;
-  place-items: center;
-  border: 1px solid rgb(255 178 126 / 36%);
-  border-radius: 50%;
-  background: radial-gradient(circle at 32% 23%, #ffa66f, #e76537 54%, #87371f 100%);
-  box-shadow:
-    inset -1.2rem -1.4rem 2rem rgb(37 15 9 / 32%),
-    0 1.2rem 5rem rgb(255 112 72 / 20%);
-  transform: translate(-50%, -50%) rotate(-10deg);
-}
-
-.hero-ball svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  stroke: rgb(47 23 16 / 78%);
-  stroke-width: 2.4;
-}
-
-.visual-label {
-  position: absolute;
-  color: #7f858a;
-  font-size: 0.56rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-}
-
-.visual-label--top {
-  top: 1.7rem;
-  right: 1.7rem;
-}
-
-.visual-label--bottom {
-  right: 1.7rem;
-  bottom: 1.7rem;
-}
-
-.hub-section {
-  margin-top: clamp(3rem, 6vw, 5rem);
-}
-
-.hub-section-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1.5rem;
-  margin-bottom: 1.2rem;
-}
-
-.hub-section-heading h2 {
-  margin: 0.45rem 0 0;
-  color: var(--ink);
-  font-size: clamp(1.3rem, 3vw, 1.8rem);
-  font-weight: 660;
-  letter-spacing: -0.045em;
-}
-
-.hub-section-heading > p {
-  margin: 0 0 0.15rem;
-  color: var(--muted);
-  font-size: 0.74rem;
-}
-
-.hub-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.8rem;
-}
-
-.hub-card {
-  display: flex;
-  min-height: 12.2rem;
-  flex-direction: column;
-  justify-content: space-between;
-  border: 1px solid var(--line);
-  border-radius: 1.1rem;
-  background: linear-gradient(150deg, rgb(255 255 255 / 3.4%), rgb(255 255 255 / 1%));
-  padding: 1.1rem;
-  color: inherit;
-  text-decoration: none;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease;
-}
-
-.hub-card:hover {
-  transform: translateY(-3px);
-  border-color: rgb(255 112 72 / 34%);
-  background-color: rgb(255 112 72 / 3%);
-}
-
-.hub-card-top,
-.hub-card-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-}
-
-.hub-card-icon {
-  display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 8%);
-  border-radius: 0.8rem;
-  background: rgb(255 255 255 / 3%);
-  color: #d2d0ca;
-}
-
-.hub-card-index {
-  color: #636970;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
-.hub-card-bottom h3 {
-  margin: 0;
-  color: #efeee9;
-  font-size: 0.93rem;
-  font-weight: 650;
-}
-
-.hub-card-bottom p {
-  max-width: 15rem;
-  margin: 0.35rem 0 0;
-  color: var(--muted);
-  font-size: 0.7rem;
-  line-height: 1.5;
-}
-
-.hub-card-arrow {
-  flex: 0 0 auto;
-  color: #737981;
-  transition:
-    color 160ms ease,
-    transform 160ms ease;
-}
-
-.hub-card:hover .hub-card-arrow {
-  transform: translate(2px, -2px);
+.art-coordinates span {
+  padding: 0 0.22rem;
   color: var(--accent);
 }
 
-.home-note {
+.court-arc {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 46%;
+  width: 22rem;
+  height: 22rem;
+  border: 1px solid rgb(217 236 121 / 17%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.court-arc--two {
+  width: 14rem;
+  height: 14rem;
+  border-color: rgb(242 122 86 / 26%);
+  border-style: dashed;
+  animation: slow-spin 40s linear infinite;
+}
+
+.court-center-line {
+  position: absolute;
+  top: 0;
+  left: 46%;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(transparent, rgb(217 236 121 / 18%), transparent);
+}
+
+.art-ball-shadow {
+  position: absolute;
+  top: 54%;
+  left: 46%;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 38%);
+  filter: blur(27px);
+  transform: translate(-42%, -34%) scale(0.78);
+}
+
+.art-ball {
+  position: absolute;
+  top: 50%;
+  left: 46%;
+  display: grid;
+  width: 12rem;
+  height: 12rem;
+  place-items: center;
+  border: 1px solid rgb(255 206 168 / 26%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 33% 25%, rgb(255 198 148 / 30%), transparent 35%),
+    radial-gradient(circle at 68% 78%, rgb(84 27 18 / 35%), transparent 47%),
+    linear-gradient(145deg, #c65a38, #77331f 82%);
+  box-shadow:
+    inset -12px -15px 26px rgb(0 0 0 / 25%),
+    inset 8px 8px 14px rgb(255 202 160 / 16%),
+    0 23px 55px rgb(0 0 0 / 38%);
+  color: rgb(250 208 175 / 72%);
+  transform: translate(-44%, -50%) rotate(-18deg);
+}
+
+.art-stamp {
+  position: absolute;
+  z-index: 2;
+  right: 7%;
+  bottom: 20%;
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+  color: #e6e7d7;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.art-stamp-line {
+  width: 2.4rem;
+  height: 1px;
+  background: var(--lime);
+}
+
+.art-side-label {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 1.3rem;
+  color: #697271;
+  font-size: 0.51rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  writing-mode: vertical-rl;
+}
+
+.hero-index {
+  position: absolute;
+  right: 1.3rem;
+  bottom: 1.05rem;
+  color: rgb(255 255 255 / 10%);
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.08em;
+}
+
+.overview-section,
+.coming-section {
+  min-width: 0;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.section-heading h2 {
+  margin: 0.34rem 0 0;
+  color: var(--ink);
+  font-size: clamp(1.35rem, 2.3vw, 1.8rem);
+  font-weight: 730;
+  letter-spacing: -0.055em;
+}
+
+.section-caption {
+  padding-bottom: 0.15rem;
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(17rem, 0.9fr);
+  gap: 0.9rem;
+}
+
+.overview-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(155deg, rgb(255 255 255 / 2.2%), rgb(255 255 255 / 0.7%));
+  padding: 1rem;
+}
+
+.panel-heading,
+.panel-title-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.panel-heading {
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.panel-title-wrap {
+  min-width: 0;
+  gap: 0.65rem;
+}
+
+.panel-icon,
+.coming-icon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 0.73rem;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+}
+
+.panel-icon--accent {
+  border-color: rgb(242 122 86 / 23%);
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+}
+
+.panel-icon--lime {
+  border-color: rgb(217 236 121 / 22%);
+  background: var(--lime-soft);
+  color: var(--lime);
+}
+
+.panel-kicker {
+  margin: 0 0 0.13rem;
+  color: var(--muted);
+  font-size: 0.57rem;
+}
+
+.panel-heading h3 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border-radius: 0.35rem;
+  color: #aeb6b1;
+  font-size: 0.62rem;
+  font-weight: 680;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.text-link:hover {
+  color: var(--lime);
+}
+
+.section-heading--compact {
+  margin-bottom: 0.75rem;
+}
+
+.section-heading--compact h2 {
+  font-size: clamp(1.13rem, 2vw, 1.45rem);
+}
+
+.coming-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.coming-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: linear-gradient(150deg, rgb(255 255 255 / 2.5%), rgb(255 255 255 / 0.6%));
+  padding: 0.85rem;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.coming-card:hover {
+  border-color: var(--line-strong);
+  background-color: rgb(255 255 255 / 1%);
+}
+
+.coming-card-top,
+.coming-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.coming-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.66rem;
+  color: var(--muted);
+}
+
+.coming-index {
+  color: var(--subtle);
+  font-size: 0.54rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+}
+
+.coming-card-bottom {
+  margin-top: 0.9rem;
+}
+
+.coming-card-bottom h3 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 690;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coming-card-bottom > span {
+  flex: 0 0 auto;
+  color: var(--subtle);
+  font-size: 0.56rem;
+}
+
+.data-principle {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  margin-top: 1.4rem;
-  color: #878c92;
-  font-size: 0.72rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.95rem;
 }
 
-.home-note p {
-  margin: 0;
-}
-
-.home-note strong {
-  color: #c5c2bb;
-  font-weight: 650;
-}
-
-.home-note-icon {
+.principle-mark {
   display: grid;
   width: 1.75rem;
   height: 1.75rem;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgb(255 112 72 / 20%);
-  border-radius: 50%;
-  color: var(--accent);
+  border: 1px solid rgb(217 236 121 / 20%);
+  border-radius: 0.58rem;
+  background: var(--lime-soft);
+  color: var(--lime);
 }
 
-@keyframes content-arrive {
+.data-principle p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+.data-principle strong {
+  color: var(--ink-soft);
+}
+
+.principle-code {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--subtle);
+  font-size: 0.51rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+@keyframes page-arrive {
   from {
-    transform: translateY(0.4rem);
+    transform: translateY(0.25rem);
     opacity: 0;
   }
 
@@ -458,77 +642,180 @@ const sections: HubSection[] = [
   }
 }
 
-@media (max-width: 1020px) {
-  .hub-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@keyframes slow-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(342deg) scale(0.98);
+  }
+}
+
+@media (max-width: 1100px) {
+  .hero-copy h1 {
+    font-size: clamp(3rem, 6.7vw, 4.6rem);
+  }
+
+  .overview-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  }
+
+  .section-caption {
+    display: none;
   }
 }
 
 @media (max-width: 760px) {
-  .welcome-panel {
-    grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.75fr);
+  .home-view {
+    gap: 2rem;
   }
 
-  .welcome-visual {
-    min-height: 20rem;
+  .hero-panel {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: var(--radius-lg);
   }
 
-  .hero-ball {
-    width: 12rem;
+  .hero-copy {
+    padding: 1.5rem 1.3rem 0.5rem;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(3.1rem, 12vw, 4.55rem);
+  }
+
+  .hero-copy > p {
+    max-width: 28rem;
+    font-size: 0.84rem;
+  }
+
+  .hero-art {
+    min-height: 13rem;
+  }
+
+  .hero-art::before {
+    inset: -8% 12% -50% 7%;
+  }
+
+  .art-coordinates {
+    top: 0.75rem;
+    right: 0.9rem;
+  }
+
+  .court-arc {
+    top: 58%;
+    left: 44%;
+    width: 15rem;
+    height: 15rem;
+  }
+
+  .court-arc--two {
+    width: 10rem;
+    height: 10rem;
+  }
+
+  .court-center-line {
+    left: 44%;
+  }
+
+  .art-ball,
+  .art-ball-shadow {
+    top: 58%;
+    left: 44%;
+    width: 8.4rem;
+    height: 8.4rem;
+  }
+
+  .art-ball :deep(svg) {
+    width: 5.5rem;
+    height: 5.5rem;
+  }
+
+  .art-stamp {
+    right: 11%;
+    bottom: 16%;
+    font-size: 0.5rem;
+  }
+
+  .art-side-label {
+    right: 0.9rem;
+    bottom: 0.65rem;
+  }
+
+  .hero-index {
+    right: 0.8rem;
+    bottom: 0.45rem;
+    font-size: 1.9rem;
+  }
+
+  .overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .coming-grid {
+    gap: 0.5rem;
+  }
+
+  .coming-card {
+    padding: 0.65rem;
+  }
+
+  .coming-card-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .coming-card-bottom h3 {
+    font-size: 0.7rem;
+  }
+
+  .data-principle {
+    align-items: flex-start;
+  }
+
+  .principle-code {
+    display: none;
   }
 }
 
-@media (max-width: 560px) {
-  .welcome-panel {
-    grid-template-columns: 1fr;
+@media (max-width: 420px) {
+  .hero-copy {
+    padding-inline: 1.05rem;
   }
 
-  .welcome-copy {
-    padding-bottom: 0.8rem;
+  .hero-copy h1 {
+    font-size: 3rem;
   }
 
-  .welcome-visual {
-    min-height: 14rem;
+  .hero-actions {
+    gap: 0.45rem;
   }
 
-  .hero-ball {
-    left: 50%;
-    width: 10.5rem;
+  .hero-actions .button {
+    min-height: 2.65rem;
+    padding: 0.6rem 0.7rem;
+    font-size: 0.72rem;
   }
 
-  .visual-label--top {
-    top: 1rem;
-    right: 1rem;
+  .panel-heading {
+    align-items: flex-start;
   }
 
-  .visual-label--bottom {
-    right: 1rem;
-    bottom: 1rem;
+  .panel-heading h3 {
+    font-size: 0.89rem;
   }
 
-  .hub-section-heading {
-    display: block;
+  .text-link {
+    font-size: 0.58rem;
   }
 
-  .hub-section-heading > p {
-    margin-top: 0.5rem;
-  }
-
-  .hub-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .hub-card {
-    min-height: 9rem;
+  .coming-card-bottom h3 {
+    font-size: 0.64rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-view,
-  .hub-card,
-  .hub-card-arrow {
+  .court-arc--two {
     animation: none;
-    transition: none;
   }
 }
 </style>

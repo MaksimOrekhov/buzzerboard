@@ -33,7 +33,7 @@ describe('application routes', () => {
       'favorites',
     ])
     expect(navigationItems.map(({ label }) => label)).toEqual([
-      'Главная',
+      'Обзор',
       'Матчи',
       'Турнирная таблица',
       'Новости',

@@ -17,23 +17,24 @@ defineProps<{
 <style scoped>
 .page-heading {
   max-width: 48rem;
-  margin-bottom: clamp(1.8rem, 4vw, 3.2rem);
+  margin-bottom: clamp(1.6rem, 4vw, 2.7rem);
 }
 
 .page-heading h1 {
-  margin: 0.8rem 0 0;
+  margin: 0.55rem 0 0;
   color: var(--ink);
-  font-size: clamp(2.15rem, 5vw, 3.7rem);
-  font-weight: 720;
-  letter-spacing: -0.055em;
+  font-size: clamp(2rem, 4.2vw, 3.3rem);
+  font-weight: 760;
+  letter-spacing: -0.065em;
   line-height: 1.04;
+  overflow-wrap: anywhere;
 }
 
 .page-heading-description {
-  max-width: 42rem;
-  margin: 1rem 0 0;
+  max-width: 41rem;
+  margin: 0.85rem 0 0;
   color: var(--muted);
-  font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-  line-height: 1.7;
+  font-size: clamp(0.84rem, 1.3vw, 0.96rem);
+  line-height: 1.65;
 }
 </style>
