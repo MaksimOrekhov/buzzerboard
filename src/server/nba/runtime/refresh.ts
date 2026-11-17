@@ -25,6 +25,7 @@ import type {
 import { gamesCacheKey, scheduleCacheKey, standingsCacheKey } from '@/server/nba/runtime/cacheKeys'
 import { getDateKeyInTimeZone, NBA_TIME_ZONE } from '@/shared/utils/nbaDate'
 import { readDunkApiCreditBudget } from '@/server/nba/runtime/creditBudget'
+import { refreshBbsGames, runScheduledBbsRefresh } from '@/server/nba/runtime/bbsRefresh'
 
 const PROVIDER_URL = 'https://mcp.dunkapi.com/v1'
 const UPSTREAM_TIMEOUT_MS = 12_000
@@ -130,7 +131,12 @@ function providerOrder(env: WorkerEnvironment, capability: 'games' | 'standings'
   return value
     .split(',')
     .map((provider) => provider.trim())
-    .filter((provider): provider is NbaProviderId => provider === 'dunkapi' || provider === 'espn')
+    .filter(
+      (provider): provider is NbaProviderId =>
+        provider === 'dunkapi' ||
+        provider === 'espn' ||
+        (capability === 'games' && provider === 'bbs'),
+    )
 }
 
 export function getProviderForTarget(
@@ -322,6 +328,13 @@ export async function refreshNbaResource(
   if (!provider) {
     const error = createNbaApiError('not_configured', null)
     return outcome(target, 'deferred', null, now, error)
+  }
+
+  if (provider === 'bbs') {
+    if (target.type !== 'games') {
+      return outcome(target, 'deferred', null, now, createNbaApiError('not_configured', 'bbs'))
+    }
+    return refreshBbsGames(target, env, repository, fetcher, now)
   }
 
   const cacheKey = cacheKeyForTarget(target, provider)
@@ -527,11 +540,14 @@ export async function runScheduledRefresh(
   )
   if (!previousNbaDate || !seasonEndYear) return []
 
-  const targets: NbaRefreshTarget[] = [
-    { type: 'games', date: previousNbaDate },
-    { type: 'standings', seasonEndYear },
-  ]
-  if (instant.getUTCDay() === 0 && budget) {
+  const targets: NbaRefreshTarget[] =
+    env.DUNKAPI_REFRESH_ENABLED === 'true'
+      ? [
+          { type: 'games', date: previousNbaDate },
+          { type: 'standings', seasonEndYear },
+        ]
+      : []
+  if (env.DUNKAPI_REFRESH_ENABLED === 'true' && instant.getUTCDay() === 0 && budget) {
     const month = instant.toISOString().slice(0, 7)
     const plan = getRegularRefreshPlan(month, budget.appLimit)
     const sundayOrdinal = Math.floor((instant.getUTCDate() - 1) / 7) + 1
@@ -543,6 +559,9 @@ export async function runScheduledRefresh(
   const results: RefreshOutcome[] = []
   for (const target of targets) {
     results.push(await refreshNbaResource(target, env, repository, fetcher, now))
+  }
+  if (env.BBS_REFRESH_ENABLED === 'true') {
+    results.push(...(await runScheduledBbsRefresh(env, repository, fetcher, now)))
   }
   await repository.cleanupExpired(now)
   return results

@@ -33,7 +33,7 @@ export interface BoxScoreRefreshOutcome {
 
 export function parseSourceGameId(value: unknown): { provider: NbaProviderId; id: GameId } | null {
   if (typeof value !== 'string') return null
-  const match = /^(dunkapi|espn):game:(.+)$/.exec(value)
+  const match = /^(dunkapi|espn|bbs):game:(.+)$/.exec(value)
   return match ? { provider: match[1] as NbaProviderId, id: value as GameId } : null
 }
 

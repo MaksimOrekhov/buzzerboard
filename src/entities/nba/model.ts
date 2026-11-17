@@ -1,6 +1,6 @@
 export type Brand<Value, Name extends string> = Value & { readonly __brand: Name }
 
-export type NbaProviderId = 'dunkapi' | 'espn'
+export type NbaProviderId = 'dunkapi' | 'espn' | 'bbs'
 export type TeamId = Brand<string, 'TeamId'>
 export type GameId = Brand<string, 'GameId'>
 export type PlayerId = Brand<string, 'PlayerId'>

@@ -38,6 +38,8 @@ export type GamesCacheRecord =
   | (CacheRecordBase & {
       capability: 'games'
       data: readonly Game[]
+      /** Private provider IDs needed for BBS archive-stat routes; never returned to clients. */
+      providerReferences?: Readonly<Record<string, string>>
     })
   | (CacheRecordBase & {
       capability: 'schedule'
@@ -127,6 +129,13 @@ export interface WorkerEnvironment {
   DUNKAPI_CREDIT_BASELINE_MONTH?: string
   NBA_GAMES_PROVIDER_ORDER?: string
   NBA_STANDINGS_PROVIDER_ORDER?: string
+  BBS_API_KEY?: string
+  BBS_API_BASE_URL?: string
+  BBS_REFRESH_ENABLED?: string
+  BBS_DAILY_REQUEST_LIMIT?: string
+  BBS_DAILY_REQUEST_HEADROOM?: string
+  BBS_PER_MINUTE_REQUEST_LIMIT?: string
+  BBS_REQUEST_INTERVAL_MS?: string
 }
 
 export interface WorkerDependencies {

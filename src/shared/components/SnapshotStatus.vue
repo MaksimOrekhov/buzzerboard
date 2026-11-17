@@ -15,7 +15,13 @@ const updated = computed(() => {
     timeZone: VIEWER_TIME_ZONE,
   }).format(date)
 })
-const source = computed(() => (props.meta.source === 'dunkapi' ? 'DunkAPI' : 'ESPN'))
+const source = computed(() =>
+  props.meta.source === 'dunkapi'
+    ? 'DunkAPI'
+    : props.meta.source === 'bbs'
+      ? 'Big Balls Sports Data'
+      : 'ESPN',
+)
 </script>
 <template>
   <div class="gc-data-status" :class="{ 'gc-data-status--stale': meta.isStale }" role="status">

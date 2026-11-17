@@ -21,11 +21,17 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
       record.capability === 'standings' ||
       record.capability === 'schedule' ||
       record.capability === 'boxScore') &&
-    (record.provider === 'dunkapi' || record.provider === 'espn') &&
+    (record.provider === 'dunkapi' || record.provider === 'espn' || record.provider === 'bbs') &&
     (record.capability === 'boxScore'
       ? typeof record.gameId === 'string' &&
         (record.data === null || isValidBoxScoreData(record.data, record.gameId))
       : Array.isArray(record.data)) &&
+    (record.providerReferences === undefined ||
+      (record.provider === 'bbs' &&
+        typeof record.providerReferences === 'object' &&
+        record.providerReferences !== null &&
+        !Array.isArray(record.providerReferences) &&
+        Object.values(record.providerReferences).every((value) => typeof value === 'string'))) &&
     typeof record.fetchedAt === 'string' &&
     (record.providerUpdatedAt === null || typeof record.providerUpdatedAt === 'string') &&
     typeof record.rejectedRecords === 'number' &&
