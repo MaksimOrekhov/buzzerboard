@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import AppBadge from './AppBadge.vue'
+import AppIcon from './AppIcon.vue'
 import type { Game, GameStatus } from '@/entities/nba/model'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 

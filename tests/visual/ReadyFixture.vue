@@ -102,7 +102,7 @@ const game: Game = {
           <h2 id="standings-heading">Состояние с данными</h2>
         </div>
       </div>
-      <StandingsTable :rows="[eastRow, westRow]" />
+      <StandingsTable :rows="[eastRow]" conference="east" />
     </section>
   </main>
 </template>

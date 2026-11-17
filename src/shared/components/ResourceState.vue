@@ -5,6 +5,7 @@ import AppIcon from './AppIcon.vue'
 import type { NbaApiError, NbaProviderId } from '@/entities/nba/model'
 import type { NbaApiSnapshot } from '@/shared/api/nba/contracts'
 import type { AppIconName } from '@/shared/icons'
+import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 
 const props = withDefaults(
   defineProps<{
@@ -40,7 +41,7 @@ const updatedAt = computed(() => {
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'Europe/Nicosia',
+    timeZone: VIEWER_TIME_ZONE,
   }).format(new Date(fetchedAt))
 })
 
