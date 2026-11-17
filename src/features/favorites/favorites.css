@@ -1,0 +1,120 @@
+.favorites-content {
+  margin-top: 24px;
+}
+.favorite-teams-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.favorite-team-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius);
+  background: var(--gc-panel);
+}
+.favorite-team-card header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.favorite-team-card header > div {
+  min-width: 0;
+}
+.favorite-team-card h2 {
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.5;
+  margin: 0;
+}
+.favorite-team-card header p {
+  color: var(--gc-muted);
+  font-size: 10px;
+  margin: 4px 0 0;
+}
+.favorite-team-card .gc-icon-button {
+  margin-left: auto;
+  width: 30px;
+}
+.favorite-team-card dl {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  border-top: 1px solid var(--gc-line);
+  padding-top: 19px;
+  margin: 19px 0 5px;
+}
+.favorite-team-card dt {
+  color: var(--gc-muted);
+  font-size: 11px;
+}
+.favorite-team-card dd {
+  font-size: 25px;
+  font-weight: 750;
+  margin: 3px 0 0;
+}
+.favorites-date-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.favorites-date-control h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+.favorites-date-control p {
+  font-size: 12px;
+  color: var(--gc-muted);
+  margin: 5px 0 0;
+}
+.favorites-missing {
+  border: 1px solid var(--gc-line);
+  color: var(--gc-muted);
+  margin: 16px 0;
+}
+@media (max-width: 1270px) {
+  .favorite-teams-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .favorite-teams-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .favorite-team-card {
+    padding: 18px;
+  }
+  .favorites-date-control {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .favorites-date-control h2 {
+    font-size: 18px;
+  }
+  .favorites-date-control p {
+    font-size: 11px;
+  }
+}
+
+.favorite-game-groups {
+  display: grid;
+  gap: 24px;
+}
+.favorite-game-group h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+.favorite-game-group h3 > span {
+  color: var(--gc-muted);
+  font-size: 10px;
+  font-weight: 450;
+}

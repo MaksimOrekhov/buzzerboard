@@ -44,9 +44,9 @@ describe('ResourceState', () => {
       slots: { default: '<div>Проверенная таблица</div>' },
     })
 
-    expect(wrapper.get('[role="status"]').text()).toContain('Устаревший снимок')
+    expect(wrapper.get('[role="status"]').text()).toContain('Данные устарели')
     expect(wrapper.text()).toContain('DunkAPI')
-    expect(wrapper.text()).toContain('последнее обновление не удалось')
+    expect(wrapper.text()).toContain('Последнее обновление не удалось')
     expect(wrapper.text()).toContain('Проверенная таблица')
   })
 })

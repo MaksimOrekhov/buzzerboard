@@ -52,14 +52,14 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Capture responsive visual checks
-        run: pnpm run visual:pro168
+      - name: Check all routes, tables and responsive states
+        run: pnpm run visual:pro186
 
-      - name: Upload PRO-168 screenshots
+      - name: Upload synthetic Game Center screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: buzzerboard-pro168-visual-review
-          path: artifacts/pro-168/
+          name: buzzerboard-pro186-synthetic
+          path: artifacts/pro-186/synthetic/
           if-no-files-found: warn
           retention-days: 30
