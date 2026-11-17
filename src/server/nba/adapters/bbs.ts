@@ -143,7 +143,9 @@ export function normalizeBbsGames(
   context: NormalizationContext,
 ): NbaSnapshot<readonly Game[]> {
   const root = rootOf(payload)
-  const rows = rowsFrom(root, ['matches', 'games', 'results'])
+  const rows = Array.isArray(root.data)
+    ? root.data
+    : rowsFrom(root, ['matches', 'games', 'results'])
   if (!rows) throw new NbaAdapterError(invalidResponseError(provider))
   let rejectedRecords = 0
   const data: Game[] = []

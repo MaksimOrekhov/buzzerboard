@@ -157,7 +157,7 @@ async function getBbsJson(
   previousRequestStartedAt = Date.now()
   const remainingHeader =
     response.headers.get('x-ratelimit-remaining-day') ??
-    response.headers.get('x-ratelimit-remaining')
+    response.headers.get('x-ratelimit-day-remaining')
   const providerRemaining = remainingHeader === null ? NaN : Number(remainingHeader)
   if (Number.isSafeInteger(providerRemaining) && providerRemaining >= 0) {
     providerRemainingBudget = { utcDay, remaining: providerRemaining }
@@ -193,10 +193,20 @@ function cacheFailure(
 }
 
 function matchesPayload(payload: unknown): { root: Record<string, unknown>; matches: unknown[] } {
-  const data =
-    payload && typeof payload === 'object' && 'data' in payload
-      ? (payload as Record<string, unknown>).data
-      : payload
+  const envelope =
+    payload && typeof payload === 'object' && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>)
+      : null
+  const data = envelope && 'data' in envelope ? envelope.data : payload
+  if (Array.isArray(data)) {
+    const pagination = envelope?.pagination
+    if (!pagination || typeof pagination !== 'object' || Array.isArray(pagination))
+      throw createNbaApiError('invalid_response', 'bbs')
+    const total = Number((pagination as Record<string, unknown>).total)
+    if (!Number.isSafeInteger(total) || total < 0 || total !== data.length)
+      throw createNbaApiError('invalid_response', 'bbs')
+    return { root: { ...(envelope ?? {}), matches: data, pagination }, matches: data }
+  }
   if (!data || typeof data !== 'object' || Array.isArray(data))
     throw createNbaApiError('invalid_response', 'bbs')
   const root = data as Record<string, unknown>
@@ -206,13 +216,13 @@ function matchesPayload(payload: unknown): { root: Record<string, unknown>; matc
       ? root.games
       : null
   if (!matches) throw createNbaApiError('invalid_response', 'bbs')
-  const pagination = root.pagination
+  const pagination = root.pagination ?? envelope?.pagination
   if (!pagination || typeof pagination !== 'object' || Array.isArray(pagination))
     throw createNbaApiError('invalid_response', 'bbs')
   const total = Number((pagination as Record<string, unknown>).total)
   if (!Number.isSafeInteger(total) || total < 0 || total !== matches.length)
     throw createNbaApiError('invalid_response', 'bbs')
-  return { root, matches }
+  return { root: { ...root, pagination }, matches }
 }
 
 async function refreshBox(

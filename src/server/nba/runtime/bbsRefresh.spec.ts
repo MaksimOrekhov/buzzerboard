@@ -70,9 +70,9 @@ function fakeBbsFetch(options: { status?: number; total?: number } = {}) {
     if (options.status)
       return new Response('{}', { status: options.status, headers: { 'retry-after': '120' } })
     if (url.pathname === '/v1/matches') {
-      const data = structuredClone(fixture.data)
-      if (options.total !== undefined) data.pagination.total = options.total
-      return new Response(JSON.stringify({ data }), { status: 200 })
+      const payload = structuredClone(fixture)
+      if (options.total !== undefined) payload.pagination.total = options.total
+      return new Response(JSON.stringify(payload), { status: 200 })
     }
     if (url.pathname === '/v1/nba/games/90000001') {
       return new Response(
@@ -150,7 +150,7 @@ function busyDayFixture() {
     'WAS',
   ]
   const matches = Array.from({ length: 15 }, (_, index) => {
-    const source = structuredClone(fixture.data.matches[0]!)
+    const source = structuredClone(fixture.data[0]!)
     source.id = `synthetic-busy-game-${index + 1}`
     source.archive_game_id = 91000000 + index
     source.home = {
@@ -165,7 +165,7 @@ function busyDayFixture() {
     }
     return source
   })
-  return { data: { matches, pagination: { total: matches.length, limit: 100, offset: 0 } } }
+  return { data: matches, pagination: { total: matches.length, limit: 100, offset: 0 } }
 }
 
 function busyDayFetch() {
@@ -394,7 +394,7 @@ describe('BBS cached refresh flow', () => {
     expect(paths).toHaveLength(4)
 
     const midnightRepository = new MemoryRepository()
-    const emptyFixture = { data: { matches: [], pagination: { total: 0, limit: 100, offset: 0 } } }
+    const emptyFixture = { data: [], pagination: { total: 0, limit: 100, offset: 0 } }
     const midnightFetch = vi.fn(
       async () => new Response(JSON.stringify(emptyFixture), { status: 200 }),
     ) as typeof fetch
@@ -421,7 +421,7 @@ describe('BBS cached refresh flow', () => {
 
   it('atomically prevents concurrent dates from exceeding one daily request', async () => {
     const repository = new MemoryRepository()
-    const emptyFixture = { data: { matches: [], pagination: { total: 0, limit: 100, offset: 0 } } }
+    const emptyFixture = { data: [], pagination: { total: 0, limit: 100, offset: 0 } }
     const fetcher = vi.fn(
       async () => new Response(JSON.stringify(emptyFixture), { status: 200 }),
     ) as typeof fetch
@@ -467,7 +467,7 @@ describe('BBS cached refresh flow', () => {
       async () =>
         new Response(JSON.stringify(fixture), {
           status: 200,
-          headers: { 'x-ratelimit-remaining': '25' },
+          headers: { 'x-ratelimit-remaining-day': '25' },
         }),
     ) as typeof fetch
     const result = await refreshBbsGames(
@@ -481,5 +481,27 @@ describe('BBS cached refresh flow', () => {
     expect(result.error?.code).toBe('quota_exceeded')
     expect(fetcher).toHaveBeenCalledTimes(1)
     expect(repository.cache.get(gamesCacheKey('bbs', date))?.capability).toBe('games')
+  })
+
+  it('does not mistake the generic remaining counter for daily quota', async () => {
+    const repository = new MemoryRepository()
+    const { fetcher, paths } = fakeBbsFetch()
+    const withMinuteCounter = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await fetcher(input, init)
+      const body = await response.text()
+      return new Response(body, {
+        status: response.status,
+        headers: { 'x-ratelimit-remaining': '25' },
+      })
+    }) as typeof fetch
+    const result = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      withMinuteCounter,
+      now + 24 * 60 * 60_000,
+    )
+    expect(result.state).toBe('refreshed')
+    expect(paths).toHaveLength(4)
   })
 })
