@@ -1,6 +1,3 @@
-import '@unocss/reset/tailwind.css'
-import 'virtual:uno.css'
-
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createApp } from 'vue'
 

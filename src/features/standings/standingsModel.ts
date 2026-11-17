@@ -6,6 +6,7 @@ export type StandingsSortKey =
   | 'winPercentage'
   | 'wins'
   | 'gamesBehind'
+  | 'conferenceWins'
   | 'homeWins'
   | 'awayWins'
   | 'lastTenWins'
@@ -118,6 +119,8 @@ export function sortStandingsRows(
         return row.record.wins
       case 'gamesBehind':
         return gamesBehindByTeamId.get(row.team.id) ?? null
+      case 'conferenceWins':
+        return row.record.conferenceWins
       case 'homeWins':
         return row.record.homeWins
       case 'awayWins':

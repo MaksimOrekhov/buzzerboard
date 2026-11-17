@@ -40,5 +40,5 @@ export function useGameFavorites() {
     persistFavoriteIds(next)
   }
 
-  return { isFavorite, toggleFavorite }
+  return { favoriteIds, isFavorite, toggleFavorite }
 }

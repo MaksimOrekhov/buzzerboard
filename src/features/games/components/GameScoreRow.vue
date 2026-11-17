@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import '../games.css'
 import { computed, useId } from 'vue'
 import type { Game, GameStatus } from '@/entities/nba/model'
 import AppIcon from '@/shared/components/AppIcon.vue'
-import CenterIcon from '@/shared/components/v2/CenterIcon.vue'
-import TeamLogo from '@/shared/components/v2/TeamLogo.vue'
+import TeamLogo from '@/shared/components/TeamLogo.vue'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 const props = defineProps<{ game: Game; favorite: boolean; expanded: boolean }>()
 const emit = defineEmits<{ favorite: []; details: [] }>()
@@ -120,7 +120,7 @@ const winner = computed(() =>
           :aria-label="favorite ? 'Убрать матч из избранного' : 'Добавить матч в избранное'"
           @click="emit('favorite')"
         >
-          <CenterIcon name="star" /></button
+          <AppIcon name="star" /></button
         ><button
           class="gc-icon-button gc-detail-button"
           :aria-expanded="expanded"
@@ -128,12 +128,12 @@ const winner = computed(() =>
           :aria-label="expanded ? 'Скрыть детали матча' : 'Детали матча'"
           @click="emit('details')"
         >
-          <CenterIcon name="down" :size="16" />
+          <AppIcon name="down" :size="16" />
         </button>
       </div>
     </div>
     <section v-if="expanded" :id="detailsId" class="gc-match-details" aria-label="Детали матча">
-      <p v-if="game.venue"><CenterIcon name="pin" :size="16" />{{ game.venue }}</p>
+      <p v-if="game.venue"><AppIcon name="pin" :size="16" />{{ game.venue }}</p>
       <p v-if="winner">
         <span class="gc-detail-label">Победитель</span
         >{{ winner === 'home' ? game.homeTeam.displayName : game.awayTeam.displayName }} · +{{

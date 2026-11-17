@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import MatchCard from './MatchCard.vue'
+import GameScoreRow from './GameScoreRow.vue'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 import type {
   Game,
@@ -37,41 +37,42 @@ const game: Game = {
   venue: null,
 }
 
-describe('MatchCard', () => {
+describe('GameScoreRow', () => {
   it('keeps the NBA date separate from the viewer-local date, time, and timezone', () => {
-    const wrapper = mount(MatchCard, {
-      props: { game },
+    const wrapper = mount(GameScoreRow, {
+      props: { game, favorite: false, expanded: true },
       global: { stubs: { AppIcon: true } },
     })
     const expectedLocalStart = new Intl.DateTimeFormat('ru-RU', {
-      day: 'numeric',
-      month: 'long',
       hour: '2-digit',
       minute: '2-digit',
       timeZone: VIEWER_TIME_ZONE,
-      timeZoneName: 'short',
     }).format(new Date(game.startsAt!))
 
-    expect(wrapper.get('.match-date').text()).toContain('15 нояб. 2026 г.')
-    expect(wrapper.get('.match-date').text()).toContain('(ET)')
-    expect(wrapper.get('.match-card-footer').text()).toContain(
-      `Местное время · ${VIEWER_TIME_ZONE}`,
+    expect(wrapper.get('.gc-match-time').text()).toContain(
+      new Intl.DateTimeFormat('ru-RU', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: VIEWER_TIME_ZONE,
+      }).format(new Date(game.startsAt!)),
     )
+    expect(wrapper.get('.gc-match-details').text()).toContain(`Местное время · ${VIEWER_TIME_ZONE}`)
+    expect(game.nbaGameDate).toBe('2026-11-15')
     expect(wrapper.get('time').text()).toBe(expectedLocalStart)
     expect(wrapper.text()).toContain('—')
   })
 
   it('shows only provider-supplied period detail and can toggle favorite state', async () => {
-    const wrapper = mount(MatchCard, {
-      props: { game, favorite: false, detailsExpanded: true },
+    const wrapper = mount(GameScoreRow, {
+      props: { game, favorite: false, expanded: true },
       global: { stubs: { AppIcon: true } },
     })
 
     await wrapper.get('[aria-label="Добавить матч в избранное"]').trigger('click')
-    await wrapper.get('.match-action[aria-expanded="true"]').trigger('click')
+    await wrapper.get('.gc-detail-button[aria-expanded="true"]').trigger('click')
 
-    expect(wrapper.emitted('toggleFavorite')).toHaveLength(1)
-    expect(wrapper.emitted('toggleDetails')).toHaveLength(1)
-    expect(wrapper.text()).toContain('Источник не передал арену или счёт по периодам')
+    expect(wrapper.emitted('favorite')).toHaveLength(1)
+    expect(wrapper.emitted('details')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Счёт по четвертям недоступен.')
   })
 })

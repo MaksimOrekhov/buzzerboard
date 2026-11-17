@@ -4,7 +4,7 @@ import type { GameId, GameStatus, NbaGameDate, Team } from '@/entities/nba/model
 import { WorkerApiError } from '@/features/games/api'
 import { useGameFavorites } from './useGameFavorites'
 import { useGamesForDate } from './useGamesForDate'
-import { VIEWER_TIME_ZONE, getDefaultNbaGameDate } from '@/shared/utils/nbaDate'
+import { getDefaultNbaGameDate } from '@/shared/utils/nbaDate'
 
 export function shiftGameDate(date: string, days: number): NbaGameDate {
   const shifted = new Date(`${date}T12:00:00Z`)
@@ -33,7 +33,7 @@ export function useGameCenter() {
       : today
   })
   const query = useGamesForDate(selectedDate)
-  const { isFavorite, toggleFavorite } = useGameFavorites()
+  const { favoriteIds, isFavorite, toggleFavorite } = useGameFavorites()
   const statusFilter = shallowRef<GameStatus | 'all'>('all')
   const teamFilter = shallowRef('all')
   const search = shallowRef('')
@@ -126,18 +126,6 @@ export function useGameCenter() {
       .format(new Date(`${selectedDate.value}T12:00:00Z`))
       .replace(/^./, (letter) => letter.toLocaleUpperCase('ru-RU')),
   )
-  const fetchedAtLabel = computed(() =>
-    meta.value
-      ? new Intl.DateTimeFormat('ru-RU', {
-          day: 'numeric',
-          month: 'short',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: VIEWER_TIME_ZONE,
-        }).format(new Date(meta.value.fetchedAt))
-      : null,
-  )
-  const sourceLabel = computed(() => (meta.value?.source === 'dunkapi' ? 'DunkAPI' : 'ESPN'))
   const workerError = computed(() =>
     query.error.value instanceof WorkerApiError ? query.error.value.error : null,
   )
@@ -204,14 +192,13 @@ export function useGameCenter() {
     totalPoints,
     activeFilters,
     displayDate,
-    fetchedAtLabel,
-    sourceLabel,
     errorTitle,
     errorDescription,
     weekDates,
     setDate,
     resetFilters,
     toggleDetails,
+    favoriteIds,
     isFavorite,
     toggleFavorite,
   }

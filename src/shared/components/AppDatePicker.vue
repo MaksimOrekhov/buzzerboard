@@ -20,7 +20,6 @@ import {
   CalendarCellTrigger,
 } from 'reka-ui'
 import AppIcon from '@/shared/components/AppIcon.vue'
-import CenterIcon from '@/shared/components/v2/CenterIcon.vue'
 const props = defineProps<{ min: string; max: string }>()
 const model = defineModel<string>({ required: true })
 const open = shallowRef(false)
@@ -39,7 +38,7 @@ function select(date: DateValue | undefined) {
 <template>
   <PopoverRoot v-model:open="open">
     <PopoverTrigger class="gc-control gc-date-trigger" aria-label="Выбрать игровую дату NBA"
-      ><AppIcon name="calendar" :size="18" />{{ label }}<CenterIcon name="down" :size="15"
+      ><AppIcon name="calendar" :size="18" />{{ label }}<AppIcon name="down" :size="15"
     /></PopoverTrigger>
     <PopoverPortal
       ><PopoverContent

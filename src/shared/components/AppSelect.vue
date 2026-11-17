@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string">
 import {
   SelectRoot,
   SelectTrigger,
@@ -10,14 +10,17 @@ import {
   SelectItemText,
   SelectItemIndicator,
 } from 'reka-ui'
-import CenterIcon from './CenterIcon.vue'
-defineProps<{ label: string; options: readonly { value: string; label: string }[] }>()
-const model = defineModel<string>({ required: true })
+import AppIcon from './AppIcon.vue'
+defineProps<{
+  label: string
+  options: readonly { value: T; label: string; disabled?: boolean }[]
+}>()
+const model = defineModel<T>({ required: true })
 </script>
 <template>
   <SelectRoot v-model="model">
     <SelectTrigger class="gc-control gc-select" :aria-label="label"
-      ><SelectValue /><CenterIcon name="down" :size="15"
+      ><SelectValue /><AppIcon name="down" :size="15"
     /></SelectTrigger>
     <SelectPortal
       ><SelectContent
@@ -31,10 +34,11 @@ const model = defineModel<string>({ required: true })
             v-for="option in options"
             :key="option.value"
             :value="option.value"
+            :disabled="option.disabled ?? false"
             class="gc-option"
             ><SelectItemText>{{ option.label }}</SelectItemText
             ><SelectItemIndicator
-              ><CenterIcon name="check" :size="16" /></SelectItemIndicator></SelectItem
+              ><AppIcon name="check" :size="16" /></SelectItemIndicator></SelectItem
         ></SelectViewport> </SelectContent
     ></SelectPortal>
   </SelectRoot>

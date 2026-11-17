@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Game } from '@/entities/nba/model'
-import TeamLogo from '@/shared/components/v2/TeamLogo.vue'
+import TeamLogo from '@/shared/components/TeamLogo.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 defineProps<{
   closest: Game | null

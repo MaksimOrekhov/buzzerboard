@@ -1,0 +1,434 @@
+.standings-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.standings-section {
+  min-width: 0;
+}
+.standings-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.standings-section-heading h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.6px;
+}
+.standings-section-heading p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--gc-muted);
+}
+.standings-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.standings-filters > .gc-search {
+  min-width: 160px;
+}
+.standings-filters > .gc-select {
+  max-width: 235px;
+  min-width: 205px;
+}
+.standings-filters .ui-button {
+  min-height: 42px;
+}
+.standings-active-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--gc-muted);
+  font-size: 12px;
+  margin-top: -10px;
+}
+.standings-table-shell {
+  border: 1px solid var(--gc-line);
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--gc-panel);
+}
+.standings-scroll {
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #475974 var(--gc-panel);
+  max-height: none;
+}
+.standings-table {
+  width: 100%;
+  min-width: 1050px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  text-align: right;
+}
+.standings-table th,
+.standings-table td {
+  border-bottom: 1px solid var(--gc-line);
+  padding: 11px 12px;
+  color: var(--gc-secondary);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.standings-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.standings-table thead th {
+  position: sticky;
+  z-index: 3;
+  top: 0;
+  height: 46px;
+  padding: 7px 10px;
+  background: #1b2230;
+  color: var(--gc-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.standings-table .team-heading,
+.standings-table .team-cell {
+  position: sticky;
+  left: 0;
+  width: 282px;
+  min-width: 282px;
+  text-align: left;
+  background: var(--gc-panel);
+  box-shadow: 1px 0 0 var(--gc-line);
+}
+.standings-table .team-heading {
+  z-index: 5;
+  background: #1b2230;
+  padding-left: 20px;
+}
+.standings-table .team-cell {
+  z-index: 2;
+  padding: 9px 10px;
+}
+.standings-table .rank-heading,
+.standings-table .rank-cell {
+  width: 58px;
+  text-align: center;
+}
+.standings-table .rank-cell {
+  color: var(--gc-muted);
+}
+.table-team {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 37px;
+}
+.table-team-copy {
+  min-width: 0;
+}
+.table-team-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gc-text);
+  white-space: normal;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.table-team-abbr {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--gc-muted);
+}
+.table-team .favorite-button {
+  width: 25px;
+  height: 36px;
+}
+.standings-table .record-cell {
+  font-weight: 650;
+  color: var(--gc-text);
+}
+.standings-table .pct-cell {
+  color: var(--gc-text);
+}
+.pct-cell strong {
+  font-weight: 750;
+}
+.pct-meter {
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin: 5px 0 0 auto;
+  border-radius: 5px;
+  background: #344158;
+  overflow: hidden;
+}
+.pct-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--gc-accent);
+  border-radius: inherit;
+}
+.standings-table .ui-sorted-column {
+  background: #1b2837;
+  color: #c3eaff;
+}
+.standings-table .sort-button {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 5px;
+  align-items: center;
+  min-height: 32px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.standings-table tbody tr:hover > *,
+.standings-table tbody tr:focus-within > * {
+  background: #1d2939;
+}
+.standings-table tbody tr.standings-row--compared > * {
+  background: #1b3040;
+}
+.standings-table .compare-heading,
+.standings-table .compare-cell {
+  width: 50px;
+  text-align: center;
+}
+.standings-scroll-hint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 9px;
+  color: var(--gc-muted);
+  font-size: 11px;
+}
+.standings-compare-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  color: var(--gc-muted);
+  font-size: 12px;
+}
+.standings-compare-bar > div {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.standings-guide {
+  border-top: 1px solid var(--gc-line);
+  margin-top: 22px;
+  color: var(--gc-muted);
+  font-size: 12px;
+}
+.standings-guide summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  min-height: 50px;
+  cursor: pointer;
+  list-style: none;
+}
+.standings-guide summary::-webkit-details-marker {
+  display: none;
+}
+.standings-guide dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 30px;
+  margin: 4px 0 14px;
+}
+.standings-guide dt {
+  color: var(--gc-secondary);
+  font-size: 13px;
+  font-weight: 650;
+}
+.standings-guide dd {
+  margin: 6px 0 0;
+  line-height: 1.8;
+}
+.comparison-scroll {
+  overflow-x: auto;
+}
+.comparison-table {
+  width: 100%;
+  min-width: 465px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.comparison-table th,
+.comparison-table td {
+  padding: 15px 12px;
+  border-bottom: 1px solid var(--gc-line);
+  text-align: center;
+}
+.comparison-table thead th {
+  width: 30%;
+  vertical-align: top;
+}
+.comparison-table thead th:first-child {
+  width: 40%;
+}
+.comparison-table thead strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: 9px;
+}
+.comparison-table thead th > span:last-child {
+  color: var(--gc-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.comparison-table tbody th {
+  color: var(--gc-muted);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+}
+.comparison-table tbody td {
+  font-size: 18px;
+  font-weight: 700;
+}
+@media (max-width: 1270px) {
+  .standings-sort-direction {
+    display: none;
+  }
+}
+@media (max-width: 1100px) {
+  .standings-scroll-hint {
+    display: flex;
+  }
+}
+@media (max-width: 620px) {
+  .comparison-table {
+    min-width: 0;
+  }
+  .comparison-table th,
+  .comparison-table td {
+    padding: 12px 6px;
+  }
+  .comparison-table thead th:first-child {
+    width: 36%;
+  }
+  .comparison-table tbody td {
+    font-size: 16px;
+  }
+  .standings-topline {
+    margin-bottom: 22px;
+  }
+  .standings-topline .ui-badge {
+    font-size: 11px;
+  }
+  .standings-section-heading h2 {
+    font-size: 19px;
+  }
+  .standings-section-heading p {
+    font-size: 11px;
+  }
+  .standings-section-heading .gc-game-count {
+    font-size: 10px;
+  }
+  .standings-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px 44px;
+    gap: 8px;
+  }
+  .standings-filters > .gc-search {
+    grid-column: 1/-1;
+  }
+  .standings-filters > .gc-select {
+    max-width: none;
+    min-width: 0;
+  }
+  .standings-filters > .ui-button {
+    min-width: 44px;
+    font-size: 0 !important;
+    padding: 10px;
+    gap: 0;
+  }
+  .standings-filters > .ui-button svg {
+    flex: 0 0 18px;
+  }
+  .standings-filters .gc-search input {
+    font-size: 13px;
+  }
+  .standings-scroll {
+    max-height: none;
+  }
+  .standings-table {
+    min-width: 880px;
+  }
+  .standings-table .team-heading,
+  .standings-table .team-cell {
+    width: 176px;
+    min-width: 176px;
+  }
+  .standings-table .team-cell {
+    padding: 10px 5px;
+  }
+  .table-team {
+    gap: 6px;
+  }
+  .table-team .favorite-button {
+    width: 22px;
+  }
+  .table-team .gc-team-logo {
+    width: 27px !important;
+    height: 27px !important;
+  }
+  .table-team-name {
+    font-size: 12px;
+  }
+  .table-team-abbr {
+    font-size: 9px;
+  }
+  .standings-table th,
+  .standings-table td {
+    font-size: 13px;
+    padding-inline: 8px;
+  }
+  .standings-table .sort-button {
+    font-size: 10px;
+    gap: 3px;
+  }
+  .standings-table .team-heading {
+    padding-left: 12px;
+  }
+  .standings-compare-bar {
+    font-size: 11px;
+  }
+  .standings-compare-bar > div {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .standings-guide dl {
+    grid-template-columns: 1fr;
+  }
+  .comparison-table thead th {
+    width: 32%;
+  }
+  .comparison-table thead strong {
+    font-size: 12px;
+  }
+  .comparison-table thead .gc-team-logo {
+    width: 43px !important;
+    height: 43px !important;
+  }
+  .comparison-table tbody th {
+    font-size: 11px;
+  }
+}

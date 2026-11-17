@@ -52,6 +52,34 @@ const meta = {
   rejectedRecords: 0,
   refreshError: null,
 }
+const standings = ['east', 'west'].flatMap((conference) =>
+  Array.from({ length: 15 }, (_, index) => ({
+    team: team(
+      `${conference}${String(index + 1).padStart(2, '0')}`,
+      `${conference === 'east' ? 'East' : 'West'} Test Club ${String(index + 1).padStart(2, '0')}${index === 4 ? ' with an exceptionally long team name' : ''}`,
+    ),
+    seasonEndYear: 2027,
+    conference,
+    record: {
+      wins: 30 - index,
+      losses: 10 + index,
+      conferenceWins: index % 2 === 0 ? 10 : null,
+      conferenceLosses: index % 2 === 0 ? 4 : null,
+      homeWins: 15 - index,
+      homeLosses: 5 + index,
+      awayWins: 15,
+      awayLosses: 5,
+      lastTenWins: index % 11,
+      pointsFor: null,
+      pointsAgainst: null,
+      averageMargin: index % 2 === 0 ? 5 - index : null,
+    },
+    winPercentage: (30 - index) / 40,
+    officialRank: null,
+    playoffSeed: null,
+    providerOrder: 15 - index,
+  })),
+)
 const error = {
   error: {
     code: 'cache_miss',
@@ -81,6 +109,7 @@ try {
       timezoneId: 'Asia/Nicosia',
     })
     let mode = 'ready'
+    let tiedStandings = false
     const calls = []
     await context.route('**/*', async (route) => {
       const request = route.request()
@@ -90,6 +119,22 @@ try {
       calls.push({ path: url.pathname, method: request.method() })
       if (mode === 'loading') await new Promise((resolve) => setTimeout(resolve, 1200))
       if (mode === 'error') return route.fulfill({ status: 503, json: error })
+      if (url.pathname === '/api/standings')
+        return route.fulfill({
+          json: {
+            data:
+              mode === 'empty'
+                ? []
+                : tiedStandings
+                  ? standings.map((row) => ({
+                      ...row,
+                      winPercentage: 0.5,
+                      record: { ...row.record, wins: 20, losses: 20 },
+                    }))
+                  : standings,
+            meta: { ...meta, isStale: mode === 'stale' },
+          },
+        })
       const date = url.searchParams.get('date')
       const records =
         mode === 'empty'
@@ -113,7 +158,7 @@ try {
       assert.ok(documentWidth <= width, `${width} ${label}: overflow ${documentWidth}`)
       await page.screenshot({
         path: path.join(output, `${width}-${label}.png`),
-        fullPage: true,
+        fullPage: !/comparison|calendar|select-open/.test(label),
         animations: 'disabled',
       })
     }
@@ -187,18 +232,152 @@ try {
       else await page.getByText('Данные устарели', { exact: false }).waitFor()
       await capture(state)
     }
-    assert.ok(calls.every((call) => call.method === 'GET' && call.path === '/api/games'))
+
+    // All routes share the same shell, tokens and keyboard navigation.
+    mode = 'ready'
+    for (const [name, route] of [
+      ['overview', '/'],
+      ['favorites-empty', '/favorites'],
+      ['news', '/news'],
+      ['not-found', '/not-a-page'],
+    ]) {
+      await page.goto(`http://127.0.0.1:4186${route}`)
+      await page.waitForFunction(() => document.querySelectorAll('h1').length === 1)
+      if (name === 'overview') await page.locator('.overview-mini-row').first().waitFor()
+      assert.equal(await page.locator('h1').count(), 1)
+      assert.equal(await page.locator('.gc-mobile-nav').isVisible(), width <= 620)
+      assert.equal(await page.locator('.gc-sidebar').isVisible(), width > 620)
+      await capture(name)
+    }
+    await page.goto('http://127.0.0.1:4186/standings')
+    await page.locator('.standings-table tbody tr').last().waitFor()
+    assert.equal(await page.locator('.standings-table tbody tr').count(), 15)
+    assert.equal(await page.locator('.rank-cell').count(), 0)
+    assert.ok(
+      (await page.locator('.standings-table tbody tr').first().textContent()).includes(
+        'East Test Club 01',
+      ),
+    )
+    await capture('standings-east')
+    await page.getByRole('button', { name: 'Сортировать по полю «победам»', exact: true }).click()
+    await page
+      .getByRole('button', {
+        name: 'Сортировать по полю «победам», сейчас по убыванию',
+        exact: true,
+      })
+      .click()
+    assert.ok(
+      (await page.locator('.standings-table tbody tr').first().textContent()).includes(
+        'East Test Club 15',
+      ),
+    )
+    await page.getByRole('button', { name: 'Запад', exact: true }).click()
+    assert.equal(await page.locator('.standings-table tbody tr').count(), 15)
+    await capture('standings-west')
+    await page.getByRole('searchbox', { name: 'Поиск команды в таблице' }).fill('club 01')
+    assert.equal(await page.locator('.standings-table tbody tr').count(), 1)
+    await page.getByRole('button', { name: 'Сбросить фильтры', exact: true }).click()
+    await page.locator('.standings-table .favorite-button').first().click()
+    await page.getByRole('button', { name: 'Избранные', exact: true }).click()
+    assert.equal(await page.locator('.standings-table tbody tr').count(), 1)
+    await page.getByRole('button', { name: 'Сбросить фильтры', exact: true }).click()
+    const scroll = page.locator('.standings-scroll')
+    await scroll.evaluate((node) => {
+      node.scrollLeft = node.scrollWidth
+    })
+    const checkboxes = page.getByRole('checkbox', { name: /Сравнить/ })
+    await checkboxes.nth(0).check()
+    await checkboxes.nth(1).check()
+    assert.equal(await checkboxes.nth(2).isDisabled(), true)
+    // A sticky team column remains visible while other metrics scroll.
+    const sticky = await page.locator('.team-cell').first().boundingBox()
+    const region = await scroll.boundingBox()
+    assert.ok(Math.abs(sticky.x - region.x) < 3)
+    await capture('standings-scrolled')
+    await page.getByRole('button', { name: 'Сравнить команды', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Сравнение команд', exact: true }).waitFor()
+    await capture('comparison-open')
+    assert.equal(await page.locator('.comparison-table tbody tr').count(), 7)
+    await page.keyboard.press('Escape')
+    await page.getByRole('dialog').waitFor({ state: 'hidden' })
+    assert.equal(
+      await page
+        .getByRole('button', { name: 'Сравнить команды', exact: true })
+        .evaluate((node) => document.activeElement === node),
+      true,
+    )
+    await page.getByRole('combobox', { name: 'Сортировка турнирной таблицы' }).click()
+    await capture('standings-select-open')
+    await page.keyboard.press('Escape')
+    // Favorite teams survive route navigation; cached games use the same row component.
+    await page.goto('http://127.0.0.1:4186/favorites')
+    await page.locator('.favorite-team-card').waitFor()
+    await capture('favorites-teams')
+    await page.goto(`http://127.0.0.1:4186/games?date=${today}`)
+    await page.getByRole('button', { name: 'Добавить матч в избранное' }).first().click()
+    await page
+      .locator('.gc-primary-nav a[href="/favorites"],.gc-mobile-nav a[href="/favorites"]')
+      .filter({ visible: true })
+      .click()
+    await page.getByRole('button', { name: /^Матчи/ }).click()
+    await page.locator('.gc-score-row').first().waitFor()
+    assert.equal(await page.locator('.gc-score-row').count(), 1)
+    await capture('favorites-games')
+    // Source errors, stale data and incomplete/ambiguous GB remain honest.
+    for (const state of ['loading', 'empty', 'error', 'stale']) {
+      mode = state
+      await page.goto('http://127.0.0.1:4186/standings', { waitUntil: 'domcontentloaded' })
+      if (state === 'loading') await page.locator('.gc-skeleton-list').waitFor()
+      else if (state === 'empty')
+        await page.getByText('Данные таблицы отсутствуют', { exact: true }).waitFor()
+      else if (state === 'error')
+        await page.getByText('Таблица пока не загружена', { exact: true }).waitFor()
+      else await page.getByText('Данные устарели', { exact: false }).waitFor()
+      await capture(`standings-${state}`)
+    }
+    mode = 'ready'
+    tiedStandings = true
+    await page.reload()
+    await page.locator('.standings-table tbody tr').last().waitFor()
+    assert.equal(
+      await page
+        .getByRole('button', {
+          name: 'Сортировать по полю «расчётному отставанию от лидера»',
+          exact: true,
+        })
+        .isDisabled(),
+      true,
+    )
+    await capture('standings-tied-pct')
+    await page.keyboard.press('Tab')
+    // All network data in public screenshots are generated above.
+    assert.ok(
+      calls.every(
+        (call) => call.method === 'GET' && ['/api/games', '/api/standings'].includes(call.path),
+      ),
+    )
+    if (width === 1440) {
+      await page.setViewportSize({ width, height: 600 })
+      await page.locator('.gc-sidebar').evaluate((node) => {
+        node.scrollTop = node.scrollHeight
+      })
+      const signature = await page.locator('.gc-sidebar-signature').boundingBox()
+      assert.ok(signature.y >= 0 && signature.y + signature.height <= 600)
+      await page.setViewportSize({ width, height: 1000 })
+    }
     assert.deepEqual(errors, [])
     checks.push({
       width,
-      states: 8,
-      interactions: 'search, filters, sort, favorites, details, date reset, keyboard, GET-only',
+      routes: 6,
+      states: 'ready,loading,empty,error,stale,ambiguous GB',
+      interactions:
+        'filters, sort, favorites, comparison, sticky columns, date reset, calendar keyboard, focus restoration, GET-only',
     })
     await context.close()
   }
   await writeFile(path.join(output, 'checks.json'), JSON.stringify(checks, null, 2))
   console.info(
-    `Game Center: ${checks.length} viewports passed; only synthetic GET responses, no upstream`,
+    `BuzzerBoard: ${checks.length} viewports passed, all six routes; only synthetic GET responses, no upstream`,
   )
 } finally {
   await browser?.close()
