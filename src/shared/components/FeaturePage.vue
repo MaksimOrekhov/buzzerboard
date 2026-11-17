@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import EmptyState from './EmptyState.vue'
 import PageHeading from './PageHeading.vue'
+import ResourceState from './ResourceState.vue'
 import type { AppIconName } from '@/shared/icons'
 
 defineProps<{
@@ -16,12 +16,18 @@ defineProps<{
 <template>
   <div class="feature-page">
     <PageHeading :eyebrow="eyebrow" :title="title" :description="description" />
-    <EmptyState :icon="icon" :title="emptyTitle" :description="emptyDescription" />
+    <ResourceState
+      status="empty"
+      :icon="icon"
+      :title="emptyTitle"
+      :description="emptyDescription"
+    />
   </div>
 </template>
 
 <style scoped>
 .feature-page {
+  width: 100%;
   animation: feature-arrive 300ms ease both;
 }
 

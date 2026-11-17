@@ -1,29 +1,18 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 
-import { navigationItems } from './navigation'
+import { comingSoonItems, navigationItems } from './navigation'
+import AppBadge from '@/shared/components/AppBadge.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const route = useRoute()
-const primaryNavigation = ref<HTMLElement | null>(null)
-
-watch(
-  () => route.path,
-  async () => {
-    await nextTick()
-
-    const navigation = primaryNavigation.value
-    const activeLink = navigation?.querySelector<HTMLElement>('.nav-link--exact-active')
-
-    if (!navigation || !activeLink || !window.matchMedia('(max-width: 760px)').matches) return
-
-    const centeredLeft =
-      activeLink.offsetLeft - (navigation.clientWidth - activeLink.offsetWidth) / 2
-    navigation.scrollTo({ left: centeredLeft, behavior: 'smooth' })
-  },
-  { immediate: true },
-)
+const currentPageTitle = computed(() => String(route.meta.title ?? 'Обзор'))
+const todayLabel = new Intl.DateTimeFormat('ru-RU', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+}).format(new Date())
 </script>
 
 <template>
@@ -31,52 +20,89 @@ watch(
 
   <div class="app-shell">
     <aside class="sidebar" aria-label="Навигация BuzzerBoard">
-      <RouterLink class="brand" to="/" aria-label="На главную BuzzerBoard">
-        <span class="brand-mark"><AppIcon name="basketball" :size="22" /></span>
+      <RouterLink class="brand focus-ring" to="/" aria-label="BuzzerBoard — на главную">
+        <span class="brand-mark"><AppIcon name="basketball" :size="23" /></span>
         <span class="brand-copy">
           <span class="brand-name">BuzzerBoard</span>
-          <span class="brand-caption">NBA В ФОКУСЕ</span>
+          <span class="brand-caption">NBA · В ФОКУСЕ</span>
         </span>
       </RouterLink>
 
-      <div class="sidebar-label eyebrow">Разделы</div>
-      <nav ref="primaryNavigation" class="primary-nav" aria-label="Основная навигация">
-        <RouterLink
-          v-for="item in navigationItems"
-          :key="item.id"
-          class="nav-link focus-ring"
-          :to="item.to"
-          active-class="nav-link--active"
-          exact-active-class="nav-link--exact-active"
-        >
-          <AppIcon :name="item.icon" :size="18" />
-          <span>{{ item.label }}</span>
-          <span v-if="item.id === 'home'" class="nav-link-mark" aria-hidden="true" />
-        </RouterLink>
-      </nav>
+      <div class="nav-group">
+        <p class="nav-label">Пространство</p>
+        <nav class="primary-nav" aria-label="Основная навигация">
+          <RouterLink
+            v-for="item in navigationItems"
+            :key="item.id"
+            class="nav-link focus-ring"
+            :to="item.to"
+            :aria-label="item.label"
+            active-class="nav-link--active"
+            exact-active-class="nav-link--exact-active"
+          >
+            <span class="nav-icon"><AppIcon :name="item.icon" :size="18" /></span>
+            <span class="nav-link-label">{{ item.label }}</span>
+            <span class="nav-tooltip" aria-hidden="true">{{ item.label }}</span>
+            <span v-if="item.id === 'home'" class="nav-active-mark" aria-hidden="true" />
+          </RouterLink>
+        </nav>
+      </div>
 
-      <div class="sidebar-bottom">
-        <div class="data-status">
-          <span class="status-dot" aria-hidden="true" />
-          <div>
-            <p class="data-status-title">Источник данных</p>
-            <p class="data-status-copy">Не подключён</p>
+      <div class="nav-group nav-group--upcoming">
+        <p class="nav-label">Скоро</p>
+        <div class="primary-nav" aria-label="Будущие разделы">
+          <div
+            v-for="item in comingSoonItems"
+            :key="item.id"
+            class="nav-link nav-link--muted"
+            :aria-label="`${item.label} — скоро`"
+            :title="`${item.label} — скоро`"
+          >
+            <span class="nav-icon"><AppIcon :name="item.icon" :size="18" /></span>
+            <span class="nav-link-label">{{ item.label }}</span>
+            <span class="nav-tooltip" aria-hidden="true">{{ item.label }} — скоро</span>
+            <span class="nav-coming-soon">Скоро</span>
           </div>
         </div>
-        <p class="sidebar-note">
-          Результаты матчей и турнирная таблица появятся после подключения источника данных.
-        </p>
-        <span class="sidebar-version">BUZZERBOARD · РАННИЙ ДОСТУП</span>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-data-card">
+          <div class="sidebar-data-icon"><AppIcon name="database" :size="17" /></div>
+          <div class="sidebar-data-copy">
+            <span class="sidebar-data-label">Источник данных</span>
+            <span class="sidebar-data-status">Ожидает подключения</span>
+          </div>
+          <span class="status-pip" aria-hidden="true" />
+        </div>
+        <p class="sidebar-footnote">Показываем только проверенные данные. Без предположений.</p>
+        <span class="sidebar-signature">BUZZERBOARD <span>·</span> RU-RU</span>
       </div>
     </aside>
 
     <div class="app-main">
       <header class="mobile-header">
-        <RouterLink class="brand brand--compact" to="/" aria-label="На главную BuzzerBoard">
-          <span class="brand-mark"><AppIcon name="basketball" :size="20" /></span>
+        <RouterLink
+          class="brand brand--compact focus-ring"
+          to="/"
+          aria-label="BuzzerBoard — на главную"
+        >
+          <span class="brand-mark"><AppIcon name="basketball" :size="21" /></span>
           <span class="brand-name">BuzzerBoard</span>
         </RouterLink>
-        <span class="mobile-status"><span class="status-dot" />Нет данных</span>
+        <AppBadge tone="warning" dot>Нет данных</AppBadge>
+      </header>
+
+      <header class="topbar">
+        <div class="topbar-context">
+          <span class="topbar-overline">BuzzerBoard <span>/</span> NBA</span>
+          <p class="topbar-page-label">{{ currentPageTitle }}</p>
+        </div>
+        <div class="topbar-meta">
+          <span class="topbar-date">{{ todayLabel }}</span>
+          <span class="topbar-divider" aria-hidden="true" />
+          <AppBadge tone="warning" dot>Источник не подключён</AppBadge>
+        </div>
       </header>
 
       <main id="main-content" class="page-content" tabindex="-1">
@@ -88,25 +114,41 @@ watch(
       </main>
 
       <footer class="app-footer">
-        <span>Для тех, кто любит баскетбол.</span>
-        <span>Результаты игр появятся после подключения проверенного источника данных.</span>
+        <span class="footer-brand">BUZZERBOARD <span>·</span> NBA, разборчиво</span>
+        <span>Результаты появятся после подключения проверенного источника.</span>
       </footer>
     </div>
+
+    <nav class="mobile-nav" aria-label="Основная навигация">
+      <RouterLink
+        v-for="item in navigationItems"
+        :key="item.id"
+        class="mobile-nav-link focus-ring"
+        :to="item.to"
+        active-class="mobile-nav-link--active"
+        exact-active-class="mobile-nav-link--exact-active"
+      >
+        <AppIcon :name="item.icon" :size="18" />
+        <span>{{ item.shortLabel }}</span>
+      </RouterLink>
+    </nav>
   </div>
 </template>
 
 <style scoped>
 .skip-link {
   position: fixed;
-  z-index: 10;
+  z-index: 20;
   top: 1rem;
   left: 1rem;
   transform: translateY(-160%);
-  border-radius: 0.5rem;
-  background: var(--accent);
-  padding: 0.7rem 1rem;
-  color: #101114;
-  font-weight: 700;
+  border-radius: var(--radius-sm);
+  background: var(--lime);
+  padding: 0.75rem 1rem;
+  color: #11140c;
+  font-size: 0.8rem;
+  font-weight: 760;
+  text-decoration: none;
 }
 
 .skip-link:focus {
@@ -114,19 +156,21 @@ watch(
 }
 
 .app-shell {
+  display: grid;
   min-height: 100vh;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 }
 
 .sidebar {
-  position: fixed;
-  z-index: 2;
-  inset: 0 auto 0 0;
+  position: sticky;
+  top: 0;
   display: flex;
-  width: 15.5rem;
+  height: 100vh;
+  min-height: 42rem;
   flex-direction: column;
   border-right: 1px solid var(--line);
-  background: rgb(10 12 15 / 94%);
-  padding: 2rem 1.2rem 1.4rem;
+  background: rgb(11 14 16 / 92%);
+  padding: 1.65rem 1.1rem 1.15rem;
   backdrop-filter: blur(22px);
 }
 
@@ -134,67 +178,91 @@ watch(
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.76rem;
   color: var(--ink);
   text-decoration: none;
 }
 
 .brand-mark {
   display: grid;
-  width: 2.7rem;
-  height: 2.7rem;
+  width: 2.65rem;
+  height: 2.65rem;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgb(255 112 72 / 32%);
+  border: 1px solid rgb(242 122 86 / 38%);
   border-radius: 0.9rem;
-  background: linear-gradient(145deg, rgb(255 112 72 / 20%), rgb(255 112 72 / 4%));
-  color: var(--accent);
+  background:
+    radial-gradient(circle at 30% 20%, rgb(255 158 119 / 24%), transparent 55%),
+    linear-gradient(145deg, rgb(242 122 86 / 19%), rgb(242 122 86 / 5%));
+  color: var(--accent-bright);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%);
 }
 
 .brand-copy {
   display: grid;
-  gap: 0.22rem;
+  gap: 0.23rem;
 }
 
 .brand-name {
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: 0.84rem;
+  font-weight: 820;
+  letter-spacing: 0.09em;
 }
 
 .brand-caption {
   color: var(--muted);
-  font-size: 0.57rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
+  font-size: var(--font-size-caption);
+  font-weight: 740;
+  letter-spacing: 0.16em;
 }
 
-.sidebar-label {
-  margin: 3.2rem 0 0.9rem 0.7rem;
+.nav-group {
+  margin-top: 3.15rem;
+}
+
+.nav-group--upcoming {
+  margin-top: 1.55rem;
+}
+
+.nav-label {
+  margin: 0 0 0.7rem 0.8rem;
+  color: var(--subtle);
+  font-size: var(--font-size-caption);
+  font-weight: 760;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
 }
 
 .primary-nav {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.22rem;
 }
 
 .nav-link {
   position: relative;
   display: flex;
-  min-height: 2.9rem;
+  min-height: 2.75rem;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.78rem;
   border: 1px solid transparent;
-  border-radius: 0.85rem;
-  padding: 0 0.8rem;
-  color: #a0a5ac;
-  font-size: 0.9rem;
-  font-weight: 550;
+  border-radius: 0.78rem;
+  padding: 0 0.72rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 590;
   text-decoration: none;
   transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease;
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.nav-icon {
+  display: grid;
+  width: 1.55rem;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #748082;
 }
 
 .nav-link:hover {
@@ -202,100 +270,200 @@ watch(
   color: var(--ink);
 }
 
+.nav-link:hover .nav-icon {
+  color: var(--ink-soft);
+}
+
 .nav-link--active,
 .nav-link--exact-active {
-  border-color: rgb(255 255 255 / 6%);
-  background: linear-gradient(100deg, rgb(255 112 72 / 14%), rgb(255 112 72 / 4%));
-  color: var(--ink);
+  border-color: rgb(242 122 86 / 16%);
+  background: linear-gradient(100deg, rgb(242 122 86 / 12%), rgb(242 122 86 / 3%));
+  color: #f4e5de;
 }
 
-.nav-link--active :deep(svg),
-.nav-link--exact-active :deep(svg) {
-  color: var(--accent);
+.nav-link--active .nav-icon,
+.nav-link--exact-active .nav-icon {
+  color: var(--accent-bright);
 }
 
-.nav-link-mark {
-  width: 0.35rem;
-  height: 0.35rem;
+.nav-active-mark {
+  width: 0.32rem;
+  height: 0.32rem;
   margin-left: auto;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 12px rgb(255 112 72 / 90%);
+  background: var(--accent-bright);
+  box-shadow: 0 0 10px rgb(242 122 86 / 78%);
   opacity: 0;
 }
 
-.nav-link--exact-active .nav-link-mark {
+.nav-tooltip {
+  display: none;
+}
+
+.nav-link--exact-active .nav-active-mark {
   opacity: 1;
+}
+
+.nav-link--muted {
+  color: var(--subtle);
+  cursor: default;
+}
+
+.nav-link--muted .nav-icon {
+  color: var(--subtle);
+}
+
+.nav-coming-soon {
+  margin-left: auto;
+  color: var(--subtle);
+  font-size: var(--font-size-caption);
+  font-weight: 660;
 }
 
 .sidebar-bottom {
   margin-top: auto;
 }
 
-.data-status {
+.sidebar-data-card {
   display: flex;
   align-items: center;
-  gap: 0.72rem;
+  gap: 0.65rem;
   border: 1px solid var(--line);
-  border-radius: 0.9rem;
-  background: rgb(255 255 255 / 2.5%);
-  padding: 0.9rem;
+  border-radius: 0.92rem;
+  background: linear-gradient(145deg, rgb(255 255 255 / 3%), rgb(255 255 255 / 1%));
+  padding: 0.78rem 0.75rem;
 }
 
-.status-dot {
-  width: 0.52rem;
-  height: 0.52rem;
+.sidebar-data-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
   flex: 0 0 auto;
-  border: 1px solid rgb(204 164 98 / 52%);
-  border-radius: 50%;
-  background: #b78951;
-  box-shadow: 0 0 10px rgb(183 137 81 / 35%);
+  place-items: center;
+  border: 1px solid rgb(228 182 107 / 23%);
+  border-radius: 0.63rem;
+  background: rgb(228 182 107 / 7%);
+  color: var(--warning);
 }
 
-.data-status-title,
-.data-status-copy {
-  margin: 0;
+.sidebar-data-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
 }
 
-.data-status-title {
-  color: #dedbd4;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.data-status-copy {
-  margin-top: 0.15rem;
+.sidebar-data-label {
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: var(--font-size-caption);
+  font-weight: 620;
 }
 
-.sidebar-note {
-  margin: 0.75rem 0.25rem 1.25rem;
-  color: #777e86;
-  font-size: 0.67rem;
+.sidebar-data-status {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: var(--font-size-caption);
+  font-weight: 690;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-pip {
+  width: 0.38rem;
+  height: 0.38rem;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--warning);
+  box-shadow: 0 0 8px rgb(228 182 107 / 55%);
+}
+
+.sidebar-footnote {
+  margin: 0.7rem 0.25rem 1rem;
+  color: var(--subtle);
+  font-size: var(--font-size-caption);
   line-height: 1.55;
 }
 
-.sidebar-version {
+.sidebar-signature {
   padding-left: 0.25rem;
-  color: #666c73;
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  color: var(--subtle);
+  font-size: var(--font-size-caption);
+  font-weight: 780;
+  letter-spacing: 0.15em;
+}
+
+.sidebar-signature span,
+.footer-brand span {
+  color: var(--accent);
 }
 
 .app-main {
   display: flex;
+  min-width: 0;
   min-height: 100vh;
   flex-direction: column;
-  margin-left: 15.5rem;
+}
+
+.topbar {
+  position: sticky;
+  z-index: 4;
+  top: 0;
+  display: flex;
+  min-height: 4.65rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  background: rgb(8 10 12 / 84%);
+  padding: 0.72rem clamp(1.5rem, 3.5vw, 3.4rem);
+  backdrop-filter: blur(18px);
+}
+
+.topbar-page-label {
+  margin: 0.1rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.83rem;
+  font-weight: 680;
+  letter-spacing: -0.015em;
+}
+
+.topbar-overline {
+  color: var(--subtle);
+  font-size: var(--font-size-caption);
+  font-weight: 760;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.topbar-overline span {
+  padding: 0 0.3rem;
+  color: #485255;
+}
+
+.topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.topbar-date {
+  color: var(--muted);
+  font-size: var(--font-size-caption);
+  text-transform: capitalize;
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--line-strong);
 }
 
 .page-content {
-  width: min(100%, 88rem);
+  width: 100%;
+  max-width: 1500px;
   flex: 1;
   align-self: center;
-  padding: clamp(2rem, 5vw, 4.5rem) clamp(1.25rem, 5vw, 5rem) 3rem;
+  padding: clamp(1.55rem, 3.5vw, 3rem) clamp(1.3rem, 3.5vw, 3.4rem) 3.2rem;
 }
 
 .app-footer {
@@ -303,127 +471,243 @@ watch(
   justify-content: space-between;
   gap: 1rem;
   border-top: 1px solid var(--line);
-  margin: 0 clamp(1.25rem, 5vw, 5rem);
-  padding: 1rem 0 1.25rem;
-  color: #70767d;
-  font-size: 0.68rem;
+  margin: 0 clamp(1.3rem, 3.5vw, 3.4rem);
+  padding: 1.05rem 0 1.2rem;
+  color: var(--subtle);
+  font-size: var(--font-size-caption);
 }
 
-.mobile-header {
+.footer-brand {
+  color: var(--subtle);
+  font-size: var(--font-size-caption);
+  font-weight: 790;
+  letter-spacing: 0.11em;
+  white-space: nowrap;
+}
+
+.mobile-header,
+.mobile-nav {
   display: none;
 }
 
 .route-enter-enter-active,
 .route-enter-leave-active {
   transition:
-    opacity 140ms ease,
-    transform 140ms ease;
+    opacity 150ms ease,
+    transform 150ms ease;
 }
 
 .route-enter-enter-from,
 .route-enter-leave-to {
-  transform: translateY(0.4rem);
+  transform: translateY(0.3rem);
   opacity: 0;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1040px) {
+  .app-shell {
+    --sidebar-width: 5.2rem;
+  }
+
   .sidebar {
-    position: sticky;
-    inset: auto;
-    display: block;
-    width: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    padding: 0.8rem 1rem 0.6rem;
+    align-items: center;
+    padding: 1.4rem 0.55rem 1rem;
   }
 
-  .sidebar > .brand,
-  .sidebar-label,
-  .sidebar-bottom {
+  .brand {
+    justify-content: center;
+  }
+
+  .brand-copy,
+  .nav-label,
+  .nav-coming-soon,
+  .sidebar-data-copy,
+  .sidebar-footnote,
+  .sidebar-signature {
     display: none;
   }
 
-  .primary-nav {
-    display: flex;
-    overflow-x: auto;
-    gap: 0.35rem;
-    scrollbar-width: none;
+  .nav-group {
+    width: 100%;
+    margin-top: 2.2rem;
   }
 
-  .primary-nav::-webkit-scrollbar {
-    display: none;
+  .nav-group--upcoming {
+    margin-top: 1rem;
   }
 
   .nav-link {
-    min-height: 2.65rem;
-    flex: 0 0 auto;
-    gap: 0.55rem;
-    padding: 0 0.75rem;
-    font-size: 0.82rem;
+    justify-content: center;
+    padding: 0;
   }
 
-  .nav-link-mark {
-    display: none;
-  }
-
-  .app-main {
-    margin-left: 0;
-  }
-
-  .mobile-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 1.25rem 0;
-  }
-
-  .brand--compact {
-    gap: 0.6rem;
-  }
-
-  .brand--compact .brand-mark {
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 0.7rem;
-  }
-
-  .brand--compact .brand-name {
-    font-size: 0.72rem;
-  }
-
-  .mobile-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    color: var(--muted);
-    font-size: 0.65rem;
+  .nav-link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
   }
 
-  .mobile-status .status-dot {
-    width: 0.42rem;
-    height: 0.42rem;
+  .nav-tooltip {
+    position: absolute;
+    z-index: 12;
+    top: 50%;
+    left: calc(100% + 0.55rem);
+    display: block;
+    border: 1px solid var(--line-strong);
+    border-radius: 0.6rem;
+    background: var(--surface-raised);
+    padding: 0.45rem 0.6rem;
+    color: var(--ink);
+    font-size: var(--font-size-caption);
+    font-weight: 650;
+    line-height: 1.3;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition: opacity 120ms ease;
+    white-space: nowrap;
   }
 
-  .page-content {
-    padding-top: 2.1rem;
+  .nav-link:hover .nav-tooltip,
+  .nav-link:focus-visible .nav-tooltip {
+    opacity: 1;
+  }
+
+  .nav-icon {
+    width: auto;
+  }
+
+  .nav-active-mark {
+    position: absolute;
+    right: 0.35rem;
+    width: 0.28rem;
+    height: 0.28rem;
+  }
+
+  .sidebar-data-card {
+    justify-content: center;
+    padding: 0.55rem;
+  }
+
+  .status-pip {
+    position: absolute;
+    transform: translate(0.68rem, -0.68rem);
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 760px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar,
+  .topbar {
+    display: none;
+  }
+
+  .mobile-header {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    display: flex;
+    min-height: 4.4rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    border-bottom: 1px solid var(--line);
+    background: rgb(8 10 12 / 88%);
+    padding: 0.65rem 1rem;
+    backdrop-filter: blur(18px);
+  }
+
+  .brand--compact {
+    gap: 0.55rem;
+  }
+
+  .brand--compact .brand-mark {
+    width: 2.28rem;
+    height: 2.28rem;
+    border-radius: 0.75rem;
+  }
+
+  .brand--compact .brand-name {
+    font-size: var(--font-size-caption);
+    letter-spacing: 0.055em;
+  }
+
+  .mobile-header :deep(.badge) {
+    min-height: 1.45rem;
+    padding-inline: 0.45rem;
+    font-size: var(--font-size-caption);
+    letter-spacing: 0.05em;
+  }
+
+  .page-content {
+    padding: 1.3rem 1rem 2.4rem;
+  }
+
   .app-footer {
     flex-direction: column;
-    font-size: 0.64rem;
+    gap: 0.5rem;
+    margin: 0 1rem 5.5rem;
+    font-size: var(--font-size-caption);
+  }
+
+  .mobile-nav {
+    position: fixed;
+    z-index: 8;
+    inset: auto 0 0;
+    display: flex;
+    min-height: calc(4.25rem + env(safe-area-inset-bottom));
+    align-items: stretch;
+    justify-content: space-around;
+    gap: 0.1rem;
+    border-top: 1px solid var(--line-strong);
+    background: rgb(11 14 16 / 94%);
+    padding: 0.45rem 0.45rem calc(0.4rem + env(safe-area-inset-bottom));
+    backdrop-filter: blur(20px);
+  }
+
+  .mobile-nav-link {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    flex: 1 1 0;
+    align-content: center;
+    justify-items: center;
+    gap: 0.28rem;
+    border-radius: 0.65rem;
+    color: var(--subtle);
+    font-size: var(--font-size-caption);
+    font-weight: 620;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .mobile-nav-link--active,
+  .mobile-nav-link--exact-active {
+    color: var(--accent-bright);
+  }
+
+  .mobile-nav-link--exact-active::before {
+    position: absolute;
+    top: -0.45rem;
+    width: 1.25rem;
+    height: 2px;
+    border-radius: 99px;
+    background: var(--accent-bright);
+    box-shadow: 0 0 10px rgb(242 122 86 / 55%);
+    content: '';
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+  .route-enter-enter-active,
+  .route-enter-leave-active {
+    transition: none;
   }
 }
 </style>

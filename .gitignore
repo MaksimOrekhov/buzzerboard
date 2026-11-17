@@ -7,6 +7,7 @@ node_modules/
 dist/
 build/
 coverage/
+artifacts/pro-168/
 .vite/
 .cache/
 .wrangler/
