@@ -10,12 +10,14 @@
       "status": "finished",
       "home": {
         "team_id": "bbs-bos",
+        "archive_team_id": "1610612738",
         "abbreviation": "BOS",
         "name": "Boston Celtics",
         "score": "112"
       },
       "away": {
         "team_id": "bbs-nyk",
+        "archive_team_id": "1610612752",
         "abbreviation": "NYK",
         "name": "New York Knicks",
         "score": 108

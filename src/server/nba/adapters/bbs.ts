@@ -210,11 +210,16 @@ function stats(row: Record<string, unknown>) {
   }
 }
 
-function teamBox(row: unknown, game: Game, side: 'home' | 'away'): TeamBoxScore | null {
+function teamBox(
+  row: unknown,
+  game: Game,
+  side: 'home' | 'away',
+  archiveTeamId: string,
+): TeamBoxScore | null {
   if (!isRecord(row)) return null
   const team = side === 'home' ? game.homeTeam : game.awayTeam
   const reportedId = row.team_id ?? row.teamId ?? (isRecord(row.team) ? row.team.id : null)
-  if (reportedId === null || String(reportedId) !== String(team.providerId)) return null
+  if (reportedId === null || String(reportedId) !== archiveTeamId) return null
   return { team, ...stats(row) }
 }
 
@@ -228,6 +233,7 @@ function playerBox(
   game: Game,
   side: 'home' | 'away',
   availability: Record<string, unknown> | null,
+  archiveTeamId: string,
 ): PlayerBoxScore | null {
   if (!isRecord(row)) return null
   const team = side === 'home' ? game.homeTeam : game.awayTeam
@@ -255,8 +261,12 @@ function playerBox(
     (typeof rawMinutes === 'number' && rawMinutes > 0) ||
     (typeof rawMinutes === 'string' && /[1-9]/.test(rawMinutes))
   if (
-    (row.team_id !== undefined && String(row.team_id) !== String(team.providerId)) ||
-    (row.teamId !== undefined && String(row.teamId) !== String(team.providerId))
+    (row.team_id !== undefined &&
+      String(row.team_id) !== String(team.providerId) &&
+      String(row.team_id) !== archiveTeamId) ||
+    (row.teamId !== undefined &&
+      String(row.teamId) !== String(team.providerId) &&
+      String(row.teamId) !== archiveTeamId)
   )
     return null
   return {
@@ -273,7 +283,12 @@ function playerBox(
   }
 }
 
-function ensureIdentity(root: Record<string, unknown>, game: Game, archiveGameId: string) {
+function ensureIdentity(
+  root: Record<string, unknown>,
+  game: Game,
+  archiveGameId: string,
+  requireIdentity = true,
+) {
   const expectedIds = new Set([game.providerId, archiveGameId])
   const identityValues = [
     root.id,
@@ -289,8 +304,8 @@ function ensureIdentity(root: Record<string, unknown>, game: Game, archiveGameId
   // or both IDs in its response envelope, so validate every reported value
   // against the list snapshot's exact UUID/archive-ID crosswalk.
   return (
-    identityIds.length > 0 &&
     identityIds.every((reportedId) => reportedId !== null && expectedIds.has(reportedId)) &&
+    (!requireIdentity || identityIds.length > 0) &&
     (rawDate === undefined || rawDate === null || (date !== null && date === game.nbaGameDate))
   )
 }
@@ -301,6 +316,7 @@ export function normalizeBbsGameBox(
   availabilityPayload: unknown | null,
   game: Game,
   archiveGameId: string,
+  archiveTeamIds: { home: string; away: string },
 ): GameBoxScore {
   const teamRoot = rootOf(teamPayload)
   const playerRoot = rootOf(playerPayload)
@@ -320,13 +336,15 @@ export function normalizeBbsGameBox(
   }
   if (
     !ensureIdentity(teamRoot, game, archiveGameId) ||
-    !ensureIdentity(playerRoot, game, archiveGameId)
+    // BBS's player /box envelope has only home/away arrays. The caller binds
+    // this payload to game.providerId in the request path before normalizing.
+    !ensureIdentity(playerRoot, game, archiveGameId, false)
   ) {
     throw new NbaAdapterError(invalidResponseError(provider))
   }
   const teams = [
-    teamBox(teamRoot.home ?? teamRoot.home_team, game, 'home'),
-    teamBox(teamRoot.away ?? teamRoot.away_team, game, 'away'),
+    teamBox(teamRoot.home ?? teamRoot.home_team, game, 'home', archiveTeamIds.home),
+    teamBox(teamRoot.away ?? teamRoot.away_team, game, 'away', archiveTeamIds.away),
   ]
   const homePlayers = playerRows(playerRoot, 'home')
   const awayPlayers = playerRows(playerRoot, 'away')
@@ -365,7 +383,15 @@ export function normalizeBbsGameBox(
     }
     for (const row of statsRows) {
       const id = isRecord(row) ? readIdentifier(row.player_id ?? row.playerId ?? row.id) : null
-      players.push(playerBox(row, game, side, id ? (availabilityById.get(id) ?? null) : null))
+      players.push(
+        playerBox(
+          row,
+          game,
+          side,
+          id ? (availabilityById.get(id) ?? null) : null,
+          archiveTeamIds[side],
+        ),
+      )
     }
     for (const row of availabilityRows) {
       if (!isRecord(row) || row.played !== false) continue
@@ -379,7 +405,7 @@ export function normalizeBbsGameBox(
         )
       )
         continue
-      players.push(playerBox({ ...row, dnp: true }, game, side, row))
+      players.push(playerBox({ ...row, dnp: true }, game, side, row, archiveTeamIds[side]))
     }
   }
   const playerTotals = { home: 0, away: 0 }

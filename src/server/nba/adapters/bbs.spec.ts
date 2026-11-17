@@ -4,6 +4,17 @@ import { NbaAdapterError } from '@/server/nba/adapters/errors'
 import { normalizeBbsGameBox, normalizeBbsGames } from '@/server/nba/adapters/bbs'
 
 const context = { fetchedAt: '2026-11-17T10:00:00.000Z', stale: false }
+const archiveTeamIds = { home: '1610612738', away: '1610612752' }
+
+function normalizeBox(
+  teams: unknown,
+  players: unknown,
+  availability: unknown | null,
+  game: ReturnType<typeof normalizeBbsGames>['data'][number],
+  archiveGameId: string,
+) {
+  return normalizeBbsGameBox(teams, players, availability, game, archiveGameId, archiveTeamIds)
+}
 
 describe('Big Balls Sports Data fixtures', () => {
   it('normalizes source-scoped UUIDs, ET game dates, season start years and numeric strings', () => {
@@ -49,8 +60,16 @@ describe('Big Balls Sports Data fixtures', () => {
       data: {
         id: 90000001,
         game_date: '2026-11-15',
-        home: { team_id: 'bbs-bos', pts: '112', fgm: 41, fga: 88, fg_pct: 0.466, reb: 45, ast: 26 },
-        away: { team_id: 'bbs-nyk', pts: 108, fgm: 40, fga: 90, fg_pct: 44.4, reb: 42, ast: 24 },
+        home: {
+          team_id: '1610612738',
+          pts: '112',
+          fgm: 41,
+          fga: 88,
+          fg_pct: 0.466,
+          reb: 45,
+          ast: 26,
+        },
+        away: { team_id: '1610612752', pts: 108, fgm: 40, fga: 90, fg_pct: 44.4, reb: 42, ast: 24 },
       },
     }
     const playerStats = {
@@ -62,7 +81,7 @@ describe('Big Balls Sports Data fixtures', () => {
             player_name: 'Synthetic Home Player',
             starter: true,
             minutes: '36:10',
-            team_id: 'bbs-bos',
+            team_id: '1610612738',
             pts: '112',
             reb: 7,
             ast: 5,
@@ -74,7 +93,7 @@ describe('Big Balls Sports Data fixtures', () => {
             player_name: 'Synthetic Away Player',
             starter: false,
             minutes: 31,
-            team_id: 'bbs-nyk',
+            team_id: '1610612752',
             pts: 108,
             reb: 4,
             ast: 8,
@@ -89,7 +108,7 @@ describe('Big Balls Sports Data fixtures', () => {
         away: [{ player_id: 'nyk-player-1', played: true, starter: false }],
       },
     }
-    const box = normalizeBbsGameBox(teamStats, playerStats, availability, game, '90000001')
+    const box = normalizeBox(teamStats, playerStats, availability, game, '90000001')
     expect(box.teams.map((team) => team.points)).toEqual([112, 108])
     expect(box.players.map((player) => player.player.id)).toEqual([
       'bbs:player:bos-player-1',
@@ -98,13 +117,80 @@ describe('Big Balls Sports Data fixtures', () => {
     expect(box.players[0]).toMatchObject({ points: 112, minutes: '36:10', starter: true })
   })
 
+  it('normalizes the live BBS team-native IDs and box envelope without embedded match IDs', () => {
+    const game = normalizeBbsGames(fixture, context).data[0]!
+    const teamStats = {
+      data: {
+        game_id: game.providerId,
+        match_id: game.providerId,
+        game_date: game.nbaGameDate,
+        home: { team_id: 1610612738, pts: 112 },
+        away: { team_id: 1610612752, pts: 108 },
+      },
+    }
+    const playerStats = {
+      data: {
+        home: [
+          {
+            player_id: 'bos-player-1',
+            name: 'Synthetic Home Player',
+            starter: true,
+            minutes: '36:10',
+            points: 112,
+            rebounds: 8,
+            offensive_rebounds: 2,
+            defensive_rebounds: 6,
+            assists: 5,
+            steals: 1,
+            blocks: 2,
+            turnovers: 3,
+            fouls: 2,
+            plus_minus: 9,
+            field_goals_made: 41,
+            field_goals_attempted: 88,
+            field_goal_pct: 0.466,
+            three_pointers_made: 15,
+            three_pointers_attempted: 40,
+            three_point_pct: 0.375,
+            free_throws_made: 15,
+            free_throws_attempted: 18,
+            free_throw_pct: 0.833,
+          },
+        ],
+        away: [{ player_id: 'nyk-player-1', name: 'Synthetic Away Player', points: 108 }],
+      },
+    }
+    const box = normalizeBox(teamStats, playerStats, null, game, '90000001')
+    expect(box.teams.map(({ team, points }) => [team.abbreviation, points])).toEqual([
+      ['BOS', 112],
+      ['NYK', 108],
+    ])
+    expect(box.players[0]).toMatchObject({
+      starter: true,
+      didNotPlay: false,
+      points: 112,
+      rebounds: 8,
+      offensiveRebounds: 2,
+      defensiveRebounds: 6,
+      assists: 5,
+      steals: 1,
+      blocks: 2,
+      turnovers: 3,
+      fouls: 2,
+      plusMinus: 9,
+      fieldGoals: { made: 41, attempted: 88, percentage: 0.466 },
+      threePointers: { made: 15, attempted: 40, percentage: 0.375 },
+      freeThrows: { made: 15, attempted: 18, percentage: 0.833 },
+    })
+  })
+
   it('validates either exact BBS match identifier format through the list crosswalk', () => {
     const game = normalizeBbsGames(fixture, context).data[0]!
     const teams = {
       data: {
         id: 90000001,
-        home: { team_id: 'bbs-bos', pts: 112 },
-        away: { team_id: 'bbs-nyk', pts: 108 },
+        home: { team_id: '1610612738', pts: 112 },
+        away: { team_id: '1610612752', pts: 108 },
       },
     }
     const players = {
@@ -115,9 +201,9 @@ describe('Big Balls Sports Data fixtures', () => {
         away: [{ player_id: 'nyk-player', player_name: 'Away', pts: 108 }],
       },
     }
-    expect(normalizeBbsGameBox(teams, players, null, game, '90000001').players).toHaveLength(2)
+    expect(normalizeBox(teams, players, null, game, '90000001').players).toHaveLength(2)
     expect(() =>
-      normalizeBbsGameBox(
+      normalizeBox(
         teams,
         { ...players, data: { ...players.data, match_uuid: 'another-game' } },
         null,
@@ -132,22 +218,22 @@ describe('Big Balls Sports Data fixtures', () => {
     const teams = {
       data: {
         id: 90000009,
-        home: { team_id: 'bbs-bos', pts: 112 },
-        away: { team_id: 'bbs-nyk', pts: 108 },
+        home: { team_id: '1610612738', pts: 112 },
+        away: { team_id: '1610612752', pts: 108 },
       },
     }
     const players = { data: { id: game.providerId, home: [], away: [] } }
     const availability = { data: { id: 90000001, home: [], away: [] } }
-    expect(() => normalizeBbsGameBox(teams, players, availability, game, '90000001')).toThrow(
+    expect(() => normalizeBox(teams, players, availability, game, '90000001')).toThrow(
       NbaAdapterError,
     )
     expect(() =>
-      normalizeBbsGameBox(
+      normalizeBox(
         {
           data: {
             id: 90000001,
-            home: { team_id: 'bbs-bos', pts: 113 },
-            away: { team_id: 'bbs-nyk', pts: 108 },
+            home: { team_id: '1610612738', pts: 113 },
+            away: { team_id: '1610612752', pts: 108 },
           },
         },
         players,
@@ -163,8 +249,8 @@ describe('Big Balls Sports Data fixtures', () => {
     const teams = {
       data: {
         id: 90000001,
-        home: { team_id: 'bbs-bos', pts: 112 },
-        away: { team_id: 'bbs-nyk', pts: 108 },
+        home: { team_id: '1610612738', pts: 112 },
+        away: { team_id: '1610612752', pts: 108 },
       },
     }
     const players = {
@@ -184,7 +270,7 @@ describe('Big Balls Sports Data fixtures', () => {
         away: [],
       },
     }
-    const box = normalizeBbsGameBox(teams, players, availability, game, '90000001')
+    const box = normalizeBox(teams, players, availability, game, '90000001')
     expect(box.players[1]).toMatchObject({ didNotPlay: true, minutes: null, points: null })
 
     const ambiguousPlayers = {
@@ -194,10 +280,10 @@ describe('Big Balls Sports Data fixtures', () => {
         away: [{ player_id: 'nyk-player', player_name: 'Away', pts: 108 }],
       },
     }
-    const unknown = normalizeBbsGameBox(teams, ambiguousPlayers, null, game, '90000001')
+    const unknown = normalizeBox(teams, ambiguousPlayers, null, game, '90000001')
     expect(unknown.players[0]).toMatchObject({ didNotPlay: null, minutes: '0' })
 
-    const malformedAvailability = normalizeBbsGameBox(
+    const malformedAvailability = normalizeBox(
       teams,
       players,
       { error: { code: 'upstream_unavailable' } },
@@ -227,8 +313,8 @@ describe('Big Balls Sports Data fixtures', () => {
       data: {
         id: 90000001,
         game_date: '2026-11-15',
-        home: { team_id: 'bbs-bos', pts: 112 },
-        away: { team_id: 'bbs-nyk', pts: 108 },
+        home: { team_id: '1610612738', pts: 112 },
+        away: { team_id: '1610612752', pts: 108 },
       },
     }
     const players = {
@@ -240,20 +326,18 @@ describe('Big Balls Sports Data fixtures', () => {
     }
     const invalid = structuredClone(teams)
     mutate(invalid)
-    expect(() => normalizeBbsGameBox(invalid, players, null, game, '90000001')).toThrow(
-      NbaAdapterError,
-    )
+    expect(() => normalizeBox(invalid, players, null, game, '90000001')).toThrow(NbaAdapterError)
   })
 
   it('rejects player point totals that do not reconcile to team totals', () => {
     const game = normalizeBbsGames(fixture, context).data[0]!
     expect(() =>
-      normalizeBbsGameBox(
+      normalizeBox(
         {
           data: {
             id: 90000001,
-            home: { team_id: 'bbs-bos', pts: 112 },
-            away: { team_id: 'bbs-nyk', pts: 108 },
+            home: { team_id: '1610612738', pts: 112 },
+            away: { team_id: '1610612752', pts: 108 },
           },
         },
         {

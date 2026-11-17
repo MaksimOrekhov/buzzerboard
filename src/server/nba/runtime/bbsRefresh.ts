@@ -23,6 +23,10 @@ const COOLDOWN_MS = 15 * MINUTE_MS
 const DEFAULT_REQUEST_INTERVAL_MS = 6_100
 let previousRequestStartedAt = 0
 
+function archiveTeamReferenceKey(gameId: string, side: 'home' | 'away') {
+  return `${gameId}:team:${side}`
+}
+
 export interface BbsRefreshOutcome {
   target: NbaRefreshTarget
   state: 'refreshed' | 'up_to_date' | 'deferred' | 'in_progress'
@@ -285,6 +289,7 @@ function matchesPayload(payload: unknown): { root: Record<string, unknown>; matc
 async function refreshBox(
   game: Game,
   archiveGameId: string,
+  archiveTeamIds: { home: string; away: string },
   env: WorkerEnvironment,
   repository: NbaRepository,
   fetcher: typeof fetch,
@@ -346,7 +351,14 @@ async function refreshBox(
       Date.now(),
       { key: lockKey, token },
     )
-    const box = normalizeBbsGameBox(teamsPayload, playersPayload, null, game, archiveGameId)
+    const box = normalizeBbsGameBox(
+      teamsPayload,
+      playersPayload,
+      null,
+      game,
+      archiveGameId,
+      archiveTeamIds,
+    )
     await lockStillOwned(repository, { key: lockKey, token })
     const fetchedAt = Date.now()
     const record: BoxScoreCacheRecord = {
@@ -471,14 +483,26 @@ async function refreshCachedBoxes(
   for (let index = 0; index < finals.length; index += 1) {
     const game = finals[index]!
     const archiveId = providerReferences?.[game.id]
-    const result = archiveId
-      ? await refreshBox(game, archiveId, env, repository, fetcher, Math.max(now, Date.now()))
-      : {
-          state: 'deferred' as const,
-          error: createNbaApiError('invalid_response', 'bbs'),
-          retryAt: Date.now() + COOLDOWN_MS,
-        }
-    if (!archiveId) await saveBoxFailure(game, repository, result.error!, result.retryAt!)
+    const archiveHomeTeamId = providerReferences?.[archiveTeamReferenceKey(game.id, 'home')]
+    const archiveAwayTeamId = providerReferences?.[archiveTeamReferenceKey(game.id, 'away')]
+    const result =
+      archiveId && archiveHomeTeamId && archiveAwayTeamId
+        ? await refreshBox(
+            game,
+            archiveId,
+            { home: archiveHomeTeamId, away: archiveAwayTeamId },
+            env,
+            repository,
+            fetcher,
+            Math.max(now, Date.now()),
+          )
+        : {
+            state: 'deferred' as const,
+            error: createNbaApiError('invalid_response', 'bbs'),
+            retryAt: Date.now() + COOLDOWN_MS,
+          }
+    if (!archiveId || !archiveHomeTeamId || !archiveAwayTeamId)
+      await saveBoxFailure(game, repository, result.error!, result.retryAt!)
     if (result.state === 'refreshed') refreshed = true
     if (result.error) {
       firstError ??= result.error
@@ -577,9 +601,30 @@ export async function refreshBbsGames(
         ) {
           const normalizedGameId = `bbs:game:${String(rawId)}`
           providerReferences[normalizedGameId] = String(archiveId)
+          for (const side of ['home', 'away'] as const) {
+            const sideValue = rawRecord[side]
+            if (
+              sideValue &&
+              typeof sideValue === 'object' &&
+              !Array.isArray(sideValue) &&
+              typeof (sideValue as Record<string, unknown>).archive_team_id === 'string'
+            ) {
+              providerReferences[archiveTeamReferenceKey(normalizedGameId, side)] = (
+                sideValue as Record<string, string>
+              ).archive_team_id!
+            }
+          }
         }
       }
-      if (data.some((game) => game.status === 'final' && !providerReferences[game.id])) {
+      if (
+        data.some(
+          (game) =>
+            game.status === 'final' &&
+            (!providerReferences[game.id] ||
+              !providerReferences[archiveTeamReferenceKey(game.id, 'home')] ||
+              !providerReferences[archiveTeamReferenceKey(game.id, 'away')]),
+        )
+      ) {
         throw createNbaApiError('invalid_response', 'bbs')
       }
       const freshRecord: Extract<NbaCacheRecord, { capability: 'games' }> = {
@@ -689,7 +734,24 @@ export async function refreshBbsGameBoxScore(
     const archiveId =
       games?.capability === 'games' ? games.providerReferences?.[game.id] : undefined
     if (!archiveId) throw createNbaApiError('cache_miss', 'bbs', true)
-    const boxResult = await refreshBox(game, archiveId, env, repository, fetcher, Date.now())
+    const archiveHomeTeamId =
+      games?.capability === 'games'
+        ? games.providerReferences?.[archiveTeamReferenceKey(game.id, 'home')]
+        : undefined
+    const archiveAwayTeamId =
+      games?.capability === 'games'
+        ? games.providerReferences?.[archiveTeamReferenceKey(game.id, 'away')]
+        : undefined
+    if (!archiveHomeTeamId || !archiveAwayTeamId) throw createNbaApiError('cache_miss', 'bbs', true)
+    const boxResult = await refreshBox(
+      game,
+      archiveId,
+      { home: archiveHomeTeamId, away: archiveAwayTeamId },
+      env,
+      repository,
+      fetcher,
+      Date.now(),
+    )
     const latest = await repository.getCache(cacheKey)
     const latestBox = latest?.capability === 'boxScore' ? latest : null
     return {

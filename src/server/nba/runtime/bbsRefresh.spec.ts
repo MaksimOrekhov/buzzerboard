@@ -149,8 +149,8 @@ function fakeBbsFetch(options: { status?: number; total?: number } = {}) {
           data: {
             id: 90000001,
             game_date: '2026-11-15',
-            home: { team_id: 'bbs-bos', pts: 112, fgm: 41, fga: 88 },
-            away: { team_id: 'bbs-nyk', pts: 108, fgm: 40, fga: 90 },
+            home: { team_id: '1610612738', pts: 112, fgm: 41, fga: 88 },
+            away: { team_id: '1610612752', pts: 108, fgm: 40, fga: 90 },
           },
         }),
         { status: 200 },
@@ -186,6 +186,38 @@ function fakeBbsFetch(options: { status?: number; total?: number } = {}) {
 }
 
 function busyDayFixture() {
+  const archiveTeamIds: Record<string, string> = {
+    ATL: '1610612737',
+    BOS: '1610612738',
+    BKN: '1610612751',
+    CHA: '1610612766',
+    CHI: '1610612741',
+    CLE: '1610612739',
+    DAL: '1610612742',
+    DEN: '1610612743',
+    DET: '1610612765',
+    GSW: '1610612744',
+    HOU: '1610612745',
+    IND: '1610612754',
+    LAC: '1610612746',
+    LAL: '1610612747',
+    MEM: '1610612763',
+    MIA: '1610612748',
+    MIL: '1610612749',
+    MIN: '1610612750',
+    NOP: '1610612740',
+    NYK: '1610612752',
+    OKC: '1610612760',
+    ORL: '1610612753',
+    PHI: '1610612755',
+    PHX: '1610612756',
+    POR: '1610612757',
+    SAC: '1610612758',
+    SAS: '1610612759',
+    TOR: '1610612761',
+    UTA: '1610612762',
+    WAS: '1610612764',
+  }
   const teamCodes = [
     'ATL',
     'BKN',
@@ -219,17 +251,25 @@ function busyDayFixture() {
     'WAS',
   ]
   const matches = Array.from({ length: 15 }, (_, index) => {
-    const source = structuredClone(fixture.data[0]!)
+    const source = structuredClone(fixture.data[0]!) as unknown as {
+      id: string
+      archive_game_id: number
+      home: Record<string, unknown>
+      away: Record<string, unknown>
+      [key: string]: unknown
+    }
     source.id = `synthetic-busy-game-${index + 1}`
     source.archive_game_id = 91000000 + index
     source.home = {
       ...source.home,
       team_id: `bbs-${teamCodes[index * 2]!.toLowerCase()}`,
+      archive_team_id: archiveTeamIds[teamCodes[index * 2]!]!,
       abbreviation: teamCodes[index * 2]!,
     }
     source.away = {
       ...source.away,
       team_id: `bbs-${teamCodes[index * 2 + 1]!.toLowerCase()}`,
+      archive_team_id: archiveTeamIds[teamCodes[index * 2 + 1]!]!,
       abbreviation: teamCodes[index * 2 + 1]!,
     }
     return source
@@ -277,11 +317,11 @@ function busyDayFetch(options: { teamStatus?: number; boxStatusForFirst?: number
           data: {
             id: Number(url.pathname.split('/').at(-1)),
             home: {
-              team_id: match.home.team_id,
+              team_id: match.home.archive_team_id,
               pts: 112,
             },
             away: {
-              team_id: match.away.team_id,
+              team_id: match.away.archive_team_id,
               pts: 108,
             },
           },
@@ -329,6 +369,8 @@ describe('BBS cached refresh flow', () => {
     expect(games?.capability).toBe('games')
     if (games?.capability !== 'games') throw new Error('Expected a BBS game snapshot')
     expect(games.providerReferences?.[games.data[0]!.id]).toBe('90000001')
+    expect(games.providerReferences?.[`${games.data[0]!.id}:team:home`]).toBe('1610612738')
+    expect(games.providerReferences?.[`${games.data[0]!.id}:team:away`]).toBe('1610612752')
     expect(repository.cache.get(gameDetailsCacheKey('bbs', games.data[0]!.id))?.capability).toBe(
       'boxScore',
     )
