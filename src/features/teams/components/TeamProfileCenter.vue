@@ -22,7 +22,7 @@ const code = computed(() =>
 )
 const team = computed(() => findNbaTeam(code.value))
 const query = useTeamSeason(code, TEAM_SEASON_END_YEAR)
-const { data, isPending, isError, isFetching, isRefetchError } = query
+const { data, isPending, isFetching, isRefetchError } = query
 const { isFavorite, toggleFavorite } = useTeamFavorites()
 const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team.id)))
 const errorTitle = computed(() =>
@@ -76,7 +76,7 @@ const errorTitle = computed(() =>
       Последнее обновление не удалось. Доступный снимок остаётся виден.
     </p>
     <ResourceState v-if="isPending" status="loading" /><ResourceState
-      v-else-if="isError || !data"
+      v-else-if="!data"
       status="error"
       icon="basketball"
       :title="errorTitle"

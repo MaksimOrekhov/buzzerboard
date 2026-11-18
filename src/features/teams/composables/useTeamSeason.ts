@@ -15,7 +15,7 @@ export function useTeamSeason(
   const currentSeason = computed(() => toValue(seasonEndYear))
   return useQuery({
     queryKey: computed(() => teamSeasonQueryKey(currentCode.value, currentSeason.value)),
-    queryFn: ({ signal }) => fetchTeamSeason(currentCode.value, currentSeason.value, signal),
+    queryFn: ({ queryKey: [, , code, season], signal }) => fetchTeamSeason(code, season, signal),
     enabled: computed(() => currentCode.value.length > 0),
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,

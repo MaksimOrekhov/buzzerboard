@@ -190,7 +190,10 @@ export function fetchTeamSeason(
 ): Promise<TeamSeasonResponse> {
   return fetchWorkerResource(
     `/api/teams/${encodeURIComponent(teamCode)}?seasonEndYear=${encodeURIComponent(String(seasonEndYear))}`,
-    isTeamSeasonResponse,
+    (value): value is TeamSeasonResponse =>
+      isTeamSeasonResponse(value) &&
+      value.data.team.id === `nba:team:${teamCode}` &&
+      value.data.seasonEndYear === seasonEndYear,
     signal,
   )
 }

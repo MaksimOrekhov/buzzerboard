@@ -53,6 +53,7 @@ import {
   refreshGameBoxScore,
 } from '@/server/nba/runtime/gameDetails'
 import { parseBbsBoxTarget, refreshBbsGameBoxScore } from '@/server/nba/runtime/bbsRefresh'
+import { getDefaultNbaGameDate } from '@/shared/utils/nbaDate'
 
 const PRIVATE_HEADERS = {
   'cache-control': 'private, no-store',
@@ -357,33 +358,68 @@ function recentGameMatchesCache(
   })
 }
 
-function upcomingGameMatchesCache(
+async function findUpcomingTeamGame(
   profile: TeamSeasonProfile,
-  record: Extract<GamesCacheRecord, { capability: 'schedule' }> | null,
-) {
-  if (!record) return null
-  const scheduled = record.data.find((game) => {
-    if (game.provider !== 'bbs' || game.id !== profile.nextGame?.gameId) return false
-    const isHome = game.homeTeam.id === profile.team.id
-    const isAway = game.awayTeam.id === profile.team.id
-    if (!isHome && !isAway) return false
-    const opponent = isHome ? game.awayTeam : game.homeTeam
-    return (
-      (profile.nextGame?.opponentCode === null ||
-        opponent.abbreviation === profile.nextGame?.opponentCode) &&
-      (profile.nextGame?.isHome === null || isHome === profile.nextGame?.isHome)
-    )
-  })
-  if (!scheduled) return null
-  const opponent =
-    scheduled.homeTeam.id === profile.team.id ? scheduled.awayTeam : scheduled.homeTeam
-  return {
-    gameId: scheduled.id,
-    nbaGameDate: scheduled.nbaGameDate,
-    startsAt: scheduled.startsAt,
-    isHome: scheduled.homeTeam.id === profile.team.id,
-    opponentCode: opponent.abbreviation,
-  }
+  repository: NbaRepository,
+  now: number,
+): Promise<TeamSeasonProfile['nextGame']> {
+  const next = profile.nextGame
+  if (!next?.gameId) return null
+
+  const today = getDefaultNbaGameDate(new Date(now))
+  const firstDay = Date.parse(`${today}T00:00:00Z`)
+  const kickoff = next.startsAt === null ? null : Date.parse(next.startsAt)
+  if (kickoff !== null && (!Number.isFinite(kickoff) || kickoff <= now)) return null
+  const kickoffDate = kickoff === null ? null : getDefaultNbaGameDate(new Date(kickoff))
+  const dates = Array.from({ length: 8 }, (_, offset) =>
+    parseNbaGameDate(new Date(firstDay + offset * 86_400_000).toISOString().slice(0, 10)),
+  )
+    .filter((date) => date !== null)
+    .filter((date) => !kickoffDate || date === kickoffDate)
+
+  const matches = await Promise.all(
+    dates.map(async (date) => {
+      if (nbaSeasonEndYearForDate(date) !== profile.seasonEndYear) return null
+      const record = await repository.getCache(gamesCacheKey('bbs', date))
+      if (
+        record?.capability !== 'games' ||
+        record.provider !== 'bbs' ||
+        now >= record.expiresAt ||
+        now >= record.staleUntil
+      )
+        return null
+      for (const game of record.data) {
+        const starts = game.startsAt === null ? NaN : Date.parse(game.startsAt)
+        if (
+          game.provider !== 'bbs' ||
+          game.id !== next.gameId ||
+          game.nbaGameDate !== date ||
+          game.seasonEndYear !== profile.seasonEndYear ||
+          game.status !== 'scheduled' ||
+          !Number.isFinite(starts) ||
+          starts <= now ||
+          getDefaultNbaGameDate(new Date(starts)) !== date
+        )
+          continue
+        const isHome = game.homeTeam.id === profile.team.id
+        const isAway = game.awayTeam.id === profile.team.id
+        if (isHome === isAway || (next.isHome !== null && next.isHome !== isHome)) continue
+        const opponent = isHome ? game.awayTeam : game.homeTeam
+        const opponentCode = opponent.abbreviation
+        if (
+          !opponentCode ||
+          findNbaTeam(opponentCode)?.team.id !== opponent.id ||
+          (next.opponentCode !== null && next.opponentCode !== opponentCode)
+        )
+          continue
+        return { gameId: game.id, nbaGameDate: date, startsAt: game.startsAt, isHome, opponentCode }
+      }
+      return null
+    }),
+  )
+  const confirmed = matches.filter((match) => match !== null)
+  if (confirmed.length !== 1) return null
+  return confirmed[0] ?? null
 }
 
 async function getTeamSeason(
@@ -413,13 +449,13 @@ async function getTeamSeason(
     return errorResponse(createError('cache_miss', 'bbs', true), requestId, 503)
 
   const cachedProfile = cache.data
-  const [recentRecords, schedule] = await Promise.all([
+  const [recentRecords, nextGame] = await Promise.all([
     Promise.all(
       [...new Set(cachedProfile.lastTen?.map((game) => game.nbaGameDate) ?? [])].map((date) =>
         usableCache(repository, gamesCacheKey('bbs', date), now),
       ),
     ),
-    usableCache(repository, scheduleCacheKey('bbs'), now),
+    findUpcomingTeamGame(cachedProfile, repository, now),
   ])
   const gameRecords = recentRecords.filter(
     (record): record is GamesCacheRecord =>
@@ -435,10 +471,7 @@ async function getTeamSeason(
           ? row.gameId
           : null,
       })) ?? null,
-    nextGame: upcomingGameMatchesCache(
-      cachedProfile,
-      schedule?.capability === 'schedule' ? schedule : null,
-    ),
+    nextGame,
   }
   const snapshot: TeamSeasonResponse = apiSnapshot(cache, profile, now)
   return jsonResponse(

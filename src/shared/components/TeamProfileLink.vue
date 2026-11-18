@@ -3,15 +3,22 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Team } from '@/entities/nba/model'
 
+defineOptions({ inheritAttrs: false })
 const props = defineProps<{ team: Team }>()
 const code = computed(() => /^nba:team:([A-Z0-9]+)$/.exec(props.team.id)?.[1] ?? null)
 </script>
 
 <template>
-  <RouterLink v-if="code" :to="`/teams/${code}`" class="team-profile-link">
+  <RouterLink
+    v-if="code"
+    v-bind="$attrs"
+    :to="`/teams/${code}`"
+    class="team-profile-link"
+    :aria-label="team.displayName ?? team.abbreviation ?? code"
+  >
     <slot />
   </RouterLink>
-  <span v-else class="team-profile-link"><slot /></span>
+  <span v-else v-bind="$attrs" class="team-profile-link"><slot /></span>
 </template>
 
 <style scoped>

@@ -657,7 +657,12 @@ describe('NBA Worker cache API', () => {
         },
         last_10: null,
         top_players: [],
-        next_game: null,
+        next_game: {
+          match_id: 'synthetic-next-game',
+          kickoff_utc: '2026-11-19T00:30:00.000Z',
+          is_home: true,
+          opponent: 'NYK',
+        },
       },
       reference,
       seasonEndYear,
@@ -679,6 +684,31 @@ describe('NBA Worker cache API', () => {
       refreshError: null,
     }
     repository.cache.set(record.cacheKey, record)
+    const date = '2026-11-18' as NbaGameDate
+    const gamesKey = gamesCacheKey('bbs', date)
+    const {
+      data: [baseGame],
+    } = createGameRecord(date)
+    const nextGame: Game = {
+      ...baseGame!,
+      id: 'bbs:game:synthetic-next-game' as Game['id'],
+      provider: 'bbs',
+      providerId: 'synthetic-next-game' as Game['providerId'],
+      nbaGameDate: date,
+      startsAt: '2026-11-19T00:30:00.000Z' as UtcTimestamp,
+      status: 'scheduled',
+      seasonEndYear,
+      homeTeam: reference.team,
+      awayTeam: findNbaTeam('NYK')!.team,
+      score: { home: null, away: null },
+    }
+    const gameRecord = {
+      ...createGameRecord(date),
+      cacheKey: gamesKey,
+      provider: 'bbs' as const,
+      data: [nextGame],
+    }
+    repository.cache.set(gamesKey, gameRecord)
     const fetcher = vi.fn<typeof fetch>()
     const worker = createWorker(repository, fetcher)
 
@@ -705,10 +735,49 @@ describe('NBA Worker cache API', () => {
       data: {
         team: { id: 'nba:team:BOS', providerId: null },
         winPercentage: 31 / 46,
+        nextGame: {
+          gameId: nextGame.id,
+          nbaGameDate: date,
+          startsAt: nextGame.startsAt,
+          opponentCode: 'NYK',
+          isHome: true,
+        },
       },
       meta: { source: 'bbs', isStale: false },
     })
     expect(profilePayload.data.stats.fieldGoalPercentage).toBeCloseTo(0.471)
+    const linkedGameResponse = await worker.fetch(
+      new Request(`https://buzzerboard.test/api/games/${nextGame.id}?date=${date}`),
+      env,
+    )
+    expect(linkedGameResponse.status).toBe(200)
+
+    for (const [reason, variant] of Object.entries({
+      stale: { ...gameRecord, expiresAt: now },
+      finished: { ...gameRecord, data: [{ ...nextGame, status: 'final' as const }] },
+      past: { ...gameRecord, data: [{ ...nextGame, startsAt: context.fetchedAt as UtcTimestamp }] },
+      wrongDate: { ...gameRecord, data: [{ ...nextGame, nbaGameDate: gameDate }] },
+      wrongSeason: { ...gameRecord, data: [{ ...nextGame, seasonEndYear: null }] },
+      wrongTeam: { ...gameRecord, data: [{ ...nextGame, homeTeam: findNbaTeam('ATL')!.team }] },
+      wrongOpponent: { ...gameRecord, data: [{ ...nextGame, awayTeam: findNbaTeam('ATL')!.team }] },
+      wrongVenue: {
+        ...gameRecord,
+        data: [{ ...nextGame, homeTeam: nextGame.awayTeam, awayTeam: nextGame.homeTeam }],
+      },
+    })) {
+      repository.cache.set(gamesKey, variant)
+      const response = await worker.fetch(
+        new Request('https://buzzerboard.test/api/teams/BOS?seasonEndYear=2027'),
+        env,
+      )
+      expect((await response.json()).data.nextGame, reason).toBeNull()
+    }
+    repository.cache.delete(gamesKey)
+    const response = await worker.fetch(
+      new Request('https://buzzerboard.test/api/teams/BOS?seasonEndYear=2027'),
+      env,
+    )
+    expect((await response.json()).data.nextGame).toBeNull()
     expect(fetcher).not.toHaveBeenCalled()
   })
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { TeamSeasonProfile } from '@/entities/nba/model'
 import { findNbaTeam } from '@/entities/nba/teamCatalog'
@@ -24,8 +25,9 @@ const nextGameTime = (value: string | null, nbaDate: string | null) => {
     }).format(new Date(value))
   return nbaDate ? dateLabel(nbaDate) : 'Время уточняется'
 }
-const leaders = props.profile.leaders
-const teamLabel = props.profile.team.displayName ?? props.profile.team.abbreviation ?? 'Команда'
+const teamLabel = computed(
+  () => props.profile.team.displayName ?? props.profile.team.abbreviation ?? 'Команда',
+)
 function leaderValue(value: number | null) {
   return value === null
     ? '—'
@@ -74,7 +76,13 @@ function opponentTeam(code: string): Team {
         :size="34"
       />
       <span class="teams-next-game-opponent">
-        <strong>{{ profile.nextGame.isHome ? 'Дома против' : 'В гостях у' }}</strong>
+        <strong>{{
+          profile.nextGame.isHome === null
+            ? 'Матч против'
+            : profile.nextGame.isHome
+              ? 'Дома против'
+              : 'В гостях у'
+        }}</strong>
         <small>{{ profile.nextGame.opponentCode ?? 'Соперник уточняется' }}</small>
       </span>
       <time :datetime="profile.nextGame.startsAt ?? undefined">{{
@@ -96,10 +104,10 @@ function opponentTeam(code: string): Team {
         >
         <TeamLogo :team="opponentTeam(game.opponentCode)" :size="28" />
         <span class="teams-result-opponent"
-          >{{ game.venue === 'home' ? 'vs' : '@' }}
-          <TeamProfileLink :team="opponentTeam(game.opponentCode)" class="team-profile-link-text">{{
-            game.opponentCode
-          }}</TeamProfileLink></span
+          ><span v-if="game.venue">{{ game.venue === 'home' ? 'vs' : '@' }} </span>
+          <TeamProfileLink :team="opponentTeam(game.opponentCode)" class="team-profile-link-text"
+            ><span>{{ game.opponentCode }}</span></TeamProfileLink
+          ></span
         >
         <strong>{{ game.pointsFor }}–{{ game.pointsAgainst }}</strong>
         <RouterLink
@@ -116,10 +124,10 @@ function opponentTeam(code: string): Team {
       </div>
     </div>
     <p v-else class="teams-data-empty">Список последних десяти матчей отсутствует в снимке BBS.</p>
-    <div v-if="leaders.length" class="teams-leaders">
+    <div v-if="profile.leaders.length" class="teams-leaders">
       <h3>Лидеры команды по данным BBS</h3>
       <div class="teams-leader-grid">
-        <article v-for="leader in leaders" :key="leader.playerId">
+        <article v-for="leader in profile.leaders" :key="leader.playerId">
           <span>{{ leader.statLabel }}</span><strong>{{ leaderValue(leader.statValue) }}</strong
           ><small>{{ leader.displayName }}</small>
         </article>
