@@ -3,6 +3,9 @@
   "name": "buzzerboard",
   "main": "src/server/worker.ts",
   "compatibility_date": "2026-11-16",
+  "triggers": {
+    "crons": ["*/10 * * * *"],
+  },
   "workers_dev": true,
   "preview_urls": false,
   "assets": {
@@ -22,7 +25,7 @@
   "vars": {
     "DUNKAPI_REFRESH_ENABLED": "false",
     "DUNKAPI_BOX_SCORE_REFRESH_ENABLED": "false",
-    "BBS_REFRESH_ENABLED": "false",
+    "BBS_REFRESH_ENABLED": "true",
     "BBS_PLAYERS_ENABLED": "true",
     "BBS_DAILY_REQUEST_LIMIT": "150",
     "BBS_REQUEST_HEADROOM": "25",

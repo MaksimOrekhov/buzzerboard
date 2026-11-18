@@ -2,7 +2,9 @@
 
 ## Current release state
 
-This PR adds an opt-in BBS refresh queue. Production remains unchanged until a future owner action: `BBS_REFRESH_ENABLED=false`, both DunkAPI refresh flags are `false`, and `wrangler.jsonc` has no Cron trigger. The standings read path now selects the BBS cache (`NBA_STANDINGS_PROVIDER_ORDER=bbs`) and never falls back to DunkAPI. Team profiles and the directory remain readable from existing BBS cache rows while refresh is disabled. A cache miss remains a cache miss until the owner enables a refresh.
+The activation PR sets `BBS_REFRESH_ENABLED=true` and schedules `*/10 * * * *`; this takes effect only after that PR is merged and deployed. Main CI #68 and Cloudflare deploy #4 succeeded for the PRO-199 implementation, and the remote D1 migration ledger contains `0007_scheduled_bbs_refresh.sql`. Both DunkAPI refresh flags remain `false`; the standings read path uses BBS and never falls back to DunkAPI.
+
+The production Worker secret list currently returns no secrets, so `BBS_API_KEY` is not configured there. The remote BBS cooldown/quota table has no recorded provider remaining count. Application-side limits are still 150 requests/day, 10/minute, with 25 requests of configured headroom; the actual upstream allowance cannot be confirmed without the key and a provider response header. Before merging the activation PR, add `BBS_API_KEY` to the Cloudflare Worker using Wrangler's secure prompt and confirm provider quota availability. Until then the scheduled handler safely exits without making provider requests.
 
 No BBS or DunkAPI endpoint was called to implement or test this change. All adapter and refresh tests use synthetic fixtures and mocked `fetch`.
 
@@ -16,19 +18,13 @@ The configured application request limit remains 150/day and 10/minute. The sepa
 
 The suggested trigger remains every 10 minutes (144 ticks/day); it is **not configured in production**. Each invocation processes at most one queue item. Keep each invocation under Cloudflare Free's 10 ms CPU and 50 D1-operation limits. The enrichment item reads at most 32 cache rows and the queue uses a small fixed number of lock/progress operations. See current [Workers limits](https://developers.cloudflare.com/workers/platform/limits/) and [D1 limits](https://developers.cloudflare.com/d1/platform/limits/) before changing task size or interval.
 
-## Owner activation steps (not performed by this PR)
+## Owner activation steps
 
-Wait until this PR is merged and the existing main-branch workflow has completed the additive migration `0007_scheduled_bbs_refresh.sql` and deployed the Worker. Confirm Cloudflare Access still protects the Worker and GitHub's `production` environment is healthy.
+The activation PR contains the Cron trigger and BBS opt-in flag but is not merged by this change. Before merging, confirm Cloudflare Access still protects the Worker and GitHub's `production` environment is healthy.
 
 1. In a local checkout of `main`, confirm `DUNKAPI_REFRESH_ENABLED=false` and `DUNKAPI_BOX_SCORE_REFRESH_ENABLED=false` remain set. Do not add either DunkAPI secret or enable DunkAPI.
 2. Confirm the existing BBS key can be used for scheduled requests and that its shared daily allowance has room. If the Cloudflare Worker secret is not already present, add it in the project terminal with `pnpm exec wrangler secret put BBS_API_KEY`; enter the value only in Wrangler's terminal prompt.
-3. In `wrangler.jsonc`, add the trigger and change only the BBS opt-in variable:
-
-   ```jsonc
-   "triggers": { "crons": ["*/10 * * * *"] },
-   ```
-
-   Set `BBS_REFRESH_ENABLED` to `true`, retain `NBA_STANDINGS_PROVIDER_ORDER: "bbs"`, and keep both DunkAPI refresh vars `false`. Commit and push this explicit activation as a separate change; CI will apply any pending migration and deploy from `main`.
+3. Merge the activation PR after the key and quota checks. It sets `BBS_REFRESH_ENABLED` to `true`, adds the `*/10 * * * *` trigger, retains `NBA_STANDINGS_PROVIDER_ORDER: "bbs"`, preserves the existing request limits, and keeps both DunkAPI flags `false`. CI deploys only after successful main CI and applies pending migrations before deployment.
 
 4. Check the Cloudflare Worker Cron event log and BBS request ledger after the first few triggers. Confirm standings, current date snapshots, team profiles, and final game box scores advance in D1. Do not run a manual revalidation in parallel with the first cycle.
 
@@ -36,4 +32,4 @@ To turn refresh off, remove the Cron trigger and set `BBS_REFRESH_ENABLED` to `f
 
 ## Verification
 
-Synthetic tests cover a seven-day catch-up of 15-game dates followed by three consecutive daily cycles, mixed cached/missing box scores (63 fetched once), resuming saved work after midnight, New York 10:00 scheduling across DST, late-game recheck, item-level retry with independent task progress, queue de-duplication and rollover state preservation, compatible standings enrichment, and rejection of corrupt progress. No production Cron, remote migration, remote D1 write, deployment, or external sports-provider request is part of this PR.
+Synthetic tests cover a seven-day catch-up of 15-game dates followed by three consecutive daily cycles, mixed cached/missing box scores (63 fetched once), resuming saved work after midnight, New York 10:00 scheduling across DST, late-game recheck, item-level retry with independent task progress, queue de-duplication and rollover state preservation, compatible standings enrichment, and rejection of corrupt progress. Main CI/deploy and migration status are verified; this activation PR itself does not deploy or call external sports providers.
