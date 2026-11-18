@@ -1,14 +1,18 @@
 // @vitest-environment node
 import { DatabaseSync } from 'node:sqlite'
-import { afterEach, describe, expect, it } from 'vitest'
-import type { D1Database, D1PreparedStatement, D1Result } from './types'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { NbaGameDate, SeasonEndYear, UtcTimestamp } from '@/entities/nba/model'
+import { NBA_TEAMS } from '@/entities/nba/teamCatalog'
+import type { D1Database, D1PreparedStatement, D1Result, ScheduledBbsProgress } from './types'
 import { D1NbaRepository } from './d1Repository'
+import { runScheduledBbsRefresh } from './bbsRefresh'
+import { standingsCacheKey, teamDirectoryCacheKey, teamSeasonCacheKey } from './cacheKeys'
 
 class SqlitePreparedStatement implements D1PreparedStatement {
   private values: (string | number | null)[] = []
 
   constructor(
-    private readonly database: DatabaseSync,
+    private readonly owner: SqliteD1,
     private readonly query: string,
   ) {}
 
@@ -18,12 +22,21 @@ class SqlitePreparedStatement implements D1PreparedStatement {
   }
 
   async first<T>() {
+    this.owner.operations += 1
     const row = this.statement().get(this.namedValues())
     return (row as T | undefined) ?? null
   }
 
   async run<T>() {
-    const result = this.statement().run(this.namedValues())
+    this.owner.operations += 1
+    const statement = this.statement()
+    if (/^\s*SELECT\b/i.test(this.query)) {
+      return {
+        success: true,
+        results: statement.all(this.namedValues()) as T[],
+      }
+    }
+    const result = statement.run(this.namedValues())
     return { success: true, meta: { changes: Number(result.changes) } } as {
       success: boolean
       results?: T[]
@@ -36,7 +49,7 @@ class SqlitePreparedStatement implements D1PreparedStatement {
   }
 
   private statement() {
-    const statement = this.database.prepare(this.sqlWithNamedParameters())
+    const statement = this.owner.database.prepare(this.sqlWithNamedParameters())
     statement.setAllowBareNamedParameters(true)
     return statement
   }
@@ -48,6 +61,7 @@ class SqlitePreparedStatement implements D1PreparedStatement {
 
 class SqliteD1 implements D1Database {
   readonly database = new DatabaseSync(':memory:')
+  operations = 0
 
   constructor() {
     this.database.exec(`
@@ -86,15 +100,22 @@ class SqliteD1 implements D1Database {
         remaining INTEGER,
         reset_at_ms INTEGER
       );
+      CREATE TABLE nba_scheduled_refresh (
+        job_id TEXT PRIMARY KEY,
+        progress_json TEXT NOT NULL,
+        updated_at_ms INTEGER NOT NULL
+      );
     `)
   }
 
   prepare(query: string) {
-    return new SqlitePreparedStatement(this.database, query)
+    return new SqlitePreparedStatement(this, query)
   }
 
-  async batch(): Promise<D1Result[]> {
-    throw new Error('batch is not used by credit reservation tests')
+  async batch(statements: D1PreparedStatement[]): Promise<D1Result[]> {
+    const results: D1Result[] = []
+    for (const statement of statements) results.push(await statement.run())
+    return results
   }
 
   close() {
@@ -268,5 +289,228 @@ describe('D1 atomic BBS guards', () => {
     expect(await repository.putCacheIfLockOwned(record, 'bbs:box:test', 'new', now + 102)).toBe(
       true,
     )
+  })
+})
+
+describe('D1 scheduled BBS progress', () => {
+  it('keeps a D1 standings-enrichment tick within the 50-operation Free cap', async () => {
+    const { database, repository } = makeRepository()
+    const now = Date.parse('2026-11-17T16:00:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(now)
+    const fetchedAt = new Date(now - 60_000).toISOString() as UtcTimestamp
+    const seasonEndYear = 2027 as SeasonEndYear
+    const standingsKey = standingsCacheKey('bbs', seasonEndYear)
+    const rows = NBA_TEAMS.map((reference) => ({
+      team: { ...reference.team, providerId: `provider-${reference.code}` as never },
+      seasonEndYear,
+      conference: reference.conference,
+      record: {
+        wins: 10,
+        losses: 10,
+        conferenceWins: null,
+        conferenceLosses: null,
+        homeWins: null,
+        homeLosses: null,
+        awayWins: null,
+        awayLosses: null,
+        lastTenWins: null,
+        pointsFor: null,
+        pointsAgainst: null,
+        averageMargin: null,
+      },
+      winPercentage: 0.5,
+      officialRank: null,
+      playoffSeed: null,
+      providerOrder: null,
+    }))
+    await repository.putCache({
+      cacheKey: standingsKey,
+      capability: 'standings',
+      provider: 'bbs',
+      data: rows,
+      fetchedAt,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: now + 60_000,
+      staleUntil: now + 7 * 24 * 60 * 60_000,
+      retryAt: null,
+      refreshError: null,
+    })
+    await repository.putCache({
+      cacheKey: teamDirectoryCacheKey('bbs', seasonEndYear),
+      capability: 'teamDirectory',
+      provider: 'bbs',
+      seasonEndYear,
+      data: NBA_TEAMS.map((reference) => ({
+        teamId: reference.team.id,
+        providerTeamId: `provider-${reference.code}` as never,
+      })),
+      fetchedAt,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: now + 60_000,
+      staleUntil: now + 7 * 24 * 60 * 60_000,
+      retryAt: null,
+      refreshError: null,
+    })
+    for (const reference of NBA_TEAMS) {
+      const profile = {
+        team: { ...reference.team, providerId: `provider-${reference.code}` as never },
+        seasonEndYear,
+        wins: 10,
+        losses: 10,
+        winPercentage: 0.5,
+        overallRank: null,
+        conferenceRank: null,
+        gamesBack: null,
+        streak: null,
+        home: { wins: 5, losses: 5, ties: null },
+        away: { wins: 5, losses: 5, ties: null },
+        stats: {
+          gamesPlayed: 20,
+          pointsPerGame: null,
+          fieldGoalPercentage: null,
+          threePointPercentage: null,
+          reboundsPerGame: null,
+          assistsPerGame: null,
+          turnoversPerGame: null,
+        },
+        lastTen: null,
+        leaders: [],
+        nextGame: null,
+      }
+      await repository.putCache({
+        cacheKey: teamSeasonCacheKey('bbs', reference.team.id, seasonEndYear),
+        capability: 'teamSeason',
+        provider: 'bbs',
+        teamId: reference.team.id,
+        seasonEndYear,
+        providerTeamId: `provider-${reference.code}` as never,
+        data: profile,
+        fetchedAt,
+        providerUpdatedAt: null,
+        rejectedRecords: 0,
+        expiresAt: now + 60_000,
+        staleUntil: now + 7 * 24 * 60 * 60_000,
+        retryAt: null,
+        refreshError: null,
+      })
+    }
+    await repository.putScheduledBbsProgress({
+      cycleDate: '2026-11-17' as NbaGameDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [{ task: { type: 'enrichStandings', seasonEndYear }, attempts: 0, retryAt: null }],
+    })
+    const probeKeys = [standingsKey, teamDirectoryCacheKey('bbs', seasonEndYear)]
+    expect((await repository.getCaches(probeKeys)).every(Boolean)).toBe(true)
+    database.operations = 0
+    await repository.cleanupExpired(now)
+    const neverFetch = (async () => {
+      throw new Error('synthetic cache-only tick must not fetch')
+    }) as typeof fetch
+    const result = await runScheduledBbsRefresh(
+      { BBS_API_KEY: 'synthetic', BBS_REFRESH_ENABLED: 'true' },
+      repository,
+      neverFetch,
+      now,
+    )
+    expect(result[0]?.state).toBe('refreshed')
+    expect(database.operations).toBe(47)
+    expect(database.operations).toBeLessThanOrEqual(50)
+    vi.restoreAllMocks()
+  })
+
+  it('round trips a safe cursor and clears only its scheduler row', async () => {
+    const { database, repository } = makeRepository()
+    const progress: ScheduledBbsProgress = {
+      cycleDate: '2026-11-18' as NbaGameDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [
+        {
+          task: { type: 'standings', seasonEndYear: 2027 as SeasonEndYear },
+          attempts: 0,
+          retryAt: null,
+        },
+        {
+          task: { type: 'teamSeason', teamCode: 'BOS', seasonEndYear: 2027 as SeasonEndYear },
+          attempts: 0,
+          retryAt: null,
+        },
+      ],
+    }
+
+    await repository.putScheduledBbsProgress(progress)
+    expect(await repository.getScheduledBbsProgress()).toEqual(progress)
+    await repository.putScheduledBbsProgress(null)
+    expect(
+      database.database.prepare('SELECT COUNT(*) AS count FROM nba_scheduled_refresh').get(),
+    ).toEqual({ count: 0 })
+  })
+
+  it('fences queue writes atomically against the lease owner', async () => {
+    const { repository } = makeRepository()
+    const now = Date.parse('2026-11-18T16:00:00.000Z')
+    const progress: ScheduledBbsProgress = {
+      cycleDate: '2026-11-18' as NbaGameDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [
+        {
+          task: { type: 'standings', seasonEndYear: 2027 as SeasonEndYear },
+          attempts: 0,
+          retryAt: null,
+        },
+      ],
+    }
+    expect(await repository.tryAcquireLock('bbs:scheduled-queue', 'old', now, now + 100)).toBe(true)
+    expect(
+      await repository.putScheduledBbsProgressIfLockOwned(
+        progress,
+        'bbs:scheduled-queue',
+        'old',
+        now,
+      ),
+    ).toBe(true)
+    expect(
+      await repository.tryAcquireLock('bbs:scheduled-queue', 'new', now + 101, now + 200),
+    ).toBe(true)
+    const overwritten = { ...progress, tasks: [] }
+    expect(
+      await repository.putScheduledBbsProgressIfLockOwned(
+        overwritten,
+        'bbs:scheduled-queue',
+        'old',
+        now + 102,
+      ),
+    ).toBe(false)
+    expect(await repository.getScheduledBbsProgress()).toEqual(progress)
+  })
+
+  it('does not silently reset corrupt queue state', async () => {
+    const { database, repository } = makeRepository()
+    database.database
+      .prepare(
+        'INSERT INTO nba_scheduled_refresh(job_id, progress_json, updated_at_ms) VALUES (?, ?, ?)',
+      )
+      .run(
+        'bbs-daily',
+        JSON.stringify({
+          cycleDate: '2026-11-18',
+          cursor: 0,
+          tasks: [
+            {
+              task: { type: 'teamSeason', teamCode: 'XXX', seasonEndYear: 2027 },
+              attempts: 0,
+              retryAt: null,
+            },
+          ],
+          pauseUntil: null,
+        }),
+        0,
+      )
+
+    await expect(repository.getScheduledBbsProgress()).rejects.toThrow('Corrupt')
   })
 })

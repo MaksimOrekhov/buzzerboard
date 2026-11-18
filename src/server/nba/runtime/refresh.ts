@@ -35,6 +35,7 @@ import { getDateKeyInTimeZone, NBA_TIME_ZONE } from '@/shared/utils/nbaDate'
 import { readDunkApiCreditBudget } from '@/server/nba/runtime/creditBudget'
 import {
   refreshBbsGames,
+  refreshBbsStandings,
   refreshBbsTeamDirectory,
   refreshBbsTeamSeason,
   runScheduledBbsRefresh,
@@ -156,9 +157,13 @@ export function getProviderForTarget(
   target: NbaRefreshTarget,
   env: WorkerEnvironment,
 ): NbaProviderId | null {
-  if (target.type === 'teamSeason' || target.type === 'teamDirectory')
-    return env.BBS_REFRESH_ENABLED === 'true' ? 'bbs' : null
+  if (target.type === 'teamSeason' || target.type === 'teamDirectory') return 'bbs'
   const capability = target.type === 'standings' ? 'standings' : 'games'
+  if (
+    capability === 'standings' &&
+    env.NBA_STANDINGS_PROVIDER_ORDER?.split(',').some((value) => value.trim() === 'bbs')
+  )
+    return 'bbs'
   const resolved = resolveProviderForCapability(
     capability,
     { [capability]: providerOrder(env, capability) },
@@ -367,10 +372,12 @@ export async function refreshNbaResource(
   }
 
   if (provider === 'bbs') {
+    if (target.type === 'standings')
+      return refreshBbsStandings(target.seasonEndYear, env, repository, fetcher, now)
     if (target.type !== 'games') {
       return outcome(target, 'deferred', null, now, createNbaApiError('not_configured', 'bbs'))
     }
-    return refreshBbsGames(target, env, repository, fetcher, now)
+    return refreshBbsGames(target, env, repository, fetcher, now, false)
   }
 
   const cacheKey = cacheKeyForTarget(target, provider)

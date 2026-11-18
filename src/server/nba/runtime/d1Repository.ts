@@ -1,8 +1,17 @@
-import type { NbaCacheRecord, NbaRepository, ProviderCooldown } from '@/server/nba/runtime/types'
+import { SCHEDULED_BBS_TASK_LIMIT, scheduledBbsTaskKey } from '@/server/nba/runtime/types'
+import type {
+  NbaCacheRecord,
+  NbaRepository,
+  ProviderCooldown,
+  ScheduledBbsProgress,
+  ScheduledBbsTask,
+  ScheduledBbsWorkItem,
+} from '@/server/nba/runtime/types'
 import type { NbaProviderId } from '@/entities/nba/model'
 import type { D1Database } from '@/server/nba/runtime/types'
 import type { Game } from '@/entities/nba/model'
-import { parseNbaGameDate } from '@/server/nba/adapters/normalizers/primitives'
+import { findNbaTeam } from '@/entities/nba/teamCatalog'
+import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
 import { isGameBoxScoreForGame, isGameRecord } from '@/shared/api/nba/gameDetailsGuards'
 
 function isGameDateCoverage(value: unknown): value is { from: string; through: string } {
@@ -15,6 +24,20 @@ function isGameDateCoverage(value: unknown): value is { from: string; through: s
 
 function isNullableCount(value: unknown): boolean {
   return value === null || (Number.isSafeInteger(value) && Number(value) >= 0)
+}
+
+function isRecordSplit(value: unknown): boolean {
+  if (value === null) return true
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const split = value as Record<string, unknown>
+  return (
+    [split.wins, split.losses].every(
+      (count) =>
+        count === null ||
+        (Number.isSafeInteger(count) && Number(count) >= 0 && Number(count) <= 82),
+    ) &&
+    (split.ties === null || split.ties === 0)
+  )
 }
 
 function isTeamSeasonData(value: unknown, teamId: string, seasonEndYear: number): boolean {
@@ -32,6 +55,10 @@ function isTeamSeasonData(value: unknown, teamId: string, seasonEndYear: number)
     Number(profile.seasonEndYear) === seasonEndYear &&
     isNullableCount(profile.wins) &&
     isNullableCount(profile.losses) &&
+    Number(profile.wins ?? 0) <= 82 &&
+    Number(profile.losses ?? 0) <= 82 &&
+    isRecordSplit(profile.home) &&
+    isRecordSplit(profile.away) &&
     nullableNumber(profile.winPercentage) &&
     nullableNumber(profile.overallRank) &&
     nullableNumber(profile.conferenceRank) &&
@@ -113,6 +140,43 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
   )
 }
 
+function serializeScheduledProgress(progress: ScheduledBbsProgress): string {
+  if (
+    !parseNbaGameDate(progress.cycleDate) ||
+    progress.cursor !== 0 ||
+    progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+    (progress.pauseUntil !== null &&
+      (!Number.isSafeInteger(progress.pauseUntil) || progress.pauseUntil < 0))
+  )
+    throw new Error('Refusing to write invalid scheduled BBS progress')
+  const taskKeys = progress.tasks.map((item) => scheduledBbsTaskKey(item.task))
+  if (
+    new Set(taskKeys).size !== taskKeys.length ||
+    progress.tasks.some(
+      (item) =>
+        !isScheduledBbsTask(item.task) ||
+        !Number.isSafeInteger(item.attempts) ||
+        item.attempts < 0 ||
+        item.attempts > 5 ||
+        (item.retryAt !== null && (!Number.isSafeInteger(item.retryAt) || item.retryAt < 0)),
+    )
+  )
+    throw new Error('Refusing to write duplicate or invalid scheduled BBS tasks')
+  return JSON.stringify(progress)
+}
+
+function parseCacheRow(row: unknown, cacheKey: string): NbaCacheRecord | null {
+  if (!row || typeof row !== 'object' || !('record_json' in row)) return null
+  const json = (row as { record_json?: unknown }).record_json
+  if (typeof json !== 'string') return null
+  try {
+    const parsed: unknown = JSON.parse(json)
+    return isCacheRecord(parsed) && parsed.cacheKey === cacheKey ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 function isValidBoxScoreData(value: unknown, gameId: string): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const game = (value as Record<string, unknown>).game
@@ -122,19 +186,134 @@ function isValidBoxScoreData(value: unknown, gameId: string): boolean {
 export class D1NbaRepository implements NbaRepository {
   constructor(private readonly database: D1Database) {}
 
+  async getScheduledBbsProgress(): Promise<ScheduledBbsProgress | null> {
+    const row = await this.database
+      .prepare('SELECT progress_json FROM nba_scheduled_refresh WHERE job_id = ?1')
+      .bind('bbs-daily')
+      .first<{ progress_json: string }>()
+    if (!row) return null
+    if (typeof row.progress_json !== 'string') throw new Error('Corrupt scheduled BBS progress row')
+    try {
+      const value: unknown = JSON.parse(row.progress_json)
+      if (!value || typeof value !== 'object' || Array.isArray(value))
+        throw new Error('Corrupt scheduled BBS progress JSON')
+      const progress = value as Record<string, unknown>
+      if (
+        !parseNbaGameDate(progress.cycleDate) ||
+        !Number.isSafeInteger(progress.cursor) ||
+        Number(progress.cursor) < 0 ||
+        !Array.isArray(progress.tasks) ||
+        progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+        !(
+          progress.pauseUntil === null ||
+          (Number.isSafeInteger(progress.pauseUntil) && Number(progress.pauseUntil) >= 0)
+        )
+      )
+        throw new Error('Corrupt scheduled BBS progress state')
+      const tasks = progress.tasks.map((item): ScheduledBbsWorkItem => {
+        if (!item || typeof item !== 'object' || Array.isArray(item))
+          throw new Error('Invalid scheduled BBS item')
+        const record = item as Record<string, unknown>
+        if (
+          !isScheduledBbsTask(record.task) ||
+          !Number.isSafeInteger(record.attempts) ||
+          Number(record.attempts) < 0 ||
+          Number(record.attempts) > 5 ||
+          !(
+            record.retryAt === null ||
+            (Number.isSafeInteger(record.retryAt) && Number(record.retryAt) >= 0)
+          )
+        )
+          throw new Error('Invalid scheduled BBS item')
+        return {
+          task: record.task,
+          attempts: Number(record.attempts),
+          retryAt: record.retryAt as number | null,
+        }
+      })
+      if (
+        Number(progress.cursor) !== 0 ||
+        new Set(tasks.map((item) => scheduledBbsTaskKey(item.task))).size !== tasks.length
+      )
+        throw new Error('Invalid scheduled BBS queue ordering')
+      return {
+        cycleDate: progress.cycleDate as ScheduledBbsProgress['cycleDate'],
+        cursor: Number(progress.cursor),
+        tasks,
+        pauseUntil: progress.pauseUntil as number | null,
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('Corrupt')) throw error
+      throw new Error('Corrupt scheduled BBS progress JSON', { cause: error })
+    }
+  }
+
+  async putScheduledBbsProgress(progress: ScheduledBbsProgress | null): Promise<void> {
+    if (progress === null) {
+      await this.database
+        .prepare('DELETE FROM nba_scheduled_refresh WHERE job_id = ?1')
+        .bind('bbs-daily')
+        .run()
+      return
+    }
+    const serialized = serializeScheduledProgress(progress)
+    await this.database
+      .prepare(
+        `INSERT INTO nba_scheduled_refresh (job_id, progress_json, updated_at_ms)
+         VALUES (?1, ?2, ?3)
+         ON CONFLICT(job_id) DO UPDATE SET
+           progress_json = excluded.progress_json,
+           updated_at_ms = excluded.updated_at_ms`,
+      )
+      .bind('bbs-daily', serialized, Date.now())
+      .run()
+  }
+
+  async putScheduledBbsProgressIfLockOwned(
+    progress: ScheduledBbsProgress,
+    lockKey: string,
+    token: string,
+    now: number,
+  ): Promise<boolean> {
+    const serialized = serializeScheduledProgress(progress)
+    const result = await this.database
+      .prepare(
+        `INSERT INTO nba_scheduled_refresh (job_id, progress_json, updated_at_ms)
+         SELECT ?1, ?2, ?3
+         WHERE EXISTS (
+           SELECT 1 FROM nba_refresh_locks
+           WHERE lock_key = ?4 AND token = ?5 AND lease_expires_at_ms > ?3
+         )
+         ON CONFLICT(job_id) DO UPDATE SET
+           progress_json = excluded.progress_json,
+           updated_at_ms = excluded.updated_at_ms
+         WHERE EXISTS (
+           SELECT 1 FROM nba_refresh_locks
+           WHERE lock_key = ?4 AND token = ?5 AND lease_expires_at_ms > ?3
+         )`,
+      )
+      .bind('bbs-daily', serialized, now, lockKey, token)
+      .run()
+    return result.meta?.changes === 1
+  }
+
   async getCache(cacheKey: string): Promise<NbaCacheRecord | null> {
     const row = await this.database
       .prepare('SELECT record_json FROM nba_cache WHERE cache_key = ?1')
       .bind(cacheKey)
       .first<{ record_json: string }>()
-    if (!row || typeof row.record_json !== 'string') return null
+    return parseCacheRow(row, cacheKey)
+  }
 
-    try {
-      const parsed: unknown = JSON.parse(row.record_json)
-      return isCacheRecord(parsed) && parsed.cacheKey === cacheKey ? parsed : null
-    } catch {
-      return null
-    }
+  async getCaches(cacheKeys: readonly string[]): Promise<readonly (NbaCacheRecord | null)[]> {
+    if (cacheKeys.length > 100) throw new Error('Too many NBA cache keys in one batch')
+    if (cacheKeys.length === 0) return []
+    const results = await this.database.batch(
+      cacheKeys.map((key) =>
+        this.database.prepare('SELECT record_json FROM nba_cache WHERE cache_key = ?1').bind(key),
+      ),
+    )
+    return cacheKeys.map((key, index) => parseCacheRow(results[index]?.results?.[0], key))
   }
 
   async putCache(record: NbaCacheRecord): Promise<void> {
@@ -496,4 +675,26 @@ export class D1NbaRepository implements NbaRepository {
         .bind(new Date(now).toISOString().slice(0, 7)),
     ])
   }
+}
+
+function isScheduledBbsTask(value: unknown): value is ScheduledBbsTask {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const task = value as Record<string, unknown>
+  if (task.type === 'games' || task.type === 'lateGames')
+    return parseNbaGameDate(task.date) !== null
+  if (task.type === 'teamSeason')
+    return (
+      typeof task.teamCode === 'string' &&
+      findNbaTeam(task.teamCode) !== null &&
+      parseSeasonEndYear(task.seasonEndYear) !== null
+    )
+  if (task.type === 'standings' || task.type === 'enrichStandings' || task.type === 'teamDirectory')
+    return parseSeasonEndYear(task.seasonEndYear) !== null
+  if (task.type === 'boxScore')
+    return (
+      parseNbaGameDate(task.date) !== null &&
+      typeof task.gameId === 'string' &&
+      /^bbs:game:[^\s]+$/.test(task.gameId)
+    )
+  return false
 }

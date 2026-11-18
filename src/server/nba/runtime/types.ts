@@ -23,6 +23,37 @@ export type NbaRefreshTarget =
   | { type: 'teamDirectory'; seasonEndYear: SeasonEndYear }
   | { type: 'schedule' }
 
+export type ScheduledBbsTask =
+  | { type: 'standings'; seasonEndYear: SeasonEndYear }
+  | { type: 'enrichStandings'; seasonEndYear: SeasonEndYear }
+  | { type: 'teamDirectory'; seasonEndYear: SeasonEndYear }
+  | { type: 'games'; date: NbaGameDate }
+  | { type: 'lateGames'; date: NbaGameDate }
+  | { type: 'teamSeason'; teamCode: string; seasonEndYear: SeasonEndYear }
+  | { type: 'boxScore'; date: NbaGameDate; gameId: GameId }
+
+export interface ScheduledBbsWorkItem {
+  task: ScheduledBbsTask
+  attempts: number
+  retryAt: number | null
+}
+
+export const SCHEDULED_BBS_TASK_LIMIT = 200
+
+export function scheduledBbsTaskKey(task: ScheduledBbsTask): string {
+  if (task.type === 'games' || task.type === 'lateGames') return `${task.type}:${task.date}`
+  if (task.type === 'teamSeason') return `${task.type}:${task.seasonEndYear}:${task.teamCode}`
+  if (task.type === 'boxScore') return `${task.type}:${task.date}:${task.gameId}`
+  return `${task.type}:${task.seasonEndYear}`
+}
+
+export interface ScheduledBbsProgress {
+  cycleDate: NbaGameDate
+  tasks: readonly ScheduledBbsWorkItem[]
+  cursor: number
+  pauseUntil: number | null
+}
+
 export interface GameDateCoverage {
   from: NbaGameDate
   through: NbaGameDate
@@ -102,6 +133,7 @@ export interface ProviderCooldown {
 
 export interface NbaRepository {
   getCache(cacheKey: string): Promise<NbaCacheRecord | null>
+  getCaches(cacheKeys: readonly string[]): Promise<readonly (NbaCacheRecord | null)[]>
   putCache(record: NbaCacheRecord): Promise<void>
   deleteCache(cacheKey: string): Promise<void>
   tryAcquireLock(lockKey: string, token: string, now: number, expiresAt: number): Promise<boolean>
@@ -140,6 +172,14 @@ export interface NbaRepository {
     retryAt: number | null
     errorCode: 'quota_exceeded' | 'rate_limited' | null
   }>
+  getScheduledBbsProgress(): Promise<ScheduledBbsProgress | null>
+  putScheduledBbsProgress(progress: ScheduledBbsProgress | null): Promise<void>
+  putScheduledBbsProgressIfLockOwned(
+    progress: ScheduledBbsProgress,
+    lockKey: string,
+    token: string,
+    now: number,
+  ): Promise<boolean>
   getProviderCooldown(provider: NbaProviderId): Promise<ProviderCooldown | null>
   setProviderCooldown(
     provider: NbaProviderId,
