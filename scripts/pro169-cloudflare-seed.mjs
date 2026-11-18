@@ -1,6 +1,7 @@
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { DatabaseSync } from 'node:sqlite'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { homedir } from 'node:os'
 import { isStoredPlayers, timestamp } from '../src/entities/nba/playerSnapshotGuards.ts'
 
 const apiBase = 'https://api.cloudflare.com/client/v4'
@@ -107,13 +108,21 @@ async function exportSnapshot() {
 async function uploadSnapshot() {
   if (!options.includes('--access-verified'))
     throw new Error('Refusing remote import until Worker Access is enabled and verified.')
-  const token = process.env.CLOUDFLARE_API_TOKEN
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
   const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID
-  if (!token || !accountId || !databaseId)
-    throw new Error(
-      'Set CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_D1_DATABASE_ID.',
-    )
+  if (!accountId || !databaseId)
+    throw new Error('Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_D1_DATABASE_ID.')
+  let token = process.env.CLOUDFLARE_API_TOKEN
+  if (!token) {
+    const xdg = process.env.XDG_CONFIG_HOME
+    const tokenPath = xdg
+      ? join(xdg, '.wrangler', 'config', 'default.toml')
+      : join(homedir(), 'Library', 'Preferences', '.wrangler', 'config', 'default.toml')
+    const config = await readFile(tokenPath, 'utf8').catch(() => '')
+    token = /^oauth_token\s*=\s*"([^"]+)"\s*$/m.exec(config)?.[1]
+  }
+  if (!token)
+    throw new Error('Set CLOUDFLARE_API_TOKEN or authenticate Wrangler with `wrangler login`.')
   const snapshot = JSON.parse(await readFile(resolve(requiredOption('--file')), 'utf8'))
   if (
     snapshot.formatVersion !== 1 ||

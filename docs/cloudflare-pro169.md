@@ -4,7 +4,7 @@
 
 The Worker serves the Vue build and `/api/*` from one origin. `GET /api/health` runs a read-only `SELECT 1` against D1 and returns only `{"status":"ok"}` or `{"status":"unavailable"}`. It never includes connection details, credentials, quota state or row contents.
 
-The committed Wrangler configuration has no Cron triggers, disables Worker version preview URLs, and sets both provider refresh flags to `false`. Games use the existing BBS cache; the players read path is enabled. `workers_dev` stays `false` until the owner has enabled Worker-level Cloudflare Access. The first deployment therefore creates the service without publishing a public hostname. After Access is verified for production and previews, turn `workers_dev` on and deploy again; Worker-level Access covers every hostname, API path, static asset and preview for this Worker. Do not apply account-wide Access settings.
+The committed Wrangler configuration has no Cron triggers, disables Worker version preview URLs, and sets both provider refresh flags to `false`. Games use the existing BBS cache; the players read path is enabled. The bootstrap used `workers_dev: false` until the owner configured Worker-level Access. The stable `workers.dev` hostname is now enabled behind Access, which covers the hostname, API paths and static assets. Preview URLs remain disabled. Do not apply account-wide Access settings.
 
 The application remains read-only. No BBS or DunkAPI key is needed for serving its cache, no provider requests are made during migration or seeding, and scheduled refresh is not configured. The first hosted seed deliberately excludes DunkAPI/ESPN rows and all local rate-limit, cooldown, lock and credit-ledger tables. It includes only currently retained, normalized BBS cache rows and a validated current player snapshot. The local D1 files are opened read-only and are not modified. The import only updates a row when its local observation is at least as recent as the remote row.
 
@@ -19,6 +19,13 @@ Big Balls Sports Data's current [Terms of Service](https://bigballsdata.com/lega
 5. After Access is active, change `workers_dev` to `true`, commit and push the change. The resulting permanent URL is `https://buzzerboard.<account-subdomain>.workers.dev`. Re-deploy, then verify the unauthenticated URL redirects to Access and authenticated pages and `/api/health` work. Preview URLs remain disabled in Wrangler; Worker-level Access also covers them if later enabled.
 6. Only after that check, export and upload the private BBS seed as described below. Verify directory, profiles, teams, games and box-score pages; cache misses (including standings if no permitted BBS snapshot exists) stay visible as cache misses.
 
+### Current deployment (2026-11-18)
+
+- Permanent URL: https://buzzerboard.timberwolf-max.workers.dev
+- Cloudflare Access is attached to this Worker with **All traffic** and the reusable **BuzzerBoard owner** policy. The policy allows one exact verified email. Unauthenticated `GET /` and `GET /api/health` both returned HTTP 302 to the Access login before data import.
+- Remote D1 in WEUR now contains 51 retained BBS cache rows (17 box scores, 3 game/date snapshots, 1 team directory, 30 team-season profiles) and one validated 2027 player snapshot with 645 players. No DunkAPI/ESPN rows, provider ledger, credentials, or raw provider payloads were copied. The local databases are unchanged.
+- Worker deployment version: `61f6ef96-7b09-42d2-92b4-43edde8e94ef`. Cron and BBS/DunkAPI refresh remain disabled.
+
 If Wrangler is not authenticated, the exact owner action is steps 1–4 above. The repository cannot log into Cloudflare on the owner's behalf. The rest of the code and CI setup can be reviewed before that login.
 
 ## Read-only local export and remote seed
@@ -27,7 +34,7 @@ If Wrangler is not authenticated, the exact owner action is steps 1–4 above. T
 
 Use the local `.sqlite` file from the named PRO-195 state directory. The exporter validates the BBS namespace, cache record shapes, player snapshot schema and snapshot age; it omits expired cache records and fails on malformed data. The output is mode `0600` and must stay outside Git. Do not upload or publish it elsewhere.
 
-After steps 1–5, set `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID` and `CLOUDFLARE_API_TOKEN` in the shell using Cloudflare's local Wrangler authentication context or a temporary environment. The token needs only **D1 Write** for the seed. Then run:
+After steps 1–5, set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_DATABASE_ID` in the shell. If `CLOUDFLARE_API_TOKEN` is omitted, the seed command uses the locally authenticated Wrangler OAuth token without printing it; alternatively provide a scoped token with only **D1 Write**. Then run:
 
 `node --experimental-strip-types scripts/pro169-cloudflare-seed.mjs upload --file /private/tmp/buzzerboard-bbs-seed.json --access-verified`
 
