@@ -1,4 +1,9 @@
-import { isPlayerResponse, isStoredPlayers, timestamp } from '@/entities/nba/playerSnapshotGuards'
+import {
+  isPlayerResponse,
+  isStoredPlayers,
+  timestamp,
+  type StoredPlayers,
+} from '@/entities/nba/playerSnapshotGuards'
 import type { GameId } from '@/entities/nba/model'
 import type { PlayerResponse, PlayersResponse } from '@/entities/nba/players'
 import { gameDetailsCacheKey, gamesCacheKey } from './cacheKeys'
@@ -8,6 +13,45 @@ import type { D1Database, NbaRepository } from './types'
 type ReadResult =
   | { status: 'ready'; data: PlayersResponse | PlayerResponse }
   | { status: 'cache_miss' | 'not_found' | 'invalid_response' }
+
+interface ValidatedSnapshotCacheEntry {
+  season: number
+  payload: string
+  data: StoredPlayers | null
+  playersById: ReadonlyMap<string, StoredPlayers['players'][number]> | null
+}
+
+// D1 still gets read for every request; this only reuses validation and indexing
+// while the exact stored payload is unchanged in the same database binding.
+const validatedSnapshots = new WeakMap<D1Database, ValidatedSnapshotCacheEntry>()
+
+function validatedSnapshot(
+  db: D1Database,
+  payload: string,
+  season: number,
+): ValidatedSnapshotCacheEntry {
+  const cached = validatedSnapshots.get(db)
+  if (cached?.season === season && cached.payload === payload) return cached
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(payload)
+  } catch {
+    const invalid = { season, payload, data: null, playersById: null }
+    validatedSnapshots.set(db, invalid)
+    return invalid
+  }
+
+  const data = isStoredPlayers(parsed, season) ? parsed : null
+  const entry = {
+    season,
+    payload,
+    data,
+    playersById: data ? new Map(data.players.map((player) => [player.id, player])) : null,
+  }
+  validatedSnapshots.set(db, entry)
+  return entry
+}
 
 export async function readPlayerSnapshot(
   db: D1Database,
@@ -21,14 +65,10 @@ export async function readPlayerSnapshot(
     .bind(season)
     .first<{ fetched_at: string; payload: string }>()
   if (!row) return { status: 'cache_miss' }
-  let data: unknown
-  try {
-    data = JSON.parse(row.payload)
-  } catch {
-    return { status: 'invalid_response' }
-  }
-  if (!timestamp(row.fetched_at) || !isStoredPlayers(data, season))
-    return { status: 'invalid_response' }
+  if (!timestamp(row.fetched_at)) return { status: 'invalid_response' }
+  const cached = validatedSnapshot(db, row.payload, season)
+  if (!cached.data || !cached.playersById) return { status: 'invalid_response' }
+  const data = cached.data
   const meta = {
     source: 'bbs' as const,
     seasonEndYear: season,
@@ -37,7 +77,7 @@ export async function readPlayerSnapshot(
     coverage: data.coverage,
   }
   if (!playerId) return { status: 'ready', data: { ...meta, players: data.players } }
-  const player = data.players.find((entry) => entry.id === playerId)
+  const player = cached.playersById.get(playerId)
   if (!player) return { status: 'not_found' }
   const stored = data.details[playerId]
   const refs = data.gameRefs[playerId] ?? []

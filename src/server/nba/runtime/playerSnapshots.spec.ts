@@ -26,20 +26,30 @@ function fixture(
   },
   exists = true,
 ) {
+  let storedPayload = JSON.stringify(payload)
+  const first = vi.fn(async () =>
+    exists
+      ? {
+          fetched_at: '2026-11-16T12:00:00Z',
+          payload: storedPayload,
+        }
+      : null,
+  )
   const bind = vi.fn().mockReturnValue({
-    first: vi.fn().mockResolvedValue(
-      exists
-        ? {
-            fetched_at: '2026-11-16T12:00:00Z',
-            payload: JSON.stringify(payload),
-          }
-        : null,
-    ),
+    first,
   })
   const db = { prepare: vi.fn().mockReturnValue({ bind }) } as unknown as D1Database
   const fetcher = vi.fn<typeof fetch>()
   const worker = createNbaWorker({ fetcher, now: () => Date.parse('2026-11-18T12:00:00Z') })
-  return { worker, db, bind, fetcher }
+  return {
+    worker,
+    db,
+    bind,
+    fetcher,
+    replacePayload: (next: unknown) => {
+      storedPayload = JSON.stringify(next)
+    },
+  }
 }
 
 describe('cache-only player endpoints', () => {
@@ -88,5 +98,34 @@ describe('cache-only player endpoints', () => {
     expect(bind.mock.calls).toEqual([[2027], [2027]])
     expect((await read('/' + encodeURIComponent(id.replace(/1$/, '2')))).status).toBe(404)
     expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('uses the latest validated snapshot when D1 payload changes at the same timestamp', async () => {
+    const original = {
+      version: 2,
+      players: [player],
+      details: {},
+      gameRefs: {},
+      directoryAt: '2026-11-16T12:00:00Z',
+      averageAt: {},
+      coverage,
+    }
+    const { worker, db, replacePayload } = fixture(original)
+    const env = { NBA_DB: db, BBS_PLAYERS_ENABLED: 'true' }
+    const read = () => worker.fetch(new Request('https://test.invalid/api/players'), env)
+    expect((await (await read()).json()).players[0].name).toBe('Synthetic Player')
+
+    replacePayload({
+      ...original,
+      players: [{ ...player, name: 'Updated Player' }],
+    })
+    const updated = await read()
+    expect(updated.status).toBe(200)
+    expect((await updated.json()).players[0].name).toBe('Updated Player')
+
+    replacePayload({ broken: true })
+    const malformed = await read()
+    expect(malformed.status).toBe(503)
+    expect(await malformed.json()).toMatchObject({ error: { code: 'invalid_response' } })
   })
 })
