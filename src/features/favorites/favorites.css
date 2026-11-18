@@ -118,3 +118,7 @@
   font-size: var(--stat-meta);
   font-weight: 450;
 }
+
+.favorite-teams-gate {
+  grid-column: 1 / -1;
+}

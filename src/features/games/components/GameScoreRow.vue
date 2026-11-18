@@ -7,6 +7,9 @@ import TeamLogo from '@/shared/components/TeamLogo.vue'
 import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 import { RouterLink } from 'vue-router'
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerGameReveal from '@/features/spoilers/SpoilerGameReveal.vue'
+const { hideGame, isFutureSchedule } = useSpoilerMode()
 const props = defineProps<{
   game: Game
   favorite: boolean
@@ -42,8 +45,14 @@ const localDate = computed(() =>
       }).format(new Date(props.game.startsAt))
     : 'Время не указано',
 )
+const hidden = computed(() => hideGame(props.game))
+const scheduleOnly = computed(() => isFutureSchedule(props.game))
 const winner = computed(() =>
-  props.game.status === 'final' && props.game.score.home !== null && props.game.score.away !== null
+  !hidden.value &&
+  !scheduleOnly.value &&
+  props.game.status === 'final' &&
+  props.game.score.home !== null &&
+  props.game.score.away !== null
     ? props.game.score.home > props.game.score.away
       ? 'home'
       : props.game.score.away > props.game.score.home
@@ -55,7 +64,10 @@ const winner = computed(() =>
 <template>
   <article
     class="gc-score-row"
-    :class="{ 'gc-score-row--open': expanded }"
+    :class="{
+      'gc-score-row--open': expanded && !hidden && !scheduleOnly,
+      'gc-score-row--protected': hidden,
+    }"
     :aria-label="`${game.awayTeam.displayName ?? 'Гости'} — ${game.homeTeam.displayName ?? 'Хозяева'}`"
   >
     <div class="gc-match-main">
@@ -79,12 +91,17 @@ const winner = computed(() =>
             ></span
           >
         </TeamProfileLink>
-        <span class="gc-mobile-score" :class="{ 'gc-score--muted': winner === 'home' }">{{
-          game.score.away ?? '—'
-        }}</span>
+        <span
+          v-if="!hidden && !scheduleOnly"
+          class="gc-mobile-score"
+          :class="{ 'gc-score--muted': winner === 'home' }"
+          >{{ game.score.away ?? '—' }}</span
+        >
       </div>
-      <div class="gc-score-block">
+      <SpoilerGameReveal v-if="hidden" class="gc-match-reveal" :game="game" />
+      <div v-else class="gc-score-block">
         <div
+          v-if="!scheduleOnly"
           class="gc-score"
           :aria-label="`Счёт ${game.score.away ?? 'неизвестен'} : ${game.score.home ?? 'неизвестен'}`"
         >
@@ -97,8 +114,8 @@ const winner = computed(() =>
         </div>
         <span
           class="gc-match-status"
-          :class="{ 'gc-match-status--final': game.status === 'final' }"
-          >{{ labels[game.status] }}</span
+          :class="{ 'gc-match-status--final': !scheduleOnly && game.status === 'final' }"
+          >{{ labels[scheduleOnly ? 'scheduled' : game.status] }}</span
         >
       </div>
       <div
@@ -116,9 +133,12 @@ const winner = computed(() =>
             ></span
           >
         </TeamProfileLink>
-        <span class="gc-mobile-score" :class="{ 'gc-score--muted': winner === 'away' }">{{
-          game.score.home ?? '—'
-        }}</span>
+        <span
+          v-if="!hidden && !scheduleOnly"
+          class="gc-mobile-score"
+          :class="{ 'gc-score--muted': winner === 'away' }"
+          >{{ game.score.home ?? '—' }}</span
+        >
       </div>
       <div class="gc-row-actions">
         <button
@@ -129,7 +149,7 @@ const winner = computed(() =>
         >
           <AppIcon name="star" /></button
         ><button
-          v-if="!detailsTo"
+          v-if="!detailsTo && !hidden && !scheduleOnly"
           class="gc-icon-button gc-detail-button"
           :aria-expanded="expanded"
           :aria-controls="detailsId"
@@ -138,7 +158,7 @@ const winner = computed(() =>
         >
           <AppIcon name="down" :size="16" /></button
         ><RouterLink
-          v-else
+          v-else-if="detailsTo"
           class="gc-icon-button gc-detail-button"
           :to="detailsTo"
           aria-label="Открыть карточку матча"
@@ -147,7 +167,12 @@ const winner = computed(() =>
         /></RouterLink>
       </div>
     </div>
-    <section v-if="expanded" :id="detailsId" class="gc-match-details" aria-label="Детали матча">
+    <section
+      v-if="expanded && !hidden && !scheduleOnly"
+      :id="detailsId"
+      class="gc-match-details"
+      aria-label="Детали матча"
+    >
       <p v-if="game.venue"><AppIcon name="pin" :size="16" />{{ game.venue }}</p>
       <p v-if="winner">
         <span class="gc-detail-label">Победитель</span

@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { createServer } from 'vite'
+import { checkSpoilerMode } from './pro210-spoiler-browser.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const output = path.join(root, 'artifacts/pro-171/synthetic')
@@ -622,6 +623,20 @@ try {
       const signature = await page.locator('.gc-sidebar-signature').boundingBox()
       assert.ok(signature.y >= 0 && signature.y + signature.height <= 600)
       await page.setViewportSize({ width, height: 1000 })
+    }
+    if ([375, 768, 1440].includes(width)) {
+      await checkSpoilerMode({
+        page,
+        today,
+        shift,
+        games,
+        meta,
+        syntheticBoxScore,
+        playerMeta,
+        syntheticPlayers,
+        standings,
+        capture,
+      })
     }
     assert.deepEqual(errors, [])
     checks.push({

@@ -21,10 +21,17 @@ import {
   seasonAdvancedMetrics,
 } from '@/entities/nba/advancedStats'
 
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
+const { hideAggregate } = useSpoilerMode()
 const route = useRoute()
 const id = computed(() => (typeof route.params.playerId === 'string' ? route.params.playerId : ''))
 const valid = computed(() => bbsPlayerId.test(id.value))
 const { data, isPending, isError, refetch } = usePlayer(id)
+const statsScope = computed(() => `player:${id.value}`)
+const statsHidden = computed(() =>
+  hideAggregate(statsScope.value, data.value?.player.averageUpdatedAt),
+)
 const { ids, toggle } = usePlayerFavorites()
 const team = computed(() => findNbaTeam(data.value?.player.team ?? ''))
 const currentTeam = computed(() => findNbaTeam(data.value?.detail?.currentTeam ?? ''))
@@ -105,7 +112,12 @@ const advancedStats = computed(() => seasonAdvancedMetrics(data.value?.player.st
           <strong v-else>Не подтверждена</strong>
         </div>
       </section>
-      <section class="player-panel">
+      <SpoilerAggregateGate
+        v-if="statsHidden"
+        :scope="statsScope"
+        title="Сезонная статистика скрыта"
+      />
+      <section v-else class="player-panel">
         <h2>Статистика сезона</h2>
         <p class="player-meta">
           BBS · Снимок {{ new Date(data.fetchedAt).toLocaleString('ru-RU')
@@ -147,7 +159,7 @@ const advancedStats = computed(() => seasonAdvancedMetrics(data.value?.player.st
         <p v-else class="player-empty">Подтверждённых средних за сезон пока нет.</p>
       </section>
       <section
-        v-if="data.player.stats"
+        v-if="!statsHidden && data.player.stats"
         class="player-panel"
         aria-labelledby="advanced-player-heading"
       >

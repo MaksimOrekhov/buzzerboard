@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import '../standings.css'
+import { computed, watch } from 'vue'
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
 import { useStandingsCenter } from '../composables/useStandingsCenter'
 import PageHeading from '@/shared/components/PageHeading.vue'
 import AppButton from '@/shared/components/AppButton.vue'
@@ -37,6 +40,11 @@ const {
   clearComparison,
 } = useStandingsCenter()
 const { data, isPending, isError, isFetching, isRefetchError } = query
+const { hideAggregate } = useSpoilerMode()
+const statsHidden = computed(() => hideAggregate('standings'))
+watch(statsHidden, (hidden) => {
+  if (hidden) comparisonOpen.value = false
+})
 </script>
 <template>
   <div class="standings-center">
@@ -66,11 +74,11 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
           <h2 :id="`standings-${conference}-title`">{{ conferenceLabel }}</h2>
           <p>Показатели команд · регулярный сезон</p>
         </div>
-        <span v-if="data" class="gc-game-count"
+        <span v-if="data && !statsHidden" class="gc-game-count"
           >{{ visibleRows.length }} из {{ activeStandings.rows.length }} команд</span
         >
       </header>
-      <div v-if="data" class="standings-filters">
+      <div v-if="data && !statsHidden" class="standings-filters">
         <AppSearch
           v-model="search"
           label="Поиск команды в таблице"
@@ -94,7 +102,7 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
           >Избранные</AppButton
         >
       </div>
-      <div v-if="activeFilters" class="standings-active-filters">
+      <div v-if="!statsHidden && activeFilters" class="standings-active-filters">
         <span>Найдено {{ visibleRows.length }} команд</span
         ><button class="gc-reset" @click="resetFilters">Сбросить фильтры</button>
       </div>
@@ -117,7 +125,13 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
         ><template #action
           ><AppButton @click="query.refetch()">Попробовать снова</AppButton></template
         ></ResourceState
-      ><ResourceState
+      >
+      <SpoilerAggregateGate
+        v-else-if="statsHidden"
+        scope="standings"
+        title="Турнирная таблица скрыта"
+      />
+      <ResourceState
         v-else-if="visibleRows.length === 0"
         status="empty"
         icon="trophy"
@@ -169,7 +183,7 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
           </div>
         </div></template
       >
-      <SnapshotStatus v-if="meta" :meta="meta" />
+      <SnapshotStatus v-if="meta && !statsHidden" :meta="meta" />
       <details class="standings-guide">
         <summary>Как читать таблицу<AppIcon name="down" :size="14" /></summary>
         <dl>
@@ -203,6 +217,6 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
         </dl>
       </details>
     </section>
-    <TeamComparison v-model:open="comparisonOpen" :rows="comparisonRows" />
+    <TeamComparison v-if="!statsHidden" v-model:open="comparisonOpen" :rows="comparisonRows" />
   </div>
 </template>

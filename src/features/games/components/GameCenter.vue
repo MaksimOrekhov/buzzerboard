@@ -20,6 +20,8 @@ const {
   selectedDate,
   query,
   games,
+  hasHiddenGames,
+  statusOf,
   meta,
   visibleGames,
   teamOptions,
@@ -59,11 +61,11 @@ const tabs = computed(() => [
   { value: 'final' as const, label: 'Завершённые', count: finalGames.value.length },
   { value: 'scheduled' as const, label: 'Предстоящие', count: scheduledCount.value },
   ...Object.entries(labels)
-    .filter(([status]) => games.value.some((game) => game.status === status))
+    .filter(([status]) => games.value.some((game) => statusOf(game) === status))
     .map(([value, label]) => ({
       value: value as GameStatus,
       label: label!,
-      count: games.value.filter((game) => game.status === value).length,
+      count: games.value.filter((game) => statusOf(game) === value).length,
     })),
 ])
 const scoredCount = computed(
@@ -154,6 +156,7 @@ const scoredCount = computed(
           <span v-if="data" class="gc-game-count">{{ games.length }} матчей</span>
         </div>
         <AppSegmented
+          v-if="!hasHiddenGames"
           v-model="statusFilter"
           variant="underline"
           label="Статус матчей"
@@ -246,7 +249,7 @@ const scoredCount = computed(
         <SnapshotStatus v-if="meta" :meta="meta" />
       </section>
       <GameDayInsights
-        v-if="games.length"
+        v-if="games.length && !hasHiddenGames"
         :closest="closestGame"
         :highest="highestGame"
         :total-points="totalPoints"

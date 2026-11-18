@@ -25,3 +25,5 @@ export type AppIconName =
   | 'arrow'
   | 'pin'
   | 'globe'
+  | 'eye'
+  | 'eye-off'

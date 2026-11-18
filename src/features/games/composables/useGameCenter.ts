@@ -4,16 +4,17 @@ import type { Game, GameId, GameStatus, NbaGameDate, Team } from '@/entities/nba
 import { WorkerApiError } from '@/features/games/api'
 import { useGameFavorites } from './useGameFavorites'
 import { useGamesForDate } from './useGamesForDate'
-import { getDefaultNbaGameDate } from '@/shared/utils/nbaDate'
+import { getDefaultNbaGameDate, shiftNbaGameDate } from '@/shared/utils/nbaDate'
 import { gameCenterReturnTo, gameDetailsPath } from '@/features/games/gameDetailsRoute'
 
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+
 export function shiftGameDate(date: string, days: number): NbaGameDate {
-  const shifted = new Date(`${date}T12:00:00Z`)
-  shifted.setUTCDate(shifted.getUTCDate() + days)
-  return shifted.toISOString().slice(0, 10) as NbaGameDate
+  return shiftNbaGameDate(date, days) as NbaGameDate
 }
 
 export function useGameCenter() {
+  const { hideGame, isFutureSchedule } = useSpoilerMode()
   const route = useRoute()
   const router = useRouter()
   const today = getDefaultNbaGameDate() as NbaGameDate
@@ -55,6 +56,8 @@ export function useGameCenter() {
   const sortDirection = shallowRef(route.query.sort === 'desc' ? 'desc' : 'asc')
   const expandedGameId = shallowRef<GameId | null>(null)
   const games = computed(() => query.data.value?.data ?? [])
+  const hasHiddenGames = computed(() => games.value.some(hideGame))
+  const statusOf = (game: Game): GameStatus => (isFutureSchedule(game) ? 'scheduled' : game.status)
   const meta = computed(() => query.data.value?.meta ?? null)
   const teamOptions = computed(() => {
     const teams = new Map<string, Team>()
@@ -76,7 +79,12 @@ export function useGameCenter() {
   const visibleGames = computed(() =>
     games.value
       .filter((game) => {
-        if (statusFilter.value !== 'all' && game.status !== statusFilter.value) return false
+        if (
+          !hasHiddenGames.value &&
+          statusFilter.value !== 'all' &&
+          statusOf(game) !== statusFilter.value
+        )
+          return false
         if (
           teamFilter.value !== 'all' &&
           game.homeTeam.id !== teamFilter.value &&
@@ -101,9 +109,11 @@ export function useGameCenter() {
         return (left - right) * (sortDirection.value === 'asc' ? 1 : -1) || a.id.localeCompare(b.id)
       }),
   )
-  const finalGames = computed(() => games.value.filter((game) => game.status === 'final'))
+  const finalGames = computed(() =>
+    games.value.filter((game) => !hideGame(game) && statusOf(game) === 'final'),
+  )
   const scheduledCount = computed(
-    () => games.value.filter((game) => game.status === 'scheduled').length,
+    () => games.value.filter((game) => !hideGame(game) && statusOf(game) === 'scheduled').length,
   )
   const scoredGames = computed(() =>
     finalGames.value.filter((game) => game.score.home !== null && game.score.away !== null),
@@ -125,7 +135,7 @@ export function useGameCenter() {
   )
   const activeFilters = computed(
     () =>
-      statusFilter.value !== 'all' ||
+      (!hasHiddenGames.value && statusFilter.value !== 'all') ||
       teamFilter.value !== 'all' ||
       favoriteOnly.value ||
       search.value.trim() !== '',
@@ -209,6 +219,8 @@ export function useGameCenter() {
     selectedDate,
     query,
     games,
+    hasHiddenGames,
+    statusOf,
     meta,
     visibleGames,
     teamOptions,
