@@ -1,9 +1,11 @@
+import { SCHEDULED_BBS_TASK_LIMIT, scheduledBbsTaskKey } from '@/server/nba/runtime/types'
 import type {
   NbaCacheRecord,
   NbaRepository,
   ProviderCooldown,
   ScheduledBbsProgress,
   ScheduledBbsTask,
+  ScheduledBbsWorkItem,
 } from '@/server/nba/runtime/types'
 import type { NbaProviderId } from '@/entities/nba/model'
 import type { D1Database } from '@/server/nba/runtime/types'
@@ -134,7 +136,8 @@ export class D1NbaRepository implements NbaRepository {
       .prepare('SELECT progress_json FROM nba_scheduled_refresh WHERE job_id = ?1')
       .bind('bbs-daily')
       .first<{ progress_json: string }>()
-    if (!row || typeof row.progress_json !== 'string') return null
+    if (!row) return null
+    if (typeof row.progress_json !== 'string') throw new Error('Corrupt scheduled BBS progress row')
     try {
       const value: unknown = JSON.parse(row.progress_json)
       if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -144,19 +147,48 @@ export class D1NbaRepository implements NbaRepository {
         !Number.isSafeInteger(progress.cursor) ||
         Number(progress.cursor) < 0 ||
         !Array.isArray(progress.tasks) ||
-        progress.tasks.length > 256
+        progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+        !(
+          progress.pauseUntil === null ||
+          (Number.isSafeInteger(progress.pauseUntil) && Number(progress.pauseUntil) >= 0)
+        )
       )
-        return null
-      const tasks = progress.tasks.filter(isScheduledBbsTask)
-      if (tasks.length !== progress.tasks.length || Number(progress.cursor) > tasks.length)
-        return null
+        throw new Error('Corrupt scheduled BBS progress state')
+      const tasks = progress.tasks.map((item): ScheduledBbsWorkItem => {
+        if (!item || typeof item !== 'object' || Array.isArray(item))
+          throw new Error('Invalid scheduled BBS item')
+        const record = item as Record<string, unknown>
+        if (
+          !isScheduledBbsTask(record.task) ||
+          !Number.isSafeInteger(record.attempts) ||
+          Number(record.attempts) < 0 ||
+          Number(record.attempts) > 5 ||
+          !(
+            record.retryAt === null ||
+            (Number.isSafeInteger(record.retryAt) && Number(record.retryAt) >= 0)
+          )
+        )
+          throw new Error('Invalid scheduled BBS item')
+        return {
+          task: record.task,
+          attempts: Number(record.attempts),
+          retryAt: record.retryAt as number | null,
+        }
+      })
+      if (
+        Number(progress.cursor) !== 0 ||
+        new Set(tasks.map((item) => scheduledBbsTaskKey(item.task))).size !== tasks.length
+      )
+        throw new Error('Invalid scheduled BBS queue ordering')
       return {
         cycleDate: progress.cycleDate as ScheduledBbsProgress['cycleDate'],
         cursor: Number(progress.cursor),
         tasks,
+        pauseUntil: progress.pauseUntil as number | null,
       }
-    } catch {
-      return null
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('Corrupt')) throw error
+      throw new Error('Corrupt scheduled BBS progress JSON', { cause: error })
     }
   }
 
@@ -168,6 +200,27 @@ export class D1NbaRepository implements NbaRepository {
         .run()
       return
     }
+    if (
+      !parseNbaGameDate(progress.cycleDate) ||
+      progress.cursor !== 0 ||
+      progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+      (progress.pauseUntil !== null &&
+        (!Number.isSafeInteger(progress.pauseUntil) || progress.pauseUntil < 0))
+    )
+      throw new Error('Refusing to write invalid scheduled BBS progress')
+    const taskKeys = progress.tasks.map((item) => scheduledBbsTaskKey(item.task))
+    if (
+      new Set(taskKeys).size !== taskKeys.length ||
+      progress.tasks.some(
+        (item) =>
+          !isScheduledBbsTask(item.task) ||
+          !Number.isSafeInteger(item.attempts) ||
+          item.attempts < 0 ||
+          item.attempts > 5 ||
+          (item.retryAt !== null && (!Number.isSafeInteger(item.retryAt) || item.retryAt < 0)),
+      )
+    )
+      throw new Error('Refusing to write duplicate or invalid scheduled BBS tasks')
     await this.database
       .prepare(
         `INSERT INTO nba_scheduled_refresh (job_id, progress_json, updated_at_ms)
@@ -559,14 +612,15 @@ export class D1NbaRepository implements NbaRepository {
 function isScheduledBbsTask(value: unknown): value is ScheduledBbsTask {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const task = value as Record<string, unknown>
-  if (task.type === 'games') return parseNbaGameDate(task.date) !== null
+  if (task.type === 'games' || task.type === 'lateGames')
+    return parseNbaGameDate(task.date) !== null
   if (task.type === 'teamSeason')
     return (
       typeof task.teamCode === 'string' &&
       findNbaTeam(task.teamCode) !== null &&
       parseSeasonEndYear(task.seasonEndYear) !== null
     )
-  if (task.type === 'standings' || task.type === 'teamDirectory')
+  if (task.type === 'standings' || task.type === 'enrichStandings' || task.type === 'teamDirectory')
     return parseSeasonEndYear(task.seasonEndYear) !== null
   if (task.type === 'boxScore')
     return (

@@ -279,6 +279,8 @@ export function normalizeBbsStandings(
   if (groupedRows.length !== 30) throw new NbaAdapterError(invalidResponseError(provider))
 
   const seen = new Set<string>()
+  const seenProviderIds = new Set<string>()
+  const conferenceCounts = { east: 0, west: 0 }
   let totalWins = 0
   let totalLosses = 0
   const rows: StandingsRow[] = groupedRows.map(({ row: candidate, group }, index) => {
@@ -286,18 +288,23 @@ export function normalizeBbsStandings(
     const abbreviation = readString(candidate.abbreviation ?? candidate.abbr)
     const canonical = abbreviation ? findNbaTeam(abbreviation) : null
     const providerId = sourceId(candidate.team_id ?? candidate.team_uuid ?? candidate.id)
-    if (!canonical || !providerId || seen.has(canonical.code))
+    if (!canonical || !providerId || seen.has(canonical.code) || seenProviderIds.has(providerId))
       throw new NbaAdapterError(invalidResponseError(provider))
     seen.add(canonical.code)
+    seenProviderIds.add(providerId)
 
     const conferenceText = readString(
       candidate.conference ?? (isRecord(group) ? (group.conference ?? group.name) : null),
     )?.toLowerCase()
-    const conference: Conference | null = conferenceText?.includes('east')
+    const reportedConference: Conference | null = conferenceText?.includes('east')
       ? 'east'
       : conferenceText?.includes('west')
         ? 'west'
-        : canonical.conference
+        : null
+    if (reportedConference && reportedConference !== canonical.conference)
+      throw new NbaAdapterError(invalidResponseError(provider))
+    const conference = canonical.conference
+    conferenceCounts[conference] += 1
     const parsedRecord = recordLine(candidate.record ?? candidate.wins_losses)
     const wins = readNonNegativeNumber(candidate.wins) ?? parsedRecord?.wins ?? null
     const losses = readNonNegativeNumber(candidate.losses) ?? parsedRecord?.losses ?? null
@@ -306,8 +313,14 @@ export function normalizeBbsStandings(
     totalWins += wins
     totalLosses += losses
     const total = wins === null || losses === null ? null : wins + losses
-    const explicitPercentage = percentage(candidate.win_percentage ?? candidate.win_pct)
     const rawRank = readNonNegativeNumber(candidate.conference_rank)
+    const playoffSeed = readNonNegativeNumber(candidate.playoff_seed)
+    if (
+      (rawRank !== null && (!Number.isInteger(rawRank) || rawRank < 1 || rawRank > 15)) ||
+      (playoffSeed !== null &&
+        (!Number.isInteger(playoffSeed) || playoffSeed < 1 || playoffSeed > 15))
+    )
+      throw new NbaAdapterError(invalidResponseError(provider))
     return {
       team: { ...canonical.team, providerId },
       seasonEndYear,
@@ -326,13 +339,19 @@ export function normalizeBbsStandings(
         pointsAgainst: null,
         averageMargin: null,
       },
-      winPercentage: explicitPercentage ?? (total ? wins! / total : null),
+      winPercentage: total ? wins / total : null,
       officialRank: rawRank,
-      playoffSeed: readNonNegativeNumber(candidate.playoff_seed),
+      playoffSeed,
       providerOrder: index + 1,
     }
   })
-  if (seen.size !== 30 || totalWins !== totalLosses)
+  if (
+    seen.size !== 30 ||
+    seenProviderIds.size !== 30 ||
+    conferenceCounts.east !== 15 ||
+    conferenceCounts.west !== 15 ||
+    totalWins !== totalLosses
+  )
     throw new NbaAdapterError(invalidResponseError(provider))
   return rows
 }

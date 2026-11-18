@@ -25,15 +25,33 @@ export type NbaRefreshTarget =
 
 export type ScheduledBbsTask =
   | { type: 'standings'; seasonEndYear: SeasonEndYear }
+  | { type: 'enrichStandings'; seasonEndYear: SeasonEndYear }
   | { type: 'teamDirectory'; seasonEndYear: SeasonEndYear }
   | { type: 'games'; date: NbaGameDate }
+  | { type: 'lateGames'; date: NbaGameDate }
   | { type: 'teamSeason'; teamCode: string; seasonEndYear: SeasonEndYear }
   | { type: 'boxScore'; date: NbaGameDate; gameId: GameId }
 
+export interface ScheduledBbsWorkItem {
+  task: ScheduledBbsTask
+  attempts: number
+  retryAt: number | null
+}
+
+export const SCHEDULED_BBS_TASK_LIMIT = 200
+
+export function scheduledBbsTaskKey(task: ScheduledBbsTask): string {
+  if (task.type === 'games' || task.type === 'lateGames') return `${task.type}:${task.date}`
+  if (task.type === 'teamSeason') return `${task.type}:${task.seasonEndYear}:${task.teamCode}`
+  if (task.type === 'boxScore') return `${task.type}:${task.date}:${task.gameId}`
+  return `${task.type}:${task.seasonEndYear}`
+}
+
 export interface ScheduledBbsProgress {
   cycleDate: NbaGameDate
-  tasks: readonly ScheduledBbsTask[]
+  tasks: readonly ScheduledBbsWorkItem[]
   cursor: number
+  pauseUntil: number | null
 }
 
 export interface GameDateCoverage {

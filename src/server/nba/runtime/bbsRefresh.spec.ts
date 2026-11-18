@@ -1,6 +1,13 @@
 import fixture from '../../../../docs/fixtures/bbs.synthetic.json'
 import { describe, expect, it, vi } from 'vitest'
-import type { NbaGameDate, SeasonEndYear, UtcTimestamp } from '@/entities/nba/model'
+import type {
+  NbaGameDate,
+  SeasonEndYear,
+  TeamSeasonProfile,
+  UtcTimestamp,
+} from '@/entities/nba/model'
+import { NBA_TEAMS } from '@/entities/nba/teamCatalog'
+import { normalizeBbsStandings } from '@/server/nba/adapters/bbsTeams'
 import type {
   NbaCacheRecord,
   NbaRepository,
@@ -13,11 +20,13 @@ import {
   gameDetailsCacheKey,
   gamesCacheKey,
   standingsCacheKey,
+  teamDirectoryCacheKey,
+  teamSeasonCacheKey,
 } from '@/server/nba/runtime/cacheKeys'
 import { refreshBbsGames, runScheduledBbsRefresh } from '@/server/nba/runtime/bbsRefresh'
 import { createNbaWorker } from '@/server/worker'
 
-const now = Date.parse('2026-11-17T10:00:00.000Z')
+const now = Date.parse('2026-11-17T16:00:00.000Z')
 const date = '2026-11-15' as NbaGameDate
 const environment: WorkerEnvironment = {
   BBS_API_KEY: 'fixture-only-key',
@@ -814,13 +823,314 @@ describe('BBS cached refresh flow', () => {
     const completed = await runScheduledBbsRefresh(environment, repository, first.fetcher, now)
     expect(completed[0]?.state).toBe('up_to_date')
     expect(first.paths).toHaveLength(0)
-    expect(repository.scheduledBbsProgress?.cursor).toBe(1)
+    expect(repository.scheduledBbsProgress?.cursor).toBe(0)
+    expect(repository.scheduledBbsProgress?.tasks[0]?.task.type).toBe('teamDirectory')
 
     const failed = fakeBbsFetch({ status: 403 })
     const deferred = await runScheduledBbsRefresh(environment, repository, failed.fetcher, now)
     expect(deferred[0]?.error?.code).toBe('forbidden')
     expect(failed.paths).toHaveLength(1)
-    expect(repository.scheduledBbsProgress?.cursor).toBe(1)
+    expect(repository.scheduledBbsProgress?.cursor).toBe(0)
+    vi.restoreAllMocks()
+  })
+
+  it('starts at 10:00 New York time across daylight-saving changes', async () => {
+    const repository = new MemoryRepository()
+    let simulatedNow = Date.parse('2026-11-17T14:59:00.000Z')
+    vi.spyOn(Date, 'now').mockImplementation(() => simulatedNow)
+    const fetcher = vi.fn(async () => new Response('{}', { status: 500 })) as typeof fetch
+    const beforeWinterWindow = Date.parse('2026-11-17T14:59:00.000Z')
+    expect(
+      await runScheduledBbsRefresh(environment, repository, fetcher, beforeWinterWindow),
+    ).toEqual([])
+    expect(fetcher).not.toHaveBeenCalled()
+    const afterWinterWindow = Date.parse('2026-11-17T15:00:00.000Z')
+    simulatedNow = afterWinterWindow
+    expect(
+      await runScheduledBbsRefresh(environment, repository, fetcher, afterWinterWindow),
+    ).toHaveLength(1)
+
+    const dstRepository = new MemoryRepository()
+    const beforeDstWindow = Date.parse('2026-03-08T13:59:00.000Z')
+    simulatedNow = beforeDstWindow
+    expect(
+      await runScheduledBbsRefresh(environment, dstRepository, fetcher, beforeDstWindow),
+    ).toEqual([])
+    simulatedNow = Date.parse('2026-03-08T14:00:00.000Z')
+    expect(
+      await runScheduledBbsRefresh(environment, dstRepository, fetcher, simulatedNow),
+    ).toHaveLength(1)
+    vi.restoreAllMocks()
+  })
+
+  it('defers one local item while advancing independent queued work and preserves de-duplicated retry state on rollover', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(now)
+    const repository = new MemoryRepository()
+    const standingsKey = standingsCacheKey('bbs', 2027 as SeasonEndYear)
+    repository.cache.set(standingsKey, {
+      cacheKey: standingsKey,
+      capability: 'standings',
+      provider: 'bbs',
+      data: [],
+      fetchedAt: new Date(now - 1_000).toISOString() as UtcTimestamp,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: now + 60_000,
+      staleUntil: now + 7 * 24 * 60 * 60_000,
+      retryAt: null,
+      refreshError: null,
+    })
+    repository.scheduledBbsProgress = {
+      cycleDate: '2026-11-17' as NbaGameDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [
+        {
+          task: { type: 'teamSeason', teamCode: 'BOS', seasonEndYear: 2027 as SeasonEndYear },
+          attempts: 0,
+          retryAt: null,
+        },
+        {
+          task: { type: 'standings', seasonEndYear: 2027 as SeasonEndYear },
+          attempts: 0,
+          retryAt: null,
+        },
+      ],
+    }
+    const fetcher = fakeBbsFetch().fetcher
+    const localFailure = await runScheduledBbsRefresh(environment, repository, fetcher, now)
+    expect(localFailure[0]?.error?.code).toBe('cache_miss')
+    expect(repository.scheduledBbsProgress?.tasks[0]?.task.type).toBe('standings')
+    expect(repository.scheduledBbsProgress?.tasks.at(-1)?.attempts).toBe(1)
+    const independent = await runScheduledBbsRefresh(environment, repository, fetcher, now)
+    expect(independent[0]?.state).toBe('up_to_date')
+
+    const rollover = Date.parse('2026-11-18T16:00:00.000Z')
+    await runScheduledBbsRefresh(environment, repository, fetcher, rollover)
+    const items = repository.scheduledBbsProgress?.tasks ?? []
+    const keys = items.map((item) => JSON.stringify(item.task))
+    expect(new Set(keys).size).toBe(keys.length)
+    expect(
+      items.find((item) => item.task.type === 'teamSeason' && item.task.teamCode === 'BOS')
+        ?.attempts,
+    ).toBe(1)
+    vi.restoreAllMocks()
+  })
+
+  it('completes a synthetic daily queue over multiple ticks and performs only the delayed late-game recheck', async () => {
+    let tick = Date.parse('2026-11-17T16:00:00.000Z')
+    vi.spyOn(Date, 'now').mockImplementation(() => tick)
+    const repository = new MemoryRepository()
+    const fetchedAt = new Date(tick - 60_000).toISOString() as UtcTimestamp
+    const expiresAt = tick + 7 * 24 * 60 * 60_000
+    const base = {
+      provider: 'bbs' as const,
+      fetchedAt,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt,
+      staleUntil: expiresAt,
+      retryAt: null,
+      refreshError: null,
+    }
+    repository.cache.set(standingsCacheKey('bbs', 2027 as SeasonEndYear), {
+      ...base,
+      cacheKey: standingsCacheKey('bbs', 2027 as SeasonEndYear),
+      capability: 'standings',
+      data: [],
+    })
+    repository.cache.set(teamDirectoryCacheKey('bbs', 2027 as SeasonEndYear), {
+      ...base,
+      cacheKey: teamDirectoryCacheKey('bbs', 2027 as SeasonEndYear),
+      capability: 'teamDirectory',
+      seasonEndYear: 2027 as SeasonEndYear,
+      data: [],
+    })
+    const profile = { seasonEndYear: 2027 } as unknown as TeamSeasonProfile
+    for (const team of NBA_TEAMS) {
+      const key = teamSeasonCacheKey('bbs', team.team.id, 2027 as SeasonEndYear)
+      repository.cache.set(key, {
+        ...base,
+        cacheKey: key,
+        capability: 'teamSeason',
+        teamId: team.team.id,
+        seasonEndYear: 2027 as SeasonEndYear,
+        providerTeamId: `synthetic-${team.code}`,
+        data: profile,
+      })
+    }
+    for (let offset = -7; offset <= 7; offset += 1) {
+      const day = new Date(Date.UTC(2026, 10, 17 + offset))
+        .toISOString()
+        .slice(0, 10) as NbaGameDate
+      const key = gamesCacheKey('bbs', day)
+      repository.cache.set(key, {
+        ...base,
+        cacheKey: key,
+        capability: 'games',
+        data: [],
+        providerReferences: {},
+      })
+    }
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      expect(url.pathname).toBe('/v1/matches')
+      return new Response(JSON.stringify({ data: { matches: [], pagination: { total: 0 } } }), {
+        status: 200,
+      })
+    }) as typeof fetch
+    let outcomeCount = 0
+    for (let index = 0; index < 60; index += 1) {
+      tick += 10 * 60_000
+      const outcomes = await runScheduledBbsRefresh(environment, repository, fetcher, tick)
+      outcomeCount += outcomes.length
+      if (
+        repository.scheduledBbsProgress?.cycleDate === '2026-11-17' &&
+        repository.scheduledBbsProgress.tasks.length === 0
+      )
+        break
+    }
+    expect(repository.scheduledBbsProgress?.cycleDate).toBe('2026-11-17')
+    expect(repository.scheduledBbsProgress?.tasks).toEqual([])
+    expect(outcomeCount).toBeGreaterThan(40)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    vi.restoreAllMocks()
+  })
+
+  it('fills standings splits only from a matching, season-compatible team-season snapshot', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(now)
+    const repository = new MemoryRepository()
+    const timestamp = new Date(now - 1_000).toISOString() as UtcTimestamp
+    const seasonEndYear = 2027 as SeasonEndYear
+    const providerId = (code: string) => `synthetic-${code}` as never
+    const standingsPayload = {
+      data: {
+        season: '2026',
+        standings: [
+          {
+            conference: 'East',
+            rows: NBA_TEAMS.filter((team) => team.conference === 'east').map((team, index) => ({
+              team_id: providerId(team.code),
+              abbreviation: team.code,
+              wins: team.code === 'BOS' ? 31 : team.code === 'NYK' ? 15 : 0,
+              losses: team.code === 'BOS' ? 15 : team.code === 'NYK' ? 31 : 0,
+              conference_rank: index + 1,
+            })),
+          },
+          {
+            conference: 'West',
+            rows: NBA_TEAMS.filter((team) => team.conference === 'west').map((team, index) => ({
+              team_id: providerId(team.code),
+              abbreviation: team.code,
+              wins: 0,
+              losses: 0,
+              conference_rank: index + 1,
+            })),
+          },
+        ],
+      },
+    }
+    const standingsKey = standingsCacheKey('bbs', seasonEndYear)
+    const rows = normalizeBbsStandings(standingsPayload, seasonEndYear)
+    const base = {
+      provider: 'bbs' as const,
+      fetchedAt: timestamp,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: now + 60_000,
+      staleUntil: now + 7 * 24 * 60 * 60_000,
+      retryAt: null,
+      refreshError: null,
+    }
+    repository.cache.set(standingsKey, {
+      ...base,
+      cacheKey: standingsKey,
+      capability: 'standings',
+      data: rows,
+    })
+    repository.cache.set(teamDirectoryCacheKey('bbs', seasonEndYear), {
+      ...base,
+      cacheKey: teamDirectoryCacheKey('bbs', seasonEndYear),
+      capability: 'teamDirectory',
+      seasonEndYear,
+      data: NBA_TEAMS.map((team) => ({
+        teamId: team.team.id,
+        providerTeamId: providerId(team.code),
+      })),
+    })
+    for (const team of NBA_TEAMS) {
+      const wins = team.code === 'BOS' ? 31 : team.code === 'NYK' ? 15 : 0
+      const losses = team.code === 'BOS' ? 15 : team.code === 'NYK' ? 31 : 0
+      const profile: TeamSeasonProfile = {
+        team: { ...team.team, providerId: providerId(team.code) },
+        seasonEndYear,
+        wins,
+        losses,
+        winPercentage: wins + losses ? wins / (wins + losses) : null,
+        overallRank: null,
+        conferenceRank: null,
+        gamesBack: null,
+        streak: null,
+        home:
+          team.code === 'BOS' ? { wins: 18, losses: 5, ties: null } : { wins, losses, ties: null },
+        away:
+          team.code === 'BOS'
+            ? { wins: 13, losses: 10, ties: null }
+            : { wins: 0, losses: 0, ties: null },
+        stats: {
+          gamesPlayed: null,
+          pointsPerGame: null,
+          fieldGoalPercentage: null,
+          threePointPercentage: null,
+          reboundsPerGame: null,
+          assistsPerGame: null,
+          turnoversPerGame: null,
+        },
+        lastTen:
+          team.code === 'BOS'
+            ? Array.from({ length: 10 }, (_, index) => ({
+                gameId: null,
+                nbaGameDate: date,
+                opponentCode: 'NYK',
+                result: index < 7 ? ('W' as const) : ('L' as const),
+                pointsFor: 110,
+                pointsAgainst: 100,
+                venue: null,
+              }))
+            : null,
+        leaders: [],
+        nextGame: null,
+      }
+      const key = teamSeasonCacheKey('bbs', team.team.id, seasonEndYear)
+      repository.cache.set(key, {
+        ...base,
+        cacheKey: key,
+        capability: 'teamSeason',
+        teamId: team.team.id,
+        seasonEndYear,
+        providerTeamId: providerId(team.code),
+        data: profile,
+      })
+    }
+    repository.scheduledBbsProgress = {
+      cycleDate: '2026-11-17' as NbaGameDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [{ task: { type: 'enrichStandings', seasonEndYear }, attempts: 0, retryAt: null }],
+    }
+
+    const result = await runScheduledBbsRefresh(
+      environment,
+      repository,
+      fakeBbsFetch().fetcher,
+      now,
+    )
+    expect(result[0]?.state).toBe('refreshed')
+    const refreshed = repository.cache.get(standingsKey)
+    expect(
+      refreshed?.capability === 'standings' &&
+        refreshed.data.find((row) => row.team.abbreviation === 'BOS')?.record,
+    ).toMatchObject({ homeWins: 18, homeLosses: 5, awayWins: 13, awayLosses: 10, lastTenWins: 7 })
     vi.restoreAllMocks()
   })
 
