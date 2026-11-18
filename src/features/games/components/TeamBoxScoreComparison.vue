@@ -2,6 +2,8 @@
 import type { ShootingLine, Team, TeamBoxScore } from '@/entities/nba/model'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import StatValue from '@/shared/components/StatValue.vue'
+import { formatAdvancedStat, teamBoxScoreAdvanced } from '@/entities/nba/advancedStats'
+import type { AdvancedMetric } from '@/entities/nba/advancedStats'
 
 defineProps<{ teams: readonly (TeamBoxScore | null)[]; matchTeams: readonly Team[] }>()
 const metrics = [
@@ -20,6 +22,13 @@ const metrics = [
   ['plusMinus', '+/−'],
 ] as const
 type Metric = (typeof metrics)[number][0]
+const advancedMetrics = [
+  ['ts', 'TS%', 'Истинная точность: PTS / (2 × (FGA + 0,44 × FTA))'],
+  ['efg', 'eFG%', 'Эффективность бросков с игры: (FGM + 0,5 × 3PM) / FGA'],
+  ['astTo', 'AST/TO', 'Передачи к потерям: AST / TOV; при нуле потерь не определено'],
+  ['threeRate', '3PAr', 'Доля трёхочковых попыток: 3PA / FGA'],
+  ['freeThrowRate', 'FTr', 'Штрафные попытки к броскам с игры: FTA / FGA'],
+] as const satisfies readonly [Exclude<AdvancedMetric, 'gmSc' | 'twoPoint'>, string, string][]
 function rate(value: number | ShootingLine | null) {
   return typeof value === 'object' && value !== null ? value.percentage : value
 }
@@ -48,6 +57,12 @@ function values(teams: readonly (TeamBoxScore | null)[], metric: Metric) {
           : null,
     }
   })
+}
+function advancedValues(
+  teams: readonly (TeamBoxScore | null)[],
+  metric: (typeof advancedMetrics)[number][0],
+) {
+  return teams.map((team) => formatAdvancedStat(metric, teamBoxScoreAdvanced(team, metric)))
 }
 </script>
 
@@ -92,5 +107,29 @@ function values(teams: readonly (TeamBoxScore | null)[], metric: Metric) {
         </tbody>
       </table>
     </div>
+    <details class="team-advanced-stats">
+      <summary>Расширенное сравнение команд · один матч</summary>
+      <p>Расчёт по подтверждённым итогам box score. Значения не являются сезонными рейтингами.</p>
+      <div class="team-box-score-wrap">
+        <table class="team-box-score">
+          <thead>
+            <tr>
+              <th scope="col">Показатель</th>
+              <th v-for="team in matchTeams" :key="team.id" scope="col">
+                {{ team.abbreviation ?? team.displayName }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="[metric, label, description] in advancedMetrics" :key="metric">
+              <th scope="row" :title="description">{{ label }}</th>
+              <td v-for="(value, index) in advancedValues(teams, metric)" :key="index">
+                <StatValue :value="value" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
   </section>
 </template>

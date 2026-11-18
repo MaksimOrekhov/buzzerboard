@@ -13,6 +13,13 @@ import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import StatValue from '@/shared/components/StatValue.vue'
+import AppTooltip from '@/shared/components/AppTooltip.vue'
+import {
+  advancedMetrics,
+  formatAdvancedStat,
+  per36Metrics,
+  seasonAdvancedMetrics,
+} from '@/entities/nba/advancedStats'
 
 const route = useRoute()
 const id = computed(() => (typeof route.params.playerId === 'string' ? route.params.playerId : ''))
@@ -55,6 +62,7 @@ const sections = [
   { key: 'shooting', title: 'Броски' },
   { key: 'defense', title: 'Защита и потери' },
 ]
+const advancedStats = computed(() => seasonAdvancedMetrics(data.value?.player.stats ?? null))
 </script>
 
 <template>
@@ -122,6 +130,47 @@ const sections = [
           </div>
         </template>
         <p v-else class="player-empty">Подтверждённых средних за сезон пока нет.</p>
+      </section>
+      <section
+        v-if="data.player.stats"
+        class="player-panel"
+        aria-labelledby="advanced-player-heading"
+      >
+        <h2 id="advanced-player-heading">Расширенная статистика</h2>
+        <p class="player-meta">
+          Расчёт BuzzerBoard по сезонным средним BBS. Отношения приблизительны из-за округления
+          источника; это не официальные рейтинги NBA.
+        </p>
+        <h3>Эффективность</h3>
+        <dl class="player-kpis">
+          <div v-for="metric in advancedMetrics" :key="metric.key">
+            <dt>
+              <AppTooltip :text="metric.description">
+                <span tabindex="0"
+                  >{{ metric.short }} <small>{{ metric.label }}</small></span
+                >
+              </AppTooltip>
+            </dt>
+            <dd>
+              <StatValue :value="formatAdvancedStat(metric.key, advancedStats[metric.key])" />
+            </dd>
+          </div>
+        </dl>
+        <h3>За 36 минут</h3>
+        <dl class="player-kpis">
+          <div v-for="metric in per36Metrics" :key="metric.key">
+            <dt :title="metric.label">
+              {{ metric.short }} <small>{{ metric.label }}</small>
+            </dt>
+            <dd>
+              <StatValue :value="formatAdvancedStat(metric.key, advancedStats[metric.key])" />
+            </dd>
+          </div>
+        </dl>
+        <p class="player-meta">
+          Показатели за 36 минут нормируют среднее на игровое время и не являются прогнозом.
+          GmSc/игру — линейная оценка по средним, не PER или рейтинг влияния.
+        </p>
       </section>
       <PlayerForm
         v-if="data.detail?.games.length"

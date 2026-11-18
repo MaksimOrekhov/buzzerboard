@@ -26,8 +26,12 @@ export const playerMetrics = [
 
 export type PlayerMetric = (typeof playerMetrics)[number][0]
 export type PlayerStats = Record<PlayerMetric, number | null>
-export type PlayerGroup = (typeof playerMetrics)[number][3]
-export type PlayerSort = PlayerMetric | 'name'
+export type AdvancedMetric =
+  'efg' | 'ts' | 'gmSc' | 'astTo' | 'threeRate' | 'freeThrowRate' | 'twoPoint'
+export type Per36Metric = 'pts36' | 'reb36' | 'ast36' | 'stl36' | 'blk36'
+export type AdvancedStatsMetric = AdvancedMetric | Per36Metric
+export type PlayerGroup = (typeof playerMetrics)[number][3] | 'advanced' | 'per36'
+export type PlayerSort = PlayerMetric | AdvancedStatsMetric | 'name'
 
 export interface NbaPlayerEntry {
   id: string
@@ -100,11 +104,18 @@ export function comparePlayers(
   b: NbaPlayerEntry,
   key: PlayerSort,
   ascending: boolean,
+  resolveAdvanced?: (stats: PlayerStats, key: AdvancedStatsMetric) => number | null,
 ) {
   const byName = a.name.localeCompare(b.name, 'en') || a.id.localeCompare(b.id)
   if (key === 'name') return ascending ? byName : -byName
-  const left = a.stats?.[key]
-  const right = b.stats?.[key]
+  const value = (stats: PlayerStats | null) =>
+    stats
+      ? key in stats
+        ? stats[key as PlayerMetric]
+        : (resolveAdvanced?.(stats, key as AdvancedStatsMetric) ?? null)
+      : null
+  const left = value(a.stats)
+  const right = value(b.stats)
   if (left == null) return right == null ? byName : 1
   if (right == null) return -1
   return (ascending ? left - right : right - left) || byName

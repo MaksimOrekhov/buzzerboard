@@ -72,6 +72,32 @@
   align-items: center;
   gap: 8px;
 }
+.player-method-note {
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius);
+  background: var(--gc-panel);
+  padding: 10px 14px;
+  color: var(--gc-secondary);
+  font-size: var(--stat-meta);
+  line-height: 1.55;
+}
+.player-method-note summary {
+  color: var(--gc-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+.player-method-note p {
+  margin: 8px 0 0;
+}
+.player-method-note ul {
+  display: grid;
+  gap: 5px;
+  padding-inline-start: 20px;
+  margin: 8px 0;
+}
+.player-method-note strong {
+  color: var(--gc-text);
+}
 .players-panel-heading {
   justify-content: space-between;
   padding: 10px 14px;
@@ -132,6 +158,13 @@
   color: var(--gc-muted);
   font-size: var(--stat-meta);
   font-weight: 500;
+}
+.player-identity .player-sample-context {
+  color: var(--gc-secondary);
+  font-size: max(var(--stat-meta), 0.8125rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+  white-space: normal;
 }
 .player-panel,
 .player-empty {
