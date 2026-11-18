@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { SeasonEndYear } from '@/entities/nba/model'
 import { NBA_TEAMS, findNbaTeam } from '@/entities/nba/teamCatalog'
 import { NbaAdapterError } from './errors'
-import { normalizeBbsTeamDirectory, normalizeBbsTeamSeason } from './bbsTeams'
+import {
+  normalizeBbsStandings,
+  normalizeBbsTeamDirectory,
+  normalizeBbsTeamSeason,
+} from './bbsTeams'
 
 const seasonEndYear = 2027 as SeasonEndYear
 const team = findNbaTeam('BOS')!
@@ -137,5 +141,47 @@ describe('BBS team-season adapter', () => {
     expect(() =>
       normalizeBbsTeamDirectory(standings, { data: directory.data.slice(1) }, seasonEndYear),
     ).toThrow(NbaAdapterError)
+  })
+
+  it('normalizes all 30 BBS standings rows without inventing unavailable record fields', () => {
+    const payload = {
+      error: null,
+      data: {
+        season: '2026',
+        standings: [
+          {
+            conference: 'East',
+            rows: NBA_TEAMS.filter((team) => team.conference === 'east').map((team, index) => ({
+              team_id: `east-${team.code}`,
+              abbreviation: team.code,
+              wins: 10,
+              losses: 10,
+              conference_rank: index + 1,
+            })),
+          },
+          {
+            conference: 'West',
+            rows: NBA_TEAMS.filter((team) => team.conference === 'west').map((team, index) => ({
+              team_id: `west-${team.code}`,
+              abbreviation: team.code,
+              wins: 10,
+              losses: 10,
+              conference_rank: index + 1,
+            })),
+          },
+        ],
+      },
+    }
+
+    const rows = normalizeBbsStandings(payload, seasonEndYear)
+
+    expect(rows).toHaveLength(30)
+    expect(new Set(rows.map((row) => row.team.id)).size).toBe(30)
+    expect(rows.find((row) => row.team.abbreviation === 'BOS')).toMatchObject({
+      conference: 'east',
+      record: { wins: 10, losses: 10, pointsFor: null },
+      winPercentage: 0.5,
+      officialRank: expect.any(Number),
+    })
   })
 })

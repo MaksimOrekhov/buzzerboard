@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { D1Database, D1PreparedStatement, D1Result } from './types'
+import type { NbaGameDate, SeasonEndYear } from '@/entities/nba/model'
+import type { D1Database, D1PreparedStatement, D1Result, ScheduledBbsProgress } from './types'
 import { D1NbaRepository } from './d1Repository'
 
 class SqlitePreparedStatement implements D1PreparedStatement {
@@ -85,6 +86,11 @@ class SqliteD1 implements D1Database {
         updated_at_ms INTEGER NOT NULL,
         remaining INTEGER,
         reset_at_ms INTEGER
+      );
+      CREATE TABLE nba_scheduled_refresh (
+        job_id TEXT PRIMARY KEY,
+        progress_json TEXT NOT NULL,
+        updated_at_ms INTEGER NOT NULL
       );
     `)
   }
@@ -268,5 +274,45 @@ describe('D1 atomic BBS guards', () => {
     expect(await repository.putCacheIfLockOwned(record, 'bbs:box:test', 'new', now + 102)).toBe(
       true,
     )
+  })
+})
+
+describe('D1 scheduled BBS progress', () => {
+  it('round trips a safe cursor and clears only its scheduler row', async () => {
+    const { database, repository } = makeRepository()
+    const progress: ScheduledBbsProgress = {
+      cycleDate: '2026-11-18' as NbaGameDate,
+      cursor: 1,
+      tasks: [
+        { type: 'standings', seasonEndYear: 2027 as SeasonEndYear },
+        { type: 'teamSeason', teamCode: 'BOS', seasonEndYear: 2027 as SeasonEndYear },
+      ],
+    }
+
+    await repository.putScheduledBbsProgress(progress)
+    expect(await repository.getScheduledBbsProgress()).toEqual(progress)
+    await repository.putScheduledBbsProgress(null)
+    expect(
+      database.database.prepare('SELECT COUNT(*) AS count FROM nba_scheduled_refresh').get(),
+    ).toEqual({ count: 0 })
+  })
+
+  it('rejects corrupt cursor state and non-canonical team tasks', async () => {
+    const { database, repository } = makeRepository()
+    database.database
+      .prepare(
+        'INSERT INTO nba_scheduled_refresh(job_id, progress_json, updated_at_ms) VALUES (?, ?, ?)',
+      )
+      .run(
+        'bbs-daily',
+        JSON.stringify({
+          cycleDate: '2026-11-18',
+          cursor: 0,
+          tasks: [{ type: 'teamSeason', teamCode: 'XXX', seasonEndYear: 2027 }],
+        }),
+        0,
+      )
+
+    expect(await repository.getScheduledBbsProgress()).toBeNull()
   })
 })

@@ -1,14 +1,19 @@
 import fixture from '../../../../docs/fixtures/bbs.synthetic.json'
 import { describe, expect, it, vi } from 'vitest'
-import type { NbaGameDate } from '@/entities/nba/model'
+import type { NbaGameDate, SeasonEndYear, UtcTimestamp } from '@/entities/nba/model'
 import type {
   NbaCacheRecord,
   NbaRepository,
   WorkerEnvironment,
   CreditUsage,
   ProviderCooldown,
+  ScheduledBbsProgress,
 } from '@/server/nba/runtime/types'
-import { gameDetailsCacheKey, gamesCacheKey } from '@/server/nba/runtime/cacheKeys'
+import {
+  gameDetailsCacheKey,
+  gamesCacheKey,
+  standingsCacheKey,
+} from '@/server/nba/runtime/cacheKeys'
 import { refreshBbsGames, runScheduledBbsRefresh } from '@/server/nba/runtime/bbsRefresh'
 import { createNbaWorker } from '@/server/worker'
 
@@ -30,6 +35,13 @@ class MemoryRepository implements NbaRepository {
   providerCooldowns = new Map<string, ProviderCooldown>()
   providerRemaining = new Map<string, { remaining: number; resetAt: number }>()
   bbsRequests: number[] = []
+  scheduledBbsProgress: ScheduledBbsProgress | null = null
+  async getScheduledBbsProgress() {
+    return this.scheduledBbsProgress
+  }
+  async putScheduledBbsProgress(progress: ScheduledBbsProgress | null) {
+    this.scheduledBbsProgress = progress
+  }
   async getCache(key: string) {
     return this.cache.get(key) ?? null
   }
@@ -778,6 +790,37 @@ describe('BBS cached refresh flow', () => {
     expect(scheduled).toHaveLength(1)
     expect(scheduled[0]?.error?.code).toBe('forbidden')
     expect(paths).toHaveLength(1)
+    vi.restoreAllMocks()
+  })
+
+  it('persists one refresh task at a time and resumes the same task after a provider failure', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(now)
+    const repository = new MemoryRepository()
+    const standingsKey = standingsCacheKey('bbs', 2027 as SeasonEndYear)
+    repository.cache.set(standingsKey, {
+      cacheKey: standingsKey,
+      capability: 'standings',
+      provider: 'bbs',
+      data: [],
+      fetchedAt: new Date(now - 1_000).toISOString() as UtcTimestamp,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: now + 60_000,
+      staleUntil: now + 7 * 24 * 60 * 60_000,
+      retryAt: null,
+      refreshError: null,
+    })
+    const first = fakeBbsFetch()
+    const completed = await runScheduledBbsRefresh(environment, repository, first.fetcher, now)
+    expect(completed[0]?.state).toBe('up_to_date')
+    expect(first.paths).toHaveLength(0)
+    expect(repository.scheduledBbsProgress?.cursor).toBe(1)
+
+    const failed = fakeBbsFetch({ status: 403 })
+    const deferred = await runScheduledBbsRefresh(environment, repository, failed.fetcher, now)
+    expect(deferred[0]?.error?.code).toBe('forbidden')
+    expect(failed.paths).toHaveLength(1)
+    expect(repository.scheduledBbsProgress?.cursor).toBe(1)
     vi.restoreAllMocks()
   })
 

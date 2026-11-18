@@ -1,8 +1,15 @@
-import type { NbaCacheRecord, NbaRepository, ProviderCooldown } from '@/server/nba/runtime/types'
+import type {
+  NbaCacheRecord,
+  NbaRepository,
+  ProviderCooldown,
+  ScheduledBbsProgress,
+  ScheduledBbsTask,
+} from '@/server/nba/runtime/types'
 import type { NbaProviderId } from '@/entities/nba/model'
 import type { D1Database } from '@/server/nba/runtime/types'
 import type { Game } from '@/entities/nba/model'
-import { parseNbaGameDate } from '@/server/nba/adapters/normalizers/primitives'
+import { findNbaTeam } from '@/entities/nba/teamCatalog'
+import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
 import { isGameBoxScoreForGame, isGameRecord } from '@/shared/api/nba/gameDetailsGuards'
 
 function isGameDateCoverage(value: unknown): value is { from: string; through: string } {
@@ -121,6 +128,57 @@ function isValidBoxScoreData(value: unknown, gameId: string): boolean {
 
 export class D1NbaRepository implements NbaRepository {
   constructor(private readonly database: D1Database) {}
+
+  async getScheduledBbsProgress(): Promise<ScheduledBbsProgress | null> {
+    const row = await this.database
+      .prepare('SELECT progress_json FROM nba_scheduled_refresh WHERE job_id = ?1')
+      .bind('bbs-daily')
+      .first<{ progress_json: string }>()
+    if (!row || typeof row.progress_json !== 'string') return null
+    try {
+      const value: unknown = JSON.parse(row.progress_json)
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+      const progress = value as Record<string, unknown>
+      if (
+        !parseNbaGameDate(progress.cycleDate) ||
+        !Number.isSafeInteger(progress.cursor) ||
+        Number(progress.cursor) < 0 ||
+        !Array.isArray(progress.tasks) ||
+        progress.tasks.length > 256
+      )
+        return null
+      const tasks = progress.tasks.filter(isScheduledBbsTask)
+      if (tasks.length !== progress.tasks.length || Number(progress.cursor) > tasks.length)
+        return null
+      return {
+        cycleDate: progress.cycleDate as ScheduledBbsProgress['cycleDate'],
+        cursor: Number(progress.cursor),
+        tasks,
+      }
+    } catch {
+      return null
+    }
+  }
+
+  async putScheduledBbsProgress(progress: ScheduledBbsProgress | null): Promise<void> {
+    if (progress === null) {
+      await this.database
+        .prepare('DELETE FROM nba_scheduled_refresh WHERE job_id = ?1')
+        .bind('bbs-daily')
+        .run()
+      return
+    }
+    await this.database
+      .prepare(
+        `INSERT INTO nba_scheduled_refresh (job_id, progress_json, updated_at_ms)
+         VALUES (?1, ?2, ?3)
+         ON CONFLICT(job_id) DO UPDATE SET
+           progress_json = excluded.progress_json,
+           updated_at_ms = excluded.updated_at_ms`,
+      )
+      .bind('bbs-daily', JSON.stringify(progress), Date.now())
+      .run()
+  }
 
   async getCache(cacheKey: string): Promise<NbaCacheRecord | null> {
     const row = await this.database
@@ -496,4 +554,25 @@ export class D1NbaRepository implements NbaRepository {
         .bind(new Date(now).toISOString().slice(0, 7)),
     ])
   }
+}
+
+function isScheduledBbsTask(value: unknown): value is ScheduledBbsTask {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const task = value as Record<string, unknown>
+  if (task.type === 'games') return parseNbaGameDate(task.date) !== null
+  if (task.type === 'teamSeason')
+    return (
+      typeof task.teamCode === 'string' &&
+      findNbaTeam(task.teamCode) !== null &&
+      parseSeasonEndYear(task.seasonEndYear) !== null
+    )
+  if (task.type === 'standings' || task.type === 'teamDirectory')
+    return parseSeasonEndYear(task.seasonEndYear) !== null
+  if (task.type === 'boxScore')
+    return (
+      parseNbaGameDate(task.date) !== null &&
+      typeof task.gameId === 'string' &&
+      /^bbs:game:[^\s]+$/.test(task.gameId)
+    )
+  return false
 }

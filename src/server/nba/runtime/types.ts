@@ -23,6 +23,19 @@ export type NbaRefreshTarget =
   | { type: 'teamDirectory'; seasonEndYear: SeasonEndYear }
   | { type: 'schedule' }
 
+export type ScheduledBbsTask =
+  | { type: 'standings'; seasonEndYear: SeasonEndYear }
+  | { type: 'teamDirectory'; seasonEndYear: SeasonEndYear }
+  | { type: 'games'; date: NbaGameDate }
+  | { type: 'teamSeason'; teamCode: string; seasonEndYear: SeasonEndYear }
+  | { type: 'boxScore'; date: NbaGameDate; gameId: GameId }
+
+export interface ScheduledBbsProgress {
+  cycleDate: NbaGameDate
+  tasks: readonly ScheduledBbsTask[]
+  cursor: number
+}
+
 export interface GameDateCoverage {
   from: NbaGameDate
   through: NbaGameDate
@@ -140,6 +153,8 @@ export interface NbaRepository {
     retryAt: number | null
     errorCode: 'quota_exceeded' | 'rate_limited' | null
   }>
+  getScheduledBbsProgress(): Promise<ScheduledBbsProgress | null>
+  putScheduledBbsProgress(progress: ScheduledBbsProgress | null): Promise<void>
   getProviderCooldown(provider: NbaProviderId): Promise<ProviderCooldown | null>
   setProviderCooldown(
     provider: NbaProviderId,

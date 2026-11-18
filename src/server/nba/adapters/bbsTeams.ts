@@ -1,4 +1,5 @@
 import type {
+  Conference,
   GameId,
   NbaTeamReference,
   PlayerId,
@@ -6,12 +7,13 @@ import type {
   SeasonEndYear,
   TeamRecordSplit,
   TeamProviderReference,
+  StandingsRow,
   TeamSeasonLeader,
   TeamSeasonProfile,
   TeamRecentGame,
   UtcTimestamp,
 } from '@/entities/nba/model'
-import { NBA_TEAMS } from '@/entities/nba/teamCatalog'
+import { findNbaTeam, NBA_TEAMS } from '@/entities/nba/teamCatalog'
 import { NbaAdapterError, invalidResponseError } from './errors'
 import {
   createTeam,
@@ -255,6 +257,84 @@ export function normalizeBbsTeamDirectory(
   )
     throw new NbaAdapterError(invalidResponseError(provider))
   return references
+}
+
+/** Normalize the same BBS standings payload used by the team directory endpoint. */
+export function normalizeBbsStandings(
+  payload: unknown,
+  seasonEndYear: SeasonEndYear,
+): readonly StandingsRow[] {
+  const root = rootOf(payload)
+  const reportedSeason = readString(root.season)
+  const startYear = Number(seasonEndYear) - 1
+  const expectedSeason = `${startYear}-${String(seasonEndYear).slice(-2)}`
+  if (reportedSeason && reportedSeason !== expectedSeason && reportedSeason !== String(startYear))
+    throw new NbaAdapterError(invalidResponseError(provider))
+  const groups = rowsFrom(root.standings, ['rows', 'standings'])
+  const groupedRows = groups.length
+    ? groups.flatMap((group) =>
+        rowsFrom(group, ['rows', 'standings']).map((row) => ({ row, group })),
+      )
+    : rowsFrom(root, ['rows', 'standings']).map((row) => ({ row, group: null }))
+  if (groupedRows.length !== 30) throw new NbaAdapterError(invalidResponseError(provider))
+
+  const seen = new Set<string>()
+  let totalWins = 0
+  let totalLosses = 0
+  const rows: StandingsRow[] = groupedRows.map(({ row: candidate, group }, index) => {
+    if (!isRecord(candidate)) throw new NbaAdapterError(invalidResponseError(provider))
+    const abbreviation = readString(candidate.abbreviation ?? candidate.abbr)
+    const canonical = abbreviation ? findNbaTeam(abbreviation) : null
+    const providerId = sourceId(candidate.team_id ?? candidate.team_uuid ?? candidate.id)
+    if (!canonical || !providerId || seen.has(canonical.code))
+      throw new NbaAdapterError(invalidResponseError(provider))
+    seen.add(canonical.code)
+
+    const conferenceText = readString(
+      candidate.conference ?? (isRecord(group) ? (group.conference ?? group.name) : null),
+    )?.toLowerCase()
+    const conference: Conference | null = conferenceText?.includes('east')
+      ? 'east'
+      : conferenceText?.includes('west')
+        ? 'west'
+        : canonical.conference
+    const parsedRecord = recordLine(candidate.record ?? candidate.wins_losses)
+    const wins = readNonNegativeNumber(candidate.wins) ?? parsedRecord?.wins ?? null
+    const losses = readNonNegativeNumber(candidate.losses) ?? parsedRecord?.losses ?? null
+    if (wins === null || losses === null || !Number.isInteger(wins) || !Number.isInteger(losses))
+      throw new NbaAdapterError(invalidResponseError(provider))
+    totalWins += wins
+    totalLosses += losses
+    const total = wins === null || losses === null ? null : wins + losses
+    const explicitPercentage = percentage(candidate.win_percentage ?? candidate.win_pct)
+    const rawRank = readNonNegativeNumber(candidate.conference_rank)
+    return {
+      team: { ...canonical.team, providerId },
+      seasonEndYear,
+      conference,
+      record: {
+        wins,
+        losses,
+        conferenceWins: readNonNegativeNumber(candidate.conference_wins),
+        conferenceLosses: readNonNegativeNumber(candidate.conference_losses),
+        homeWins: null,
+        homeLosses: null,
+        awayWins: null,
+        awayLosses: null,
+        lastTenWins: null,
+        pointsFor: null,
+        pointsAgainst: null,
+        averageMargin: null,
+      },
+      winPercentage: explicitPercentage ?? (total ? wins! / total : null),
+      officialRank: rawRank,
+      playoffSeed: readNonNegativeNumber(candidate.playoff_seed),
+      providerOrder: index + 1,
+    }
+  })
+  if (seen.size !== 30 || totalWins !== totalLosses)
+    throw new NbaAdapterError(invalidResponseError(provider))
+  return rows
 }
 
 export function normalizeBbsTeamSeason(

@@ -23,6 +23,7 @@ import type {
   CreditUsage,
   NbaCacheRecord,
   NbaRepository,
+  ScheduledBbsProgress,
   TeamSeasonCacheRecord,
   WorkerEnvironment,
 } from '@/server/nba/runtime/types'
@@ -56,6 +57,15 @@ class MemoryNbaRepository implements NbaRepository {
     }
   >()
   readonly usage = new Map<string, CreditUsage>()
+  scheduledBbsProgress: ScheduledBbsProgress | null = null
+
+  async getScheduledBbsProgress() {
+    return this.scheduledBbsProgress
+  }
+
+  async putScheduledBbsProgress(progress: ScheduledBbsProgress | null) {
+    this.scheduledBbsProgress = progress
+  }
 
   async getCache(cacheKey: string) {
     return this.cache.get(cacheKey) ?? null
@@ -662,6 +672,35 @@ describe('NBA Worker cache API', () => {
 
     expect(response.status).toBe(503)
     expect(payload).toMatchObject({ error: { code: 'cache_miss', provider: 'dunkapi' } })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('serves BBS standings when configured and does not fall back to DunkAPI', async () => {
+    const repository = new MemoryNbaRepository()
+    const key = standingsCacheKey('bbs', seasonEndYear)
+    repository.cache.set(key, {
+      cacheKey: key,
+      capability: 'standings',
+      provider: 'bbs',
+      data: [],
+      fetchedAt: context.fetchedAt as UtcTimestamp,
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: now + 60_000,
+      staleUntil: now + 7 * 24 * 60 * 60_000,
+      retryAt: null,
+      refreshError: null,
+    })
+    const fetcher = vi.fn<typeof fetch>()
+    const worker = createWorker(repository, fetcher)
+    const response = await worker.fetch(
+      new Request('https://buzzerboard.test/api/standings?seasonEndYear=2027'),
+      { ...env, NBA_STANDINGS_PROVIDER_ORDER: 'bbs', BBS_REFRESH_ENABLED: 'false' },
+    )
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload).toMatchObject({ meta: { source: 'bbs' } })
     expect(fetcher).not.toHaveBeenCalled()
   })
 
