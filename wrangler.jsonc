@@ -3,6 +3,8 @@
   "name": "buzzerboard",
   "main": "src/server/worker.ts",
   "compatibility_date": "2026-11-16",
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -17,22 +19,15 @@
       "migrations_dir": "migrations",
     },
   ],
-  "triggers": {
-    "crons": ["30 10 * * *"],
-  },
   "vars": {
     "DUNKAPI_REFRESH_ENABLED": "false",
-    "DUNKAPI_MONTHLY_CREDIT_LIMIT": "500",
-    "DUNKAPI_APP_MONTHLY_CREDIT_BUDGET": "128",
     "DUNKAPI_BOX_SCORE_REFRESH_ENABLED": "false",
-    "DUNKAPI_BOX_SCORE_MONTHLY_CREDIT_BUDGET": "5",
-    "DUNKAPI_CREDITS_USED_BASELINE": "27",
-    "DUNKAPI_CREDIT_BASELINE_MONTH": "2026-11",
     "BBS_REFRESH_ENABLED": "false",
+    "BBS_PLAYERS_ENABLED": "true",
     "BBS_DAILY_REQUEST_LIMIT": "150",
     "BBS_REQUEST_HEADROOM": "25",
     "BBS_PER_MINUTE_REQUEST_LIMIT": "10",
-    "NBA_GAMES_PROVIDER_ORDER": "dunkapi",
+    "NBA_GAMES_PROVIDER_ORDER": "bbs",
     "NBA_STANDINGS_PROVIDER_ORDER": "dunkapi",
   },
 }

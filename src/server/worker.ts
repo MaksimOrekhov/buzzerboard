@@ -884,6 +884,20 @@ export function createNbaWorker(dependencies: WorkerDependencies = {}) {
         return env.ASSETS?.fetch(request) ?? new Response('Not found', { status: 404 })
       }
 
+      if (url.pathname === '/api/health') {
+        if (request.method !== 'GET')
+          return Response.json({ status: 'method_not_allowed' }, { status: 405 })
+        if (!env.NBA_DB) return Response.json({ status: 'unavailable' }, { status: 503 })
+        try {
+          const result = await env.NBA_DB.prepare('SELECT 1 AS ok').first<{ ok: number }>()
+          return result?.ok === 1
+            ? Response.json({ status: 'ok' })
+            : Response.json({ status: 'unavailable' }, { status: 503 })
+        } catch {
+          return Response.json({ status: 'unavailable' }, { status: 503 })
+        }
+      }
+
       const requestId = dependencies.requestId?.() ?? crypto.randomUUID()
       const repository = getRepository(env)
       if (!repository) {
