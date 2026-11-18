@@ -67,8 +67,24 @@ class MemoryNbaRepository implements NbaRepository {
     this.scheduledBbsProgress = progress
   }
 
+  async putScheduledBbsProgressIfLockOwned(
+    progress: ScheduledBbsProgress,
+    lockKey: string,
+    token: string,
+    now: number,
+  ) {
+    const lock = this.locks.get(lockKey)
+    if (!lock || lock.token !== token || lock.expiresAt <= now) return false
+    this.scheduledBbsProgress = progress
+    return true
+  }
+
   async getCache(cacheKey: string) {
     return this.cache.get(cacheKey) ?? null
+  }
+
+  async getCaches(cacheKeys: readonly string[]) {
+    return cacheKeys.map((cacheKey) => this.cache.get(cacheKey) ?? null)
   }
 
   async putCache(record: NbaCacheRecord) {

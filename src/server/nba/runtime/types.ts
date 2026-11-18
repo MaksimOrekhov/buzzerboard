@@ -133,6 +133,7 @@ export interface ProviderCooldown {
 
 export interface NbaRepository {
   getCache(cacheKey: string): Promise<NbaCacheRecord | null>
+  getCaches(cacheKeys: readonly string[]): Promise<readonly (NbaCacheRecord | null)[]>
   putCache(record: NbaCacheRecord): Promise<void>
   deleteCache(cacheKey: string): Promise<void>
   tryAcquireLock(lockKey: string, token: string, now: number, expiresAt: number): Promise<boolean>
@@ -173,6 +174,12 @@ export interface NbaRepository {
   }>
   getScheduledBbsProgress(): Promise<ScheduledBbsProgress | null>
   putScheduledBbsProgress(progress: ScheduledBbsProgress | null): Promise<void>
+  putScheduledBbsProgressIfLockOwned(
+    progress: ScheduledBbsProgress,
+    lockKey: string,
+    token: string,
+    now: number,
+  ): Promise<boolean>
   getProviderCooldown(provider: NbaProviderId): Promise<ProviderCooldown | null>
   setProviderCooldown(
     provider: NbaProviderId,

@@ -29,7 +29,14 @@ class SqlitePreparedStatement implements D1PreparedStatement {
 
   async run<T>() {
     this.owner.operations += 1
-    const result = this.statement().run(this.namedValues())
+    const statement = this.statement()
+    if (/^\s*SELECT\b/i.test(this.query)) {
+      return {
+        success: true,
+        results: statement.all(this.namedValues()) as T[],
+      }
+    }
+    const result = statement.run(this.namedValues())
     return { success: true, meta: { changes: Number(result.changes) } } as {
       success: boolean
       results?: T[]
@@ -395,6 +402,8 @@ describe('D1 scheduled BBS progress', () => {
       pauseUntil: null,
       tasks: [{ task: { type: 'enrichStandings', seasonEndYear }, attempts: 0, retryAt: null }],
     })
+    const probeKeys = [standingsKey, teamDirectoryCacheKey('bbs', seasonEndYear)]
+    expect((await repository.getCaches(probeKeys)).every(Boolean)).toBe(true)
     database.operations = 0
     await repository.cleanupExpired(now)
     const neverFetch = (async () => {
@@ -438,6 +447,45 @@ describe('D1 scheduled BBS progress', () => {
     expect(
       database.database.prepare('SELECT COUNT(*) AS count FROM nba_scheduled_refresh').get(),
     ).toEqual({ count: 0 })
+  })
+
+  it('fences queue writes atomically against the lease owner', async () => {
+    const { repository } = makeRepository()
+    const now = Date.parse('2026-11-18T16:00:00.000Z')
+    const progress: ScheduledBbsProgress = {
+      cycleDate: '2026-11-18' as NbaGameDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [
+        {
+          task: { type: 'standings', seasonEndYear: 2027 as SeasonEndYear },
+          attempts: 0,
+          retryAt: null,
+        },
+      ],
+    }
+    expect(await repository.tryAcquireLock('bbs:scheduled-queue', 'old', now, now + 100)).toBe(true)
+    expect(
+      await repository.putScheduledBbsProgressIfLockOwned(
+        progress,
+        'bbs:scheduled-queue',
+        'old',
+        now,
+      ),
+    ).toBe(true)
+    expect(
+      await repository.tryAcquireLock('bbs:scheduled-queue', 'new', now + 101, now + 200),
+    ).toBe(true)
+    const overwritten = { ...progress, tasks: [] }
+    expect(
+      await repository.putScheduledBbsProgressIfLockOwned(
+        overwritten,
+        'bbs:scheduled-queue',
+        'old',
+        now + 102,
+      ),
+    ).toBe(false)
+    expect(await repository.getScheduledBbsProgress()).toEqual(progress)
   })
 
   it('does not silently reset corrupt queue state', async () => {

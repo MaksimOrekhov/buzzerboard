@@ -140,6 +140,43 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
   )
 }
 
+function serializeScheduledProgress(progress: ScheduledBbsProgress): string {
+  if (
+    !parseNbaGameDate(progress.cycleDate) ||
+    progress.cursor !== 0 ||
+    progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+    (progress.pauseUntil !== null &&
+      (!Number.isSafeInteger(progress.pauseUntil) || progress.pauseUntil < 0))
+  )
+    throw new Error('Refusing to write invalid scheduled BBS progress')
+  const taskKeys = progress.tasks.map((item) => scheduledBbsTaskKey(item.task))
+  if (
+    new Set(taskKeys).size !== taskKeys.length ||
+    progress.tasks.some(
+      (item) =>
+        !isScheduledBbsTask(item.task) ||
+        !Number.isSafeInteger(item.attempts) ||
+        item.attempts < 0 ||
+        item.attempts > 5 ||
+        (item.retryAt !== null && (!Number.isSafeInteger(item.retryAt) || item.retryAt < 0)),
+    )
+  )
+    throw new Error('Refusing to write duplicate or invalid scheduled BBS tasks')
+  return JSON.stringify(progress)
+}
+
+function parseCacheRow(row: unknown, cacheKey: string): NbaCacheRecord | null {
+  if (!row || typeof row !== 'object' || !('record_json' in row)) return null
+  const json = (row as { record_json?: unknown }).record_json
+  if (typeof json !== 'string') return null
+  try {
+    const parsed: unknown = JSON.parse(json)
+    return isCacheRecord(parsed) && parsed.cacheKey === cacheKey ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 function isValidBoxScoreData(value: unknown, gameId: string): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const game = (value as Record<string, unknown>).game
@@ -158,7 +195,8 @@ export class D1NbaRepository implements NbaRepository {
     if (typeof row.progress_json !== 'string') throw new Error('Corrupt scheduled BBS progress row')
     try {
       const value: unknown = JSON.parse(row.progress_json)
-      if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+      if (!value || typeof value !== 'object' || Array.isArray(value))
+        throw new Error('Corrupt scheduled BBS progress JSON')
       const progress = value as Record<string, unknown>
       if (
         !parseNbaGameDate(progress.cycleDate) ||
@@ -218,27 +256,7 @@ export class D1NbaRepository implements NbaRepository {
         .run()
       return
     }
-    if (
-      !parseNbaGameDate(progress.cycleDate) ||
-      progress.cursor !== 0 ||
-      progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
-      (progress.pauseUntil !== null &&
-        (!Number.isSafeInteger(progress.pauseUntil) || progress.pauseUntil < 0))
-    )
-      throw new Error('Refusing to write invalid scheduled BBS progress')
-    const taskKeys = progress.tasks.map((item) => scheduledBbsTaskKey(item.task))
-    if (
-      new Set(taskKeys).size !== taskKeys.length ||
-      progress.tasks.some(
-        (item) =>
-          !isScheduledBbsTask(item.task) ||
-          !Number.isSafeInteger(item.attempts) ||
-          item.attempts < 0 ||
-          item.attempts > 5 ||
-          (item.retryAt !== null && (!Number.isSafeInteger(item.retryAt) || item.retryAt < 0)),
-      )
-    )
-      throw new Error('Refusing to write duplicate or invalid scheduled BBS tasks')
+    const serialized = serializeScheduledProgress(progress)
     await this.database
       .prepare(
         `INSERT INTO nba_scheduled_refresh (job_id, progress_json, updated_at_ms)
@@ -247,8 +265,36 @@ export class D1NbaRepository implements NbaRepository {
            progress_json = excluded.progress_json,
            updated_at_ms = excluded.updated_at_ms`,
       )
-      .bind('bbs-daily', JSON.stringify(progress), Date.now())
+      .bind('bbs-daily', serialized, Date.now())
       .run()
+  }
+
+  async putScheduledBbsProgressIfLockOwned(
+    progress: ScheduledBbsProgress,
+    lockKey: string,
+    token: string,
+    now: number,
+  ): Promise<boolean> {
+    const serialized = serializeScheduledProgress(progress)
+    const result = await this.database
+      .prepare(
+        `INSERT INTO nba_scheduled_refresh (job_id, progress_json, updated_at_ms)
+         SELECT ?1, ?2, ?3
+         WHERE EXISTS (
+           SELECT 1 FROM nba_refresh_locks
+           WHERE lock_key = ?4 AND token = ?5 AND lease_expires_at_ms > ?3
+         )
+         ON CONFLICT(job_id) DO UPDATE SET
+           progress_json = excluded.progress_json,
+           updated_at_ms = excluded.updated_at_ms
+         WHERE EXISTS (
+           SELECT 1 FROM nba_refresh_locks
+           WHERE lock_key = ?4 AND token = ?5 AND lease_expires_at_ms > ?3
+         )`,
+      )
+      .bind('bbs-daily', serialized, now, lockKey, token)
+      .run()
+    return result.meta?.changes === 1
   }
 
   async getCache(cacheKey: string): Promise<NbaCacheRecord | null> {
@@ -256,14 +302,18 @@ export class D1NbaRepository implements NbaRepository {
       .prepare('SELECT record_json FROM nba_cache WHERE cache_key = ?1')
       .bind(cacheKey)
       .first<{ record_json: string }>()
-    if (!row || typeof row.record_json !== 'string') return null
+    return parseCacheRow(row, cacheKey)
+  }
 
-    try {
-      const parsed: unknown = JSON.parse(row.record_json)
-      return isCacheRecord(parsed) && parsed.cacheKey === cacheKey ? parsed : null
-    } catch {
-      return null
-    }
+  async getCaches(cacheKeys: readonly string[]): Promise<readonly (NbaCacheRecord | null)[]> {
+    if (cacheKeys.length > 100) throw new Error('Too many NBA cache keys in one batch')
+    if (cacheKeys.length === 0) return []
+    const results = await this.database.batch(
+      cacheKeys.map((key) =>
+        this.database.prepare('SELECT record_json FROM nba_cache WHERE cache_key = ?1').bind(key),
+      ),
+    )
+    return cacheKeys.map((key, index) => parseCacheRow(results[index]?.results?.[0], key))
   }
 
   async putCache(record: NbaCacheRecord): Promise<void> {

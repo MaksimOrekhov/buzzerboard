@@ -1209,6 +1209,26 @@ function scheduledBbsTasksForDate(today: NbaGameDate): ScheduledBbsTask[] {
   return tasks
 }
 
+function dateAtOffset(date: NbaGameDate, offset: number): NbaGameDate | null {
+  const start = new Date(`${date}T12:00:00.000Z`)
+  return parseNbaGameDate(
+    new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + offset))
+      .toISOString()
+      .slice(0, 10),
+  )
+}
+
+function taskWithinRolloverHorizon(task: ScheduledBbsTask, today: NbaGameDate): boolean {
+  const seasonEndYear = parseSeasonEndYear(
+    Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0),
+  )
+  if (!seasonEndYear) return false
+  if ('seasonEndYear' in task) return task.seasonEndYear === seasonEndYear
+  const lowerBound = dateAtOffset(today, -7)
+  const upperBound = dateAtOffset(today, task.type === 'boxScore' ? 0 : 7)
+  return !!lowerBound && !!upperBound && task.date >= lowerBound && task.date <= upperBound
+}
+
 const QUEUE_LOCK_KEY = 'bbs:scheduled-queue'
 const QUEUE_LOCK_MS = 90_000
 const MAX_LOCAL_ATTEMPTS = 5
@@ -1273,13 +1293,16 @@ export async function runScheduledBbsRefresh(
       !(await repository.renewLock(QUEUE_LOCK_KEY, token, currentTime, currentTime + QUEUE_LOCK_MS))
     )
       return false
-    await repository.putScheduledBbsProgress(progress)
-    return true
+    return repository.putScheduledBbsProgressIfLockOwned(
+      progress,
+      QUEUE_LOCK_KEY,
+      token,
+      currentTime,
+    )
   }
   try {
     let progress = await repository.getScheduledBbsProgress()
-    const startingNewCycle = !progress || progress.cycleDate !== today
-    if (startingNewCycle && currentHour < 10) return []
+    if (!progress && currentHour < 10) return []
     if (progress?.cycleDate === today && progress.tasks.length === 0) return []
     if (!progress) {
       const daily = scheduledBbsTasksForDate(today)
@@ -1292,13 +1315,17 @@ export async function runScheduledBbsRefresh(
         cursor: 0,
         pauseUntil: null,
       }
-    } else if (progress.cycleDate !== today) {
+    } else if (progress.cycleDate !== today && currentHour >= 10) {
+      const retained = progress.tasks.filter((item) => taskWithinRolloverHorizon(item.task, today))
+      const expiredCount = progress.tasks.length - retained.length
+      if (expiredCount > 0)
+        console.info(`Scheduled BBS refresh discarded expired queue items: ${expiredCount}`)
       const daily = scheduledBbsTasksForDate(today).map((task) =>
         task.type === 'lateGames' ? workItem(task, now + 2 * 60 * MINUTE_MS) : workItem(task),
       )
       progress = {
         cycleDate: today,
-        tasks: mergePendingTasks(daily, progress.tasks),
+        tasks: mergePendingTasks(daily, retained),
         cursor: 0,
         pauseUntil: null,
       }
@@ -1337,15 +1364,13 @@ export async function runScheduledBbsRefresh(
       const game =
         games?.capability === 'games' ? games.data.find((entry) => entry.id === task.gameId) : null
       const currentBox = await repository.getCache(gameDetailsCacheKey('bbs', task.gameId))
-      const yesterday = getDateKeyInTimeZone(new Date(now - DAY_MS), NBA_TIME_ZONE)
-      const historicalBoxAlreadyCached =
-        task.date < yesterday &&
+      const unchangedBoxAlreadyCached =
         currentBox?.capability === 'boxScore' &&
         currentBox.data !== null &&
         game !== null &&
         game !== undefined &&
         isSameFinalGameSnapshot(currentBox.data.game, game)
-      if (historicalBoxAlreadyCached) {
+      if (unchangedBoxAlreadyCached) {
         result = outcome({ type: 'games', date: task.date }, 'up_to_date', games, now, null, null)
       } else if (game?.status === 'final') {
         const boxResult = await refreshBbsGameBoxScore(task, game, env, repository, fetcher, now)
@@ -1372,9 +1397,22 @@ export async function runScheduledBbsRefresh(
       if ((task.type === 'games' || task.type === 'lateGames') && task.date < today) {
         const games = await repository.getCache(gamesCacheKey('bbs', task.date))
         if (games?.capability === 'games') {
-          const boxes = games.data
-            .filter((game) => game.provider === 'bbs' && game.status === 'final')
-            .map((game) => ({ type: 'boxScore' as const, date: task.date, gameId: game.id }))
+          const finalGames = games.data.filter(
+            (game) => game.provider === 'bbs' && game.status === 'final',
+          )
+          const cachedBoxes = await repository.getCaches(
+            finalGames.map((game) => gameDetailsCacheKey('bbs', game.id)),
+          )
+          const boxes = finalGames.flatMap((game, index) => {
+            const cachedBox = cachedBoxes[index]
+            if (
+              cachedBox?.capability === 'boxScore' &&
+              cachedBox.data !== null &&
+              isSameFinalGameSnapshot(cachedBox.data.game, game)
+            )
+              return []
+            return [{ type: 'boxScore' as const, date: task.date, gameId: game.id }]
+          })
           const uniqueBoxes = boxes.filter(
             (box) =>
               !tasks.some(
@@ -1388,8 +1426,15 @@ export async function runScheduledBbsRefresh(
       tasks.splice(taskIndex, 0, finished!)
       pauseUntil = result.retryAfter ? Date.parse(result.retryAfter) : now + COOLDOWN_MS
     } else {
-      if (result.error?.code === 'cache_miss' && task.type === 'boxScore')
-        tasks.splice(taskIndex, 0, workItem({ type: 'games', date: task.date }))
+      if (result.error?.code === 'cache_miss' && task.type === 'boxScore') {
+        const repairTask: ScheduledBbsTask = { type: 'games', date: task.date }
+        if (
+          !tasks.some(
+            (queued) => scheduledBbsTaskKey(queued.task) === scheduledBbsTaskKey(repairTask),
+          )
+        )
+          tasks.splice(taskIndex, 0, workItem(repairTask))
+      }
       const attempts = finished!.attempts + 1
       if (attempts < MAX_LOCAL_ATTEMPTS) {
         const retryAt = now + Math.min(LOCAL_RETRY_MS * 2 ** (attempts - 1), MAX_LOCAL_RETRY_MS)
@@ -1429,6 +1474,15 @@ async function enrichBbsStandings(
       createNbaApiError('cache_miss', 'bbs', true),
       now + COOLDOWN_MS,
     )
+  if (cached.staleUntil <= now)
+    return outcome(
+      target,
+      'deferred',
+      cached,
+      now,
+      createNbaApiError('cache_miss', 'bbs', true),
+      now + COOLDOWN_MS,
+    )
   const directory = await repository.getCache(teamDirectoryCacheKey('bbs', seasonEndYear))
   if (directory?.capability !== 'teamDirectory' || directory.staleUntil <= now)
     return outcome(
@@ -1450,45 +1504,49 @@ async function enrichBbsStandings(
     const teamRecord = seasonRecords.find(
       (record) => record?.capability === 'teamSeason' && record.teamId === row.team.id,
     )
-    if (
-      !reference ||
-      !teamRecord ||
-      teamRecord.capability !== 'teamSeason' ||
-      teamRecord.providerTeamId !== reference.providerTeamId ||
-      teamRecord.seasonEndYear !== seasonEndYear ||
-      teamRecord.data.team.providerId !== reference.providerTeamId ||
-      Math.abs(Date.parse(teamRecord.fetchedAt) - Date.parse(cached.fetchedAt)) > DAY_MS ||
-      teamRecord.data.wins !== row.record.wins ||
-      teamRecord.data.losses !== row.record.losses
-    )
-      return row
-    const home = teamRecord.data.home
-    const away = teamRecord.data.away
+    const profile =
+      reference &&
+      teamRecord?.capability === 'teamSeason' &&
+      teamRecord.providerTeamId === reference.providerTeamId &&
+      teamRecord.seasonEndYear === seasonEndYear &&
+      teamRecord.data.team.providerId === reference.providerTeamId &&
+      row.team.providerId === reference.providerTeamId &&
+      teamRecord.staleUntil > now &&
+      Date.parse(teamRecord.fetchedAt) <= now &&
+      Math.abs(Date.parse(teamRecord.fetchedAt) - Date.parse(cached.fetchedAt)) <= DAY_MS &&
+      teamRecord.data.wins === row.record.wins &&
+      teamRecord.data.losses === row.record.losses
+        ? teamRecord.data
+        : null
+    const home = profile?.home ?? null
+    const away = profile?.away ?? null
+    const validCount = (value: number | null) =>
+      value !== null && Number.isInteger(value) && value >= 0 && value <= 82
     const splitsMatch =
       !!home &&
       !!away &&
+      validCount(home.wins) &&
+      validCount(home.losses) &&
+      validCount(away.wins) &&
+      validCount(away.losses) &&
       home.wins !== null &&
-      home.losses !== null &&
       away.wins !== null &&
+      home.losses !== null &&
       away.losses !== null &&
       home.wins + away.wins === row.record.wins &&
       home.losses + away.losses === row.record.losses
-    const lastTen = teamRecord.data.lastTen
+    const lastTen = profile?.lastTen
     const lastTenWins =
       lastTen?.length === 10 ? lastTen.filter((game) => game.result === 'W').length : null
     return {
       ...row,
       record: {
         ...row.record,
-        ...(splitsMatch
-          ? {
-              homeWins: home!.wins,
-              homeLosses: home!.losses,
-              awayWins: away!.wins,
-              awayLosses: away!.losses,
-            }
-          : {}),
-        ...(lastTenWins !== null ? { lastTenWins } : {}),
+        homeWins: splitsMatch ? home!.wins : null,
+        homeLosses: splitsMatch ? home!.losses : null,
+        awayWins: splitsMatch ? away!.wins : null,
+        awayLosses: splitsMatch ? away!.losses : null,
+        lastTenWins,
       },
     }
   })
