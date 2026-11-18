@@ -795,14 +795,18 @@ async function handleApiRequest(
     const season = url.searchParams.get('seasonEndYear') ?? String(playerSeason)
     if (season !== String(playerSeason) || (playerId && !bbsPlayerId.test(playerId)))
       return errorResponse(createError('invalid_request'), requestId, 400)
-    const result = await readPlayerSnapshot(env.NBA_DB, Number(season), now, playerId)
-    return result
-      ? jsonResponse(result, 200, result.isStale ? { warning: '110 - "Response is stale"' } : {})
-      : errorResponse(
-          createError(playerId ? 'not_found' : 'cache_miss', 'bbs'),
-          requestId,
-          playerId ? 404 : 503,
-        )
+    const result = await readPlayerSnapshot(env.NBA_DB, repository, Number(season), now, playerId)
+    if (result.status === 'ready')
+      return jsonResponse(
+        result.data,
+        200,
+        result.data.isStale ? { warning: '110 - "Response is stale"' } : {},
+      )
+    return errorResponse(
+      createError(result.status, 'bbs'),
+      requestId,
+      result.status === 'not_found' ? 404 : 503,
+    )
   }
   if (url.pathname === '/api/news') {
     if (request.method !== 'GET')

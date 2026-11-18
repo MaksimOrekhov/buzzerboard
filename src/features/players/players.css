@@ -39,7 +39,7 @@
 }
 .players-filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(165px, 100%), 1fr));
   align-items: end;
   gap: 9px;
 }
@@ -50,7 +50,6 @@
   color: var(--gc-secondary);
   font-size: var(--stat-meta);
 }
-.players-filters select,
 .players-filters input[type='number'] {
   width: 100%;
   min-height: 39px;
@@ -61,10 +60,10 @@
   background: var(--gc-panel);
   font: inherit;
 }
-.players-filters .player-checkbox {
-  display: flex;
-  align-items: center;
-  min-height: 39px;
+.players-filters .gc-select {
+  min-width: 0;
+  width: 100%;
+  justify-content: space-between;
 }
 .players-panel-heading,
 .players-pages {

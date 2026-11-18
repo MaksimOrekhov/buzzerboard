@@ -1,223 +1,409 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import {
+  bbsGameId,
+  calendarDate,
+  isPlayerDetail,
+  isPlayerEntry,
+  isPlayersResponse,
+  isStoredPlayers,
+  record,
+  seasonDate,
+  timestamp,
+} from '../src/entities/nba/playerSnapshotGuards.ts'
+import {
+  boxPlayerLine,
+  combinePlayerGames,
+  verifiedPlayerBox,
+} from '../src/server/nba/runtime/playerGames.ts'
 
 const [source, database, seasonArg] = process.argv.slice(2)
 const season = Number(seasonArg)
+const endYear = season + 1
 if (!source || !database || !/^20\d{2}$/.test(seasonArg ?? ''))
-  throw new Error('Usage: node scripts/bbs-players-import.mjs SNAPSHOTS LOCAL_SQLITE 2026')
+  throw new Error(
+    'Usage: node --experimental-strip-types scripts/bbs-players-import.mjs SNAPSHOTS LOCAL_SQLITE 2026',
+  )
 statSync(database)
 const db = new DatabaseSync(database)
-const files = new Set(readdirSync(source))
-const load = (name) =>
-  files.has(name + '.json') ? JSON.parse(readFileSync(join(source, name + '.json'), 'utf8')) : null
-const time = (name) =>
-  files.has(name + '.json') ? statSync(join(source, name + '.json')).mtime.toISOString() : null
-const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
-const string = (value) =>
-  typeof value === 'string' && value.trim() ? value.trim().slice(0, 130) : null
-const number = (value) =>
-  (typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')) &&
-  Number.isFinite(Number(value)) &&
-  Number(value) >= 0
-    ? Number(value)
-    : null
-const percent = (value) => {
-  const rate = number(value)
-  return rate !== null && rate <= 1 ? rate : null
-}
-const minutes = (value) => {
-  const clock = /^(\d+):([0-5]\d)$/.exec(value)
-  const min = clock ? Number(clock[1]) + Number(clock[2]) / 60 : number(value)
-  return min !== null && min <= 80 ? min : null
-}
-const date = (value) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(value ?? '') && !Number.isNaN(Date.parse(value)) ? value : null
-const seasonDate = (value) =>
-  date(value) && value >= `${season}-08-01` && value < `${season + 1}-08-01`
-const snapshotRecords = db
-  .prepare(
-    "SELECT record_json FROM nba_cache WHERE provider='bbs' AND capability IN ('teamDirectory','boxScore')",
-  )
-  .all()
-  .map((row) => JSON.parse(row.record_json))
-const crosswalk = snapshotRecords.find(
-  (row) => row.capability === 'teamDirectory' && row.seasonEndYear === season + 1,
-)
-const teams = new Map(
-  crosswalk?.data.map((team) => [team.providerTeamId, team.teamId.split(':').at(-1)]),
-)
-if (teams.size !== 30)
-  throw new Error('Import the verified PRO-189 BBS team directory before players')
-const teamCodes = new Set(teams.values())
-const aliases = { GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS', NY: 'NYK' }
-function code(value) {
-  const name = string(value)?.toUpperCase()
-  const result = aliases[name] ?? name
-  return teamCodes.has(result) ? result : null
+db.exec('PRAGMA busy_timeout=5000; BEGIN IMMEDIATE')
+try {
+  importSnapshot()
+  db.exec('COMMIT')
+} catch (error) {
+  db.exec('ROLLBACK')
+  throw error
+} finally {
+  db.close()
 }
 
-const boxes = new Map()
-const distinctBoxIds = new Set()
-for (const { capability, data } of snapshotRecords) {
-  if (
-    capability !== 'boxScore' ||
-    !data?.game ||
-    data.game.seasonEndYear !== season + 1 ||
-    data.game.status !== 'final'
-  )
-    continue
-  const game = data.game
-  for (const line of data.players) {
-    if (line.player?.id) distinctBoxIds.add(line.player.id)
-    if (!uuid.test(line.player?.id?.split(':').at(-1) ?? '') || line.didNotPlay === true) continue
-    const home = line.player.teamId === game.homeTeam.id
-    const away = line.player.teamId === game.awayTeam.id
-    if (home === away || !seasonDate(game.nbaGameDate)) continue
-    const opponent = code((home ? game.awayTeam : game.homeTeam).abbreviation)
-    const item = {
-      date: game.nbaGameDate,
-      opponent,
-      gameId: game.id,
-      pts: number(line.points),
-      reb: number(line.rebounds),
-      ast: number(line.assists),
-      min: minutes(line.minutes),
+function importSnapshot() {
+  const files = new Set(readdirSync(source))
+  const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
+  const numericFields = {
+    pts: 'pts',
+    reb: 'reb',
+    ast: 'ast',
+    fgm: 'fgm',
+    fga: 'fga',
+    threeM: 'fg3m',
+    threeA: 'fg3a',
+    ftm: 'ftm',
+    fta: 'fta',
+    stl: 'stl',
+    blk: 'blk',
+    oreb: 'oreb',
+    dreb: 'dreb',
+    tov: 'turnover',
+    pf: 'pf',
+  }
+  let rejected = 0
+  let ambiguous = 0
+  function read(name) {
+    const filename = name + '.json'
+    if (!files.has(filename)) return null
+    const path = join(source, filename)
+    try {
+      const json = JSON.parse(readFileSync(path, 'utf8'))
+      if (record(json) && json.error == null)
+        return { json, at: statSync(path).mtime.toISOString() }
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) throw error
     }
-    const list = boxes.get(line.player.id) ?? []
-    list.push(item)
-    boxes.set(line.player.id, list)
+    rejected++
+    return null
   }
-}
-const providerRows = load(`directory-${season}-0`)?.pagination?.total
-if (!Number.isSafeInteger(providerRows) || providerRows < 1 || providerRows > 1500)
-  throw new Error('Invalid directory denominator')
-const directory = new Map()
-for (let offset = 0; offset < providerRows; offset += 200) {
-  const page = load(`directory-${season}-${offset}`)
-  if (
-    page?.pagination?.offset !== offset ||
-    page.pagination.total !== providerRows ||
-    page.data.length !== Math.min(200, providerRows - offset) ||
-    page.meta?.filters_applied?.season !== season
+  const string = (value) =>
+    typeof value === 'string' && value.trim() ? value.trim().slice(0, 130) : null
+  const number = (value) => {
+    if (value == null) return null
+    if ((typeof value !== 'number' && typeof value !== 'string') || String(value).trim() === '')
+      return NaN
+    const numeric = Number(value)
+    return Number.isFinite(numeric) && numeric >= 0 ? numeric : NaN
+  }
+  const percent = (value) => {
+    const rate = number(value)
+    return rate === null || rate <= 1 ? rate : NaN
+  }
+  const minutes = (value) => {
+    const clock = typeof value === 'string' ? /^(\d+):([0-5]\d)$/.exec(value) : null
+    const min = clock ? Number(clock[1]) + Number(clock[2]) / 60 : number(value)
+    return min === null || min <= 80 ? min : NaN
+  }
+  const now = Date.now()
+  const records = new Map()
+  for (const { cache_key, record_json } of db
+    .prepare(
+      "SELECT cache_key,record_json FROM nba_cache WHERE provider='bbs' AND stale_until_ms>? AND capability IN ('teamDirectory','boxScore','games')",
+    )
+    .iterate(now)) {
+    try {
+      const row = JSON.parse(record_json)
+      if (row.cacheKey === cache_key && row.provider === 'bbs') records.set(cache_key, row)
+    } catch {
+      rejected++
+    }
+  }
+  const crosswalk = records.get('bbs:nba:team-directory:season=' + endYear)
+  const teams = new Map(
+    (Array.isArray(crosswalk?.data) ? crosswalk.data : []).flatMap((team) =>
+      typeof team?.providerTeamId === 'string' &&
+      uuid.test(team.providerTeamId) &&
+      /^nba:team:[A-Z]{3}$/.test(team.teamId)
+        ? [[team.providerTeamId, team.teamId.split(':').at(-1)]]
+        : [],
+    ),
   )
-    throw new Error('Incomplete season directory')
-  for (const row of page.data) {
-    if (uuid.test(row.id) && string(row.name) && row.team?.league?.toUpperCase() === 'NBA')
-      directory.set(row.id, row)
+  if (teams.size !== 30 || new Set(teams.values()).size !== 30)
+    throw new Error('Expected an available verified BBS team directory')
+  const teamCodes = new Set(teams.values())
+  const aliases = { GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS', NY: 'NYK' }
+  function code(value) {
+    const name = string(value)?.toUpperCase()
+    const result = aliases[name] ?? name
+    return teamCodes.has(result) ? result : null
   }
-}
-const players = []
-const details = {}
-let checked = 0
-let averages = 0
-let enriched = 0
-let boxLinks = 0
-let ambiguous = 0
-let oldest
-for (const [uuid, row] of directory) {
-  const id = 'bbs:player:' + uuid
-  const averageName = `average-${season}-${uuid}`
-  const average = load(averageName)
-  const rows = (Array.isArray(average?.data) ? average.data : []).filter(
-    (item) => item.season === season && String(item.player_id) === uuid,
-  )
-  if (average) {
-    checked++
-    const observed = time(averageName)
-    if (!oldest || observed < oldest) oldest = observed
+
+  const previousRow = db
+    .prepare('SELECT fetched_at,payload FROM nba_player_snapshot WHERE season_end_year=?')
+    .get(endYear)
+  let previous = null
+  let legacyImport = false
+  if (previousRow) {
+    const payload = JSON.parse(previousRow.payload)
+    if (isStoredPlayers(payload, endYear)) previous = payload
+    else {
+      const legacy = {
+        ...payload,
+        source: 'bbs',
+        fetchedAt: previousRow.fetched_at,
+        seasonEndYear: endYear,
+        isStale: false,
+      }
+      if (
+        payload.version !== undefined ||
+        !isPlayersResponse(legacy) ||
+        !record(payload.details) ||
+        !Object.values(payload.details).every((value) => isPlayerDetail(value, endYear))
+      )
+        throw new Error(
+          'Existing player snapshot is invalid; keep it intact and restore a known-good copy',
+        )
+      previous = {
+        ...payload,
+        directoryAt: previousRow.fetched_at,
+        averageAt: Object.fromEntries(
+          payload.players
+            .filter((player) => player.stats)
+            .map(({ id }) => [id, previousRow.fetched_at]),
+        ),
+        details: Object.fromEntries(
+          Object.entries(payload.details).map(([id, detail]) => [
+            id,
+            {
+              ...detail,
+              games: detail.games
+                .filter((row) => row.gameId === null)
+                .map((row) => ({ ...row, matchId: null })),
+            },
+          ]),
+        ),
+      }
+      legacyImport = true
+    }
   }
-  if (rows.length > 1) ambiguous++
-  const stats = rows.length === 1 ? rows[0] : null
-  const gp = number(stats?.games_played)
-  const hasAverage = gp !== null && Number.isInteger(gp)
-  players.push({
-    id,
-    name: string(row.name),
-    team: teams.get(row.team.id) ?? null,
-    position: string(row.position),
-    number: string(row.jersey_number),
-    height: string(row.height),
-    weight: string(row.weight),
-    stats: hasAverage
-      ? {
-          gp,
-          min: gp ? minutes(stats.min) : null,
-          ...Object.fromEntries(
-            Object.entries({
-              pts: 'pts',
-              reb: 'reb',
-              ast: 'ast',
-              fgm: 'fgm',
-              fga: 'fga',
-              threeM: 'fg3m',
-              threeA: 'fg3a',
-              ftm: 'ftm',
-              fta: 'fta',
-              stl: 'stl',
-              blk: 'blk',
-              oreb: 'oreb',
-              dreb: 'dreb',
-              tov: 'turnover',
-              pf: 'pf',
-            }).map(([key, alias]) => [key, gp ? number(stats[alias]) : null]),
-          ),
-          fg: gp ? percent(stats.fg_pct) : null,
-          three: gp ? percent(stats.fg3_pct) : null,
-          ft: gp ? percent(stats.ft_pct) : null,
-        }
-      : null,
-  })
-  if (hasAverage && gp > 0) averages++
-  const profileName = `profile-${season}-${uuid}`
-  const logName = `log-${season}-${uuid}`
-  const profile = load(profileName)?.data?.player
-  const validProfile = profile?.id === uuid && profile?.league?.toUpperCase() === 'NBA'
-  const log = load(logName)?.data
-  const cachedGames = boxes.get(id) ?? []
-  if (validProfile || Array.isArray(log) || cachedGames.length) {
-    const games = new Map()
-    for (const item of (Array.isArray(log) ? log : []).filter((game) => seasonDate(game.date))) {
-      const opponent = code(item.abbr)
-      const key = item.date + ':' + (opponent ?? item.opponent ?? '')
-      if (games.has(key)) continue
-      games.set(key, {
-        date: item.date,
-        opponent: opponent ?? string(item.opponent),
-        gameId: null,
-        pts: number(item.pts),
-        reb: number(item.reb),
-        ast: number(item.ast),
-        min: minutes(item.min_played),
+  const first = read('directory-' + season + '-0')
+  const providerRows = first?.json.pagination?.total
+  if (!Number.isSafeInteger(providerRows) || providerRows < 1 || providerRows > 1500)
+    throw new Error('Invalid directory denominator')
+  let directoryAt = first.at
+  const incoming = new Map()
+  for (let offset = 0; offset < providerRows; offset += 200) {
+    const loaded = offset === 0 ? first : read('directory-' + season + '-' + offset)
+    const page = loaded?.json
+    if (
+      page?.pagination?.offset !== offset ||
+      page.pagination.total !== providerRows ||
+      !Array.isArray(page.data) ||
+      page.data.length !== Math.min(200, providerRows - offset) ||
+      page.meta?.filters_applied?.season !== season ||
+      page.meta.filters_applied.league_scope?.mode !== 'requested_season'
+    )
+      throw new Error('Incomplete season directory')
+    if (loaded.at < directoryAt) directoryAt = loaded.at
+    for (const row of page.data) {
+      if (
+        !record(row) ||
+        typeof row.id !== 'string' ||
+        !uuid.test(row.id) ||
+        !string(row.name) ||
+        row.team?.league !== 'NBA' ||
+        !uuid.test(row.team?.id ?? '') ||
+        incoming.has('bbs:player:' + row.id)
+      )
+        throw new Error('Invalid or duplicate NBA player identity; directory not published')
+      const id = 'bbs:player:' + row.id
+      incoming.set(id, {
+        id,
+        name: string(row.name),
+        team: teams.get(row.team.id) ?? null,
+        position: string(row.position),
+        number: string(row.jersey_number),
+        height: string(row.height),
+        weight: string(row.weight),
+        stats: null,
       })
     }
-    for (const game of cachedGames) games.set(game.date + ':' + (game.opponent ?? ''), game)
-    const recent = [...games.values()]
-      .sort((left, right) => right.date.localeCompare(left.date))
-      .slice(0, 15)
-    boxLinks += recent.filter((game) => game.gameId).length
-    if (recent.length > 0 && validProfile) enriched++
-    details[id] = {
-      birthDate: validProfile ? date(profile.date_of_birth) : null,
-      currentTeam: validProfile ? (teams.get(profile.current_team?.id) ?? null) : null,
-      profileAt: validProfile ? time(profileName) : null,
-      logAt: Array.isArray(log) ? time(logName) : null,
-      games: recent,
+  }
+  const priorPlayers = new Map(previous?.players.map((item) => [item.id, item]))
+  const keepDirectory = previous && Date.parse(previous.directoryAt) >= Date.parse(directoryAt)
+  if (keepDirectory) directoryAt = previous.directoryAt
+  const players = []
+  const details = {}
+  const gameRefs = {}
+  const averageAt = {}
+  for (const [id, directoryPlayer] of keepDirectory ? priorPlayers : incoming) {
+    const prior = priorPlayers.get(id)
+    const tail = season + '-' + id.slice('bbs:player:'.length)
+    let stats = prior?.stats ?? null
+    let avgAt = previous?.averageAt[id]
+    const average = read('average-' + tail)
+    if (
+      average &&
+      (!avgAt ||
+        Date.parse(average.at) > Date.parse(avgAt) ||
+        (legacyImport && average.at === avgAt))
+    ) {
+      const rows = average.json.data
+      if (
+        !Array.isArray(rows) ||
+        rows.some(
+          (row) =>
+            !record(row) ||
+            row.season !== season ||
+            'bbs:player:' + row.player_id !== id ||
+            !Number.isSafeInteger(number(row.games_played)),
+        )
+      )
+        rejected++
+      else if (rows.length > 1) ambiguous++
+      else if (rows.length === 0) {
+        if (stats === null) avgAt = average.at
+      } else {
+        const row = rows[0]
+        const gp = number(row.games_played)
+        const candidate = {
+          gp,
+          min: gp ? minutes(row.min) : null,
+          ...Object.fromEntries(
+            Object.entries(numericFields).map(([key, alias]) => [
+              key,
+              gp ? number(row[alias]) : null,
+            ]),
+          ),
+          fg: gp ? percent(row.fg_pct) : null,
+          three: gp ? percent(row.fg3_pct) : null,
+          ft: gp ? percent(row.ft_pct) : null,
+        }
+        if (isPlayerEntry({ ...directoryPlayer, stats: candidate })) {
+          stats = candidate
+          avgAt = average.at
+        } else rejected++
+      }
+    }
+    players.push({ ...directoryPlayer, stats })
+    if (avgAt) averageAt[id] = avgAt
+    const detail = previous?.details[id] ?? {
+      birthDate: null,
+      currentTeam: null,
+      profileAt: null,
+      logAt: null,
+      games: [],
+    }
+    const profileFile = read('profile-' + tail)
+    if (
+      profileFile &&
+      (!detail.profileAt || Date.parse(profileFile.at) > Date.parse(detail.profileAt))
+    ) {
+      const profile = profileFile.json.data?.player
+      if (
+        record(profile) &&
+        'bbs:player:' + profile.id === id &&
+        profile.league === 'NBA' &&
+        (profile.date_of_birth == null || calendarDate(profile.date_of_birth)) &&
+        (profile.current_team == null ||
+          (record(profile.current_team) && uuid.test(profile.current_team.id)))
+      ) {
+        detail.birthDate = profile.date_of_birth ?? null
+        detail.currentTeam = teams.get(profile.current_team?.id) ?? null
+        detail.profileAt = profileFile.at
+      } else rejected++
+    }
+    const logFile = read('log-' + tail)
+    if (
+      logFile &&
+      (!detail.logAt ||
+        Date.parse(logFile.at) > Date.parse(detail.logAt) ||
+        (legacyImport && logFile.at === detail.logAt))
+    ) {
+      const log = logFile.json.data
+      if (
+        !Array.isArray(log) ||
+        log.length > 15 ||
+        log.some(
+          (row) =>
+            !record(row) ||
+            !seasonDate(row.date, endYear) ||
+            (row.player_id != null && 'bbs:player:' + row.player_id !== id),
+        )
+      )
+        rejected++
+      else {
+        const seen = new Set()
+        const games = log
+          .map((row) => {
+            const proposed = typeof row.match_id === 'string' ? 'bbs:game:' + row.match_id : null
+            return {
+              date: row.date,
+              opponent: code(row.abbr) ?? string(row.opponent),
+              gameId: null,
+              matchId: proposed && bbsGameId.test(proposed) ? proposed : null,
+              pts: number(row.pts),
+              reb: number(row.reb),
+              ast: number(row.ast),
+              min: minutes(row.min_played),
+            }
+          })
+          .filter((row) => {
+            const key = row.matchId ?? row.date + ':' + (row.opponent ?? '')
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+          })
+        if (
+          isPlayerDetail({ ...detail, games }, endYear) &&
+          (games.length || !detail.games.length)
+        ) {
+          detail.games = games
+          detail.logAt = logFile.at
+        } else rejected++
+      }
+    }
+    if (detail.profileAt || detail.logAt) details[id] = detail
+  }
+  const identities = new Set(players.map(({ id }) => id))
+  const boxes = new Map()
+  for (const [key, record] of records) {
+    if (
+      record.capability !== 'boxScore' ||
+      !record.data?.game ||
+      key !== 'bbs:nba:game-details:id=' + encodeURIComponent(record.gameId)
+    )
+      continue
+    const ref = { date: record.data.game.nbaGameDate, gameId: record.gameId }
+    const base = records.get('bbs:nba:games:date=' + ref.date)
+    const verified = verifiedPlayerBox(base, record, ref, endYear, now)
+    if (!verified) continue
+    for (const line of verified.players) {
+      if (!identities.has(line.player.id)) continue
+      const game = boxPlayerLine(verified, line.player.id)
+      if (!game) continue
+      const list = boxes.get(line.player.id) ?? []
+      list.push(game)
+      boxes.set(line.player.id, list)
     }
   }
+  let boxLinks = 0
+  for (const [id, games] of boxes) {
+    const bounded = games.sort((left, right) => right.date.localeCompare(left.date)).slice(0, 15)
+    gameRefs[id] = bounded.map(({ date, gameId }) => ({ date, gameId }))
+    boxLinks += combinePlayerGames(details[id]?.games ?? [], bounded).filter(
+      (row) => row.gameId,
+    ).length
+  }
+  const coverage = {
+    providerRows: keepDirectory ? previous.coverage.providerRows : providerRows,
+    total: players.length,
+    checked: Object.keys(averageAt).length,
+    averages: players.filter(({ stats }) => stats?.gp > 0).length,
+    enriched: Object.values(details).filter(
+      (detail) => detail.profileAt && detail.logAt && detail.games.length,
+    ).length,
+    boxLinks,
+  }
+  const normalized = { version: 2, players, details, gameRefs, directoryAt, averageAt, coverage }
+  if (!isStoredPlayers(normalized, endYear))
+    throw new Error('Refusing to publish an invalid player snapshot')
+  const observations = [directoryAt, ...Object.values(averageAt)].filter(timestamp)
+  const oldest = observations.reduce((left, right) =>
+    Date.parse(left) < Date.parse(right) ? left : right,
+  )
+  const payload = JSON.stringify(normalized)
+  if (Buffer.byteLength(payload) >= 1_800_000) throw new Error('Snapshot exceeds safe D1 row size')
+  db.prepare(
+    'INSERT INTO nba_player_snapshot VALUES (?, ?, ?) ON CONFLICT(season_end_year) DO UPDATE SET fetched_at=excluded.fetched_at,payload=excluded.payload',
+  ).run(endYear, oldest, payload)
+  console.log({ ...coverage, ambiguous, rejected })
 }
-if (!players.length) throw new Error('Refusing to replace the snapshot with an empty catalog')
-const coverage = { providerRows, total: directory.size, checked, averages, enriched, boxLinks }
-const payload = JSON.stringify({ players, details, coverage })
-if (Buffer.byteLength(payload) >= 1_800_000) throw new Error('Snapshot exceeds safe D1 row size')
-const write = db.prepare(
-  "INSERT INTO nba_player_snapshot VALUES (?, ?, ?) ON CONFLICT(season_end_year) DO UPDATE SET fetched_at=excluded.fetched_at,payload=excluded.payload WHERE json_extract(excluded.payload, '$.coverage.checked') >= json_extract(nba_player_snapshot.payload, '$.coverage.checked')",
-)
-const result = write.run(season + 1, oldest ?? time(`directory-${season}-0`), payload)
-console.log({
-  ...coverage,
-  ambiguous,
-  distinctBoxIds: distinctBoxIds.size,
-  snapshotWritten: result.changes === 1,
-})
-db.close()

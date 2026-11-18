@@ -15,6 +15,7 @@ import { usePlayers } from './api'
 import { usePlayerFavorites } from './usePlayerFavorites'
 import PageHeading from '@/shared/components/PageHeading.vue'
 import AppSearch from '@/shared/components/AppSearch.vue'
+import AppSelect from '@/shared/components/AppSelect.vue'
 import AppSegmented from '@/shared/components/AppSegmented.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
@@ -78,17 +79,39 @@ const positions = computed(() =>
     ),
   ].sort(),
 )
+const teamOptions = [
+  { value: 'all', label: 'Все команды' },
+  ...NBA_TEAMS.map(({ code, name }) => ({ value: code, label: name })),
+]
+const conferenceOptions = [
+  { value: 'all', label: 'Обе конференции' },
+  { value: 'east', label: 'Восточная' },
+  { value: 'west', label: 'Западная' },
+]
+const positionOptions = computed(() => [
+  { value: 'all', label: 'Все позиции' },
+  ...positions.value.map((position) => ({ value: position, label: position })),
+])
+function selected(key: string, options: readonly { value: string }[]) {
+  return options.find(({ value }) => value === route.query[key])?.value ?? 'all'
+}
+function selectFilter(key: string, value: string) {
+  set(key, value === 'all' ? '' : value)
+}
 const filtered = computed(() => {
   const term = search.value.toLowerCase().trim()
   const minGp = Math.min(100, Math.max(0, Number(route.query.gp) || 0))
+  const team = selected('team', teamOptions)
+  const conference = selected('conference', conferenceOptions)
+  const position = selected('position', positionOptions.value)
   return (data.value?.players ?? [])
     .filter(
       (player) =>
         (!term || player.name.toLowerCase().includes(term)) &&
-        (!route.query.team || player.team === route.query.team) &&
-        (!route.query.conference ||
-          (player.team && findNbaTeam(player.team)?.conference === route.query.conference)) &&
-        (!route.query.position || player.position === route.query.position) &&
+        (team === 'all' || player.team === team) &&
+        (conference === 'all' ||
+          (player.team && findNbaTeam(player.team)?.conference === conference)) &&
+        (position === 'all' || player.position === position) &&
         (!minGp || (player.stats?.gp ?? 0) >= minGp) &&
         (!(props.favoritesOnly || route.query.favorites === '1') || ids.value.has(player.id)),
     )
@@ -144,30 +167,24 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
       </div>
       <div class="players-filters">
         <AppSearch v-model="search" label="Поиск игрока" placeholder="Имя игрока" />
-        <label
-          >Команда<select :value="route.query.team ?? ''" @change="change('team', $event)">
-            <option value="">Все команды</option>
-            <option v-for="team in NBA_TEAMS" :key="team.code" :value="team.code">
-              {{ team.name }}
-            </option>
-          </select></label
-        >
-        <label
-          >Конференция<select
-            :value="route.query.conference ?? ''"
-            @change="change('conference', $event)"
-          >
-            <option value="">Обе</option>
-            <option value="east">Восточная</option>
-            <option value="west">Западная</option>
-          </select></label
-        >
-        <label
-          >Позиция<select :value="route.query.position ?? ''" @change="change('position', $event)">
-            <option value="">Все позиции</option>
-            <option v-for="item in positions" :key="item">{{ item }}</option>
-          </select></label
-        >
+        <AppSelect
+          label="Фильтр по команде"
+          :options="teamOptions"
+          :model-value="selected('team', teamOptions)"
+          @update:model-value="selectFilter('team', $event)"
+        />
+        <AppSelect
+          label="Фильтр по конференции"
+          :options="conferenceOptions"
+          :model-value="selected('conference', conferenceOptions)"
+          @update:model-value="selectFilter('conference', $event)"
+        />
+        <AppSelect
+          label="Фильтр по позиции"
+          :options="positionOptions"
+          :model-value="selected('position', positionOptions)"
+          @update:model-value="selectFilter('position', $event)"
+        />
         <label
           >Минимум матчей<input
             type="number"
@@ -176,14 +193,16 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
             :value="route.query.gp ?? 0"
             @change="change('gp', $event)"
         /></label>
-        <label v-if="!favoritesOnly" class="player-checkbox"
-          ><input
-            type="checkbox"
-            :checked="route.query.favorites === '1'"
-            @change="set('favorites', route.query.favorites === '1' ? '' : '1')"
-          />
-          Избранные</label
+        <button
+          v-if="!favoritesOnly"
+          class="gc-control gc-favorites-filter"
+          type="button"
+          aria-label="Только избранные"
+          :aria-pressed="route.query.favorites === '1'"
+          @click="set('favorites', route.query.favorites === '1' ? '' : '1')"
         >
+          <AppIcon name="star" :size="17" /><span>Избранные</span>
+        </button>
       </div>
       <p class="player-meta">
         Минимум матчей — пользовательский фильтр. Средние в расчёте на игру, GP — всего матчей.

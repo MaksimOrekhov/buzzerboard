@@ -182,7 +182,31 @@ const syntheticPlayers = Array.from({ length: 520 }, (_, index) => ({
   number: null,
   height: null,
   weight: null,
-  stats: index % 5 ? { gp: 12, pts: index / 20, reb: 4, ast: 3, min: 20 } : null,
+  stats:
+    index % 5
+      ? {
+          gp: 12,
+          pts: index / 20,
+          reb: 4,
+          ast: 3,
+          min: 20,
+          fgm: null,
+          fga: null,
+          fg: null,
+          threeM: null,
+          threeA: null,
+          three: null,
+          ftm: null,
+          fta: null,
+          ft: null,
+          stl: null,
+          blk: null,
+          oreb: null,
+          dreb: null,
+          tov: null,
+          pf: null,
+        }
+      : null,
 }))
 const playerMeta = {
   source: 'bbs',
