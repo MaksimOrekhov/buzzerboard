@@ -26,6 +26,20 @@ function isNullableCount(value: unknown): boolean {
   return value === null || (Number.isSafeInteger(value) && Number(value) >= 0)
 }
 
+function isRecordSplit(value: unknown): boolean {
+  if (value === null) return true
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const split = value as Record<string, unknown>
+  return (
+    [split.wins, split.losses].every(
+      (count) =>
+        count === null ||
+        (Number.isSafeInteger(count) && Number(count) >= 0 && Number(count) <= 82),
+    ) &&
+    (split.ties === null || split.ties === 0)
+  )
+}
+
 function isTeamSeasonData(value: unknown, teamId: string, seasonEndYear: number): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const profile = value as Record<string, unknown>
@@ -41,6 +55,10 @@ function isTeamSeasonData(value: unknown, teamId: string, seasonEndYear: number)
     Number(profile.seasonEndYear) === seasonEndYear &&
     isNullableCount(profile.wins) &&
     isNullableCount(profile.losses) &&
+    Number(profile.wins ?? 0) <= 82 &&
+    Number(profile.losses ?? 0) <= 82 &&
+    isRecordSplit(profile.home) &&
+    isRecordSplit(profile.away) &&
     nullableNumber(profile.winPercentage) &&
     nullableNumber(profile.overallRank) &&
     nullableNumber(profile.conferenceRank) &&

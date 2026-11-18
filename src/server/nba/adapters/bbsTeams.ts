@@ -60,6 +60,12 @@ function split(value: unknown): TeamRecordSplit | null {
   const losses = readNonNegativeNumber(value.losses)
   const ties = readNonNegativeNumber(value.ties)
   if (wins === null && losses === null && ties === null) return null
+  if (
+    (wins !== null && (!Number.isInteger(wins) || wins > 82)) ||
+    (losses !== null && (!Number.isInteger(losses) || losses > 82)) ||
+    (ties !== null && (!Number.isInteger(ties) || ties !== 0))
+  )
+    return null
   return { wins, losses, ties }
 }
 
@@ -308,7 +314,14 @@ export function normalizeBbsStandings(
     const parsedRecord = recordLine(candidate.record ?? candidate.wins_losses)
     const wins = readNonNegativeNumber(candidate.wins) ?? parsedRecord?.wins ?? null
     const losses = readNonNegativeNumber(candidate.losses) ?? parsedRecord?.losses ?? null
-    if (wins === null || losses === null || !Number.isInteger(wins) || !Number.isInteger(losses))
+    if (
+      wins === null ||
+      losses === null ||
+      !Number.isInteger(wins) ||
+      !Number.isInteger(losses) ||
+      wins > 82 ||
+      losses > 82
+    )
       throw new NbaAdapterError(invalidResponseError(provider))
     totalWins += wins
     totalLosses += losses

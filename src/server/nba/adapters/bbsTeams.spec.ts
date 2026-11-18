@@ -108,6 +108,18 @@ describe('BBS team-season adapter', () => {
     ).toThrow(NbaAdapterError)
   })
 
+  it('keeps invalid split counts unavailable instead of normalizing fractional values', () => {
+    const snapshot = normalizeBbsTeamSeason(
+      teamSeason({
+        home_away_splits: { home: { wins: 18.5, losses: 5 }, away: { wins: 13, losses: 10 } },
+      }),
+      team,
+      seasonEndYear,
+    )
+    expect(snapshot.data.home).toBeNull()
+    expect(snapshot.data.away).toMatchObject({ wins: 13, losses: 10 })
+  })
+
   it('validates one-to-one standings and BBS directory crosswalks for all 30 teams', () => {
     const standings = {
       error: null,
@@ -156,6 +168,7 @@ describe('BBS team-season adapter', () => {
               abbreviation: team.code,
               wins: 10,
               losses: 10,
+              win_percentage: 0.99,
               conference_rank: index + 1,
             })),
           },
@@ -166,6 +179,7 @@ describe('BBS team-season adapter', () => {
               abbreviation: team.code,
               wins: 10,
               losses: 10,
+              win_percentage: 0.99,
               conference_rank: index + 1,
             })),
           },

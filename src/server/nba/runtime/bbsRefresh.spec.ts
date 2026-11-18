@@ -25,6 +25,7 @@ import {
 } from '@/server/nba/runtime/cacheKeys'
 import { refreshBbsGames, runScheduledBbsRefresh } from '@/server/nba/runtime/bbsRefresh'
 import { createNbaWorker } from '@/server/worker'
+import { refreshNbaResource } from './refresh'
 
 const now = Date.parse('2026-11-17T16:00:00.000Z')
 const date = '2026-11-15' as NbaGameDate
@@ -445,6 +446,29 @@ describe('BBS cached refresh flow', () => {
     expect(result.state).toBe('deferred')
     expect(repository.cache.get(gamesCacheKey('bbs', date))?.fetchedAt).toBe(previous.fetchedAt)
     expect(incomplete.paths).toHaveLength(1)
+  })
+
+  it('keeps manual date refresh bounded to the games list instead of fanning out boxes', async () => {
+    const repository = new MemoryRepository()
+    const initial = fakeBbsFetch()
+    await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      initial.fetcher,
+      now,
+      false,
+    )
+    const manual = fakeBbsFetch()
+    const result = await refreshNbaResource(
+      { type: 'games', date },
+      environment,
+      repository,
+      manual.fetcher,
+      now,
+    )
+    expect(result.state).toBe('up_to_date')
+    expect(manual.paths).toHaveLength(0)
   })
 
   it('stops after a provider 429 without retrying or spending more requests', async () => {

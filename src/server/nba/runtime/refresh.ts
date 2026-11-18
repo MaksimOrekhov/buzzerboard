@@ -377,7 +377,7 @@ export async function refreshNbaResource(
     if (target.type !== 'games') {
       return outcome(target, 'deferred', null, now, createNbaApiError('not_configured', 'bbs'))
     }
-    return refreshBbsGames(target, env, repository, fetcher, now)
+    return refreshBbsGames(target, env, repository, fetcher, now, false)
   }
 
   const cacheKey = cacheKeyForTarget(target, provider)
