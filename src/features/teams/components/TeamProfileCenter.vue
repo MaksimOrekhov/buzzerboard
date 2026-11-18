@@ -65,6 +65,9 @@ const errorTitle = computed(() =>
         </div>
       </div>
       <div class="teams-profile-hero-links">
+        <RouterLink :to="{ path: '/players', query: { team: code } }" class="gc-control"
+          >Игроки в каталоге<AppIcon name="arrow" :size="14"
+        /></RouterLink>
         <RouterLink to="/standings" class="gc-control"
           >Турнирная таблица<AppIcon name="arrow" :size="14" /></RouterLink
         ><RouterLink to="/games" class="gc-control"

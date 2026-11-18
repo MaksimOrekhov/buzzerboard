@@ -12,6 +12,12 @@ describe('application routes', () => {
     ['/standings', 'standings', 'Турнирная таблица'],
     ['/teams', 'teams', 'Команды'],
     ['/teams/LAL', 'team-profile', 'Профиль команды'],
+    ['/players', 'players', 'Игроки'],
+    [
+      '/players/bbs%3Aplayer%3A00000000-0000-0000-0000-000000000001',
+      'player-profile',
+      'Профиль игрока',
+    ],
     ['/news', 'news', 'Новости'],
     ['/favorites', 'favorites', 'Избранное'],
     ['/somewhere-else', 'not-found', 'Страница не найдена'],
@@ -33,6 +39,7 @@ describe('application routes', () => {
       'games',
       'standings',
       'teams',
+      'players',
       'news',
       'favorites',
     ])
@@ -41,6 +48,7 @@ describe('application routes', () => {
       'Матчи',
       'Турнирная таблица',
       'Команды',
+      'Игроки',
       'Новости',
       'Избранное',
     ])

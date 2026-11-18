@@ -54,6 +54,8 @@ import {
 } from '@/server/nba/runtime/gameDetails'
 import { parseBbsBoxTarget, refreshBbsGameBoxScore } from '@/server/nba/runtime/bbsRefresh'
 import { getDefaultNbaGameDate } from '@/shared/utils/nbaDate'
+import { readPlayerSnapshot } from '@/server/nba/runtime/playerSnapshots'
+import { bbsPlayerId, playerSeason } from '@/entities/nba/players'
 
 const PRIVATE_HEADERS = {
   'cache-control': 'private, no-store',
@@ -778,6 +780,30 @@ async function handleApiRequest(
   requestId: string,
 ): Promise<Response> {
   const url = new URL(request.url)
+  const playerRoute = /^\/api\/players(?:\/([^/]+))?$/.exec(url.pathname)
+  if (playerRoute) {
+    if (request.method !== 'GET')
+      return errorResponse(createError('invalid_request'), requestId, 405)
+    if (env.BBS_PLAYERS_ENABLED !== 'true' || !env.NBA_DB)
+      return errorResponse(createError('not_configured', 'bbs'), requestId, 503)
+    let playerId: string | undefined
+    try {
+      playerId = playerRoute[1] ? decodeURIComponent(playerRoute[1]) : undefined
+    } catch {
+      return errorResponse(createError('invalid_request'), requestId, 400)
+    }
+    const season = url.searchParams.get('seasonEndYear') ?? String(playerSeason)
+    if (season !== String(playerSeason) || (playerId && !bbsPlayerId.test(playerId)))
+      return errorResponse(createError('invalid_request'), requestId, 400)
+    const result = await readPlayerSnapshot(env.NBA_DB, Number(season), now, playerId)
+    return result
+      ? jsonResponse(result, 200, result.isStale ? { warning: '110 - "Response is stale"' } : {})
+      : errorResponse(
+          createError(playerId ? 'not_found' : 'cache_miss', 'bbs'),
+          requestId,
+          playerId ? 404 : 503,
+        )
+  }
   if (url.pathname === '/api/news') {
     if (request.method !== 'GET')
       return errorResponse(createError('invalid_request'), requestId, 405, 60)

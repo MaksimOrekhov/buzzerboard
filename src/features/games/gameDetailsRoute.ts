@@ -1,4 +1,5 @@
 import type { Game } from '@/entities/nba/model'
+import { bbsPlayerId } from '@/entities/nba/players'
 
 export function gameDetailsPath(game: Game, returnTo: string): string {
   const query = new URLSearchParams({ date: game.nbaGameDate, from: returnTo })
@@ -25,6 +26,13 @@ export function gameCenterReturnTo(state: {
 export function safeGameReturnTo(value: unknown): string {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return '/games'
   const path = value.split('?')[0] ?? ''
+  if (path.startsWith('/players/')) {
+    try {
+      return bbsPlayerId.test(decodeURIComponent(path.slice('/players/'.length))) ? value : '/games'
+    } catch {
+      return '/games'
+    }
+  }
   if (
     path !== '/games' &&
     path !== '/' &&

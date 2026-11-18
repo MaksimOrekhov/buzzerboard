@@ -4,6 +4,8 @@ import type { PlayerBoxScore, Team } from '@/entities/nba/model'
 import type { PlayerSortKey } from '@/features/games/composables/useGameDetailsModel'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import StatTable from '@/shared/components/StatTable.vue'
+import VerifiedPlayerLink from '@/features/players/VerifiedPlayerLink.vue'
+import { bbsPlayerId } from '@/entities/nba/players'
 
 defineProps<{
   team: Team
@@ -124,7 +126,13 @@ function cell(line: PlayerBoxScore, key: PlayerSortKey) {
         <tbody>
           <tr v-for="line in players" :key="line.player.id">
             <th scope="row">
-              <span class="player-name">{{
+              <VerifiedPlayerLink
+                v-if="bbsPlayerId.test(line.player.id)"
+                :id="line.player.id"
+                :name="line.player.displayName ?? 'Игрок'"
+                class="player-name"
+              />
+              <span v-else class="player-name">{{
                 line.player.displayName ?? `Игрок ${line.player.providerId}`
               }}</span>
               <span v-if="line.starter" class="player-starter">Старт</span>

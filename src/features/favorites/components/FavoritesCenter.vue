@@ -14,11 +14,16 @@ import TeamLogo from '@/shared/components/TeamLogo.vue'
 import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
+import PlayerCatalog from '@/features/players/PlayerCatalog.vue'
+import { usePlayerFavorites } from '@/features/players/usePlayerFavorites'
 import { gameDetailsPath } from '@/features/games/gameDetailsRoute'
 const route = useRoute()
 const { center, standings, teams, favoriteGames, favoriteGameGroups, favoriteTeams, unknownGames } =
   useFavoriteCollections()
-const tab = shallowRef<'teams' | 'games'>(route.query.tab === 'games' ? 'games' : 'teams')
+const tab = shallowRef<'teams' | 'games' | 'players'>(
+  route.query.tab === 'games' || route.query.tab === 'players' ? route.query.tab : 'teams',
+)
+const { ids: playerIds } = usePlayerFavorites()
 const {
   selectedDate,
   minDate,
@@ -37,7 +42,7 @@ const teamIds = teams.favoriteIds
     <PageHeading
       eyebrow="Ваш выбор"
       title="Избранное"
-      description="Только ваши команды и матчи. Всё важное рядом."
+      description="Ваши команды, матчи и игроки."
     /><AppSegmented
       v-model="tab"
       variant="underline"
@@ -45,6 +50,7 @@ const teamIds = teams.favoriteIds
       :options="[
         { value: 'teams', label: 'Команды', count: teamIds.size },
         { value: 'games', label: 'Матчи', count: favoriteIds.size },
+        { value: 'players', label: 'Игроки', count: playerIds.size },
       ]"
     />
     <section v-if="tab === 'teams'" class="favorites-content" aria-label="Избранные команды">
@@ -125,6 +131,7 @@ const teamIds = teams.favoriteIds
         :meta="standings.data.value.meta"
       />
     </section>
+    <PlayerCatalog v-else-if="tab === 'players'" favorites-only />
     <section v-else class="favorites-content" aria-label="Избранные матчи">
       <div class="favorites-date-control">
         <div>

@@ -7,6 +7,8 @@ import { navigationItems, comingSoonItems } from './navigation'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import '@/assets/design-system.css'
 const route = useRoute()
+const sectionIsActive = (id: string, path: string) =>
+  route.name === id || ((id === 'teams' || id === 'players') && route.path.startsWith(path + '/'))
 </script>
 <template>
   <TooltipProvider
@@ -30,7 +32,7 @@ const route = useRoute()
             :to="item.to"
             class="gc-nav-link"
             :class="{
-              'gc-nav-link--active': item.id === 'teams' && route.path.startsWith('/teams'),
+              'gc-nav-link--active': sectionIsActive(item.id, item.to),
             }"
             active-class="gc-nav-link--active"
             :aria-label="item.label"
@@ -38,11 +40,7 @@ const route = useRoute()
             ><AppIcon :name="item.id === 'games' ? 'basketball' : item.icon" :size="20" /><span>{{
               item.id === 'games' ? 'Game Center' : item.id === 'standings' ? 'Таблица' : item.label
             }}</span
-            ><span
-              v-if="
-                route.name === item.id || (item.id === 'teams' && route.path.startsWith('/teams'))
-              "
-              class="gc-nav-active-dot"
+            ><span v-if="sectionIsActive(item.id, item.to)" class="gc-nav-active-dot"
           /></RouterLink>
         </nav>
         <div class="gc-upcoming">
@@ -94,7 +92,7 @@ const route = useRoute()
           :to="item.to"
           active-class="gc-mobile-nav--active"
           :class="{
-            'gc-mobile-nav--active': item.id === 'teams' && route.path.startsWith('/teams'),
+            'gc-mobile-nav--active': sectionIsActive(item.id, item.to),
           }"
           ><AppIcon :name="item.id === 'games' ? 'basketball' : item.icon" :size="21" /><span>{{
             item.shortLabel

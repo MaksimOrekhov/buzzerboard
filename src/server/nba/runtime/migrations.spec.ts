@@ -34,6 +34,10 @@ describe('BBS D1 migration', () => {
       database.exec(migration('0003_bbs_provider.sql'))
       database.exec(migration('0004_provider_cooldowns.sql'))
       database.exec(migration('0005_team_season_cache.sql'))
+      database.exec(migration('0006_bbs_players.sql'))
+      expect(database.prepare('SELECT count(*) AS count FROM nba_player_snapshot').get()).toEqual({
+        count: 0,
+      })
       const prior = database
         .prepare('SELECT provider, record_json FROM nba_cache WHERE cache_key = ?')
         .get('dunkapi:nba:games:date=2026-11-15') as { provider: string; record_json: string }
