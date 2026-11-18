@@ -235,6 +235,10 @@
   align-items: center;
   gap: 7px;
 }
+.gc-logo-attribution {
+  max-width: 470px;
+  text-align: center;
+}
 @media (min-width: 1600px) {
   .gc-main-content {
     padding: 40px 48px 0;
@@ -348,9 +352,16 @@
     padding: 24px 16px 0;
   }
   .gc-page-footer {
+    flex-wrap: wrap;
+    justify-content: space-between;
     margin-top: 24px;
     padding: 16px 0;
     font-size: 9px;
+  }
+  .gc-logo-attribution {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
   }
   .gc-mobile-nav {
     position: fixed;
