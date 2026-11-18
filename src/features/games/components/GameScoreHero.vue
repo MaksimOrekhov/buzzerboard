@@ -3,11 +3,24 @@ import { computed } from 'vue'
 import type { Game } from '@/entities/nba/model'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
+import StatTable from '@/shared/components/StatTable.vue'
+import StatValue from '@/shared/components/StatValue.vue'
 import AppBadge from '@/shared/components/AppBadge.vue'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 
 const props = defineProps<{ game: Game }>()
-const gameStatus = computed(() => (props.game.status === 'final' ? 'Завершён' : 'Матч'))
+const gameStatus = computed(
+  () =>
+    ({
+      final: 'Завершён',
+      scheduled: 'Запланирован',
+      live: 'Идёт',
+      postponed: 'Отложен',
+      canceled: 'Отменён',
+      suspended: 'Приостановлен',
+      unknown: 'Статус неизвестен',
+    })[props.game.status] ?? 'Матч',
+)
 const winner = computed(() => {
   const { home, away } = props.game.score
   if (props.game.status !== 'final' || home === null || away === null || home === away) return null
@@ -38,8 +51,8 @@ const localStart = computed(() =>
     </div>
     <div class="game-detail-scoreline">
       <div class="game-detail-side" :class="{ 'game-detail-side--winner': winner === 'away' }">
-        <TeamLogo :team="game.awayTeam" :size="76" />
         <TeamProfileLink :team="game.awayTeam" class="game-detail-team-link">
+          <TeamLogo :team="game.awayTeam" :size="54" />
           <span>{{
             game.awayTeam.displayName ?? game.awayTeam.abbreviation ?? 'Гости'
           }}</span><small>ГОСТИ · {{ game.awayTeam.abbreviation }}</small>
@@ -55,8 +68,8 @@ const localStart = computed(() =>
         :class="{ 'game-detail-side--winner': winner === 'home' }"
       >
         <strong>{{ game.score.home ?? '—' }}</strong>
-        <TeamLogo :team="game.homeTeam" :size="76" />
         <TeamProfileLink :team="game.homeTeam" class="game-detail-team-link">
+          <TeamLogo :team="game.homeTeam" :size="54" />
           <span>{{
             game.homeTeam.displayName ?? game.homeTeam.abbreviation ?? 'Хозяева'
           }}</span><small>ХОЗЯЕВА · {{ game.homeTeam.abbreviation }}</small>
@@ -71,27 +84,36 @@ const localStart = computed(() =>
         {{ winner === 'home' ? game.homeTeam.displayName : game.awayTeam.displayName }}</span
       >
     </div>
-    <div
+    <StatTable
       v-if="game.scoreByPeriod?.length"
       class="game-detail-periods"
-      :style="{ '--period-count': game.scoreByPeriod.length }"
-      aria-label="Счёт по четвертям"
+      label="Счёт по четвертям"
     >
-      <span class="game-period-label">Команда</span
-      ><span v-for="period in game.scoreByPeriod" :key="`p-${period.period}`">{{
-        period.period
-      }}</span
-      ><span class="game-period-label">Итого</span>
-      <span class="game-period-team">{{ game.awayTeam.abbreviation }}</span><span
-        v-for="period in game.scoreByPeriod"
-        :key="`a-${period.period}`"
-        >{{ period.away ?? '—' }}</span
-      ><strong class="game-period-total">{{ game.score.away ?? '—' }}</strong>
-      <span class="game-period-team">{{ game.homeTeam.abbreviation }}</span><span
-        v-for="period in game.scoreByPeriod"
-        :key="`h-${period.period}`"
-        >{{ period.home ?? '—' }}</span
-      ><strong class="game-period-total">{{ game.score.home ?? '—' }}</strong>
-    </div>
+      <table>
+        <caption>
+          Счёт по четвертям
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Команда</th>
+            <th v-for="period in game.scoreByPeriod" :key="period.period" scope="col">
+              {{ period.period > 4 ? 'OT' + (period.period - 4) : 'Q' + period.period }}
+            </th>
+            <th scope="col">Итого</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="side in ['away', 'home'] as const" :key="side">
+            <th scope="row">
+              {{ side === 'away' ? game.awayTeam.abbreviation : game.homeTeam.abbreviation }}
+            </th>
+            <td v-for="period in game.scoreByPeriod" :key="period.period">
+              {{ period[side] ?? '—' }}
+            </td>
+            <td><StatValue :value="game.score[side]" /></td>
+          </tr>
+        </tbody>
+      </table>
+    </StatTable>
   </section>
 </template>

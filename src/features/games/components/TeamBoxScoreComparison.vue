@@ -1,49 +1,54 @@
 <script setup lang="ts">
-import type { ShootingLine, TeamBoxScore } from '@/entities/nba/model'
+import type { ShootingLine, Team, TeamBoxScore } from '@/entities/nba/model'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
+import StatValue from '@/shared/components/StatValue.vue'
 
-defineProps<{ teams: readonly TeamBoxScore[] }>()
-
-function display(value: number | null, decimals = 0) {
-  return value === null ? '—' : value.toFixed(decimals)
-}
-function shots(value: ShootingLine) {
-  const total =
-    value.made === null || value.attempted === null ? '—' : `${value.made}/${value.attempted}`
-  return `${total}${value.percentage === null ? '' : ` · ${(value.percentage * 100).toFixed(1)}%`}`
-}
-
+defineProps<{ teams: readonly (TeamBoxScore | null)[]; matchTeams: readonly Team[] }>()
 const metrics = [
-  { key: 'points', label: 'Очки', format: (team: TeamBoxScore) => display(team.points) },
-  {
-    key: 'fieldGoals',
-    label: 'Броски с игры',
-    format: (team: TeamBoxScore) => shots(team.fieldGoals),
-  },
-  {
-    key: 'threePointers',
-    label: 'Трёхочковые',
-    format: (team: TeamBoxScore) => shots(team.threePointers),
-  },
-  { key: 'freeThrows', label: 'Штрафные', format: (team: TeamBoxScore) => shots(team.freeThrows) },
-  { key: 'rebounds', label: 'Подборы', format: (team: TeamBoxScore) => display(team.rebounds) },
-  {
-    key: 'offensiveRebounds',
-    label: 'В атаке',
-    format: (team: TeamBoxScore) => display(team.offensiveRebounds),
-  },
-  {
-    key: 'defensiveRebounds',
-    label: 'В защите',
-    format: (team: TeamBoxScore) => display(team.defensiveRebounds),
-  },
-  { key: 'assists', label: 'Передачи', format: (team: TeamBoxScore) => display(team.assists) },
-  { key: 'steals', label: 'Перехваты', format: (team: TeamBoxScore) => display(team.steals) },
-  { key: 'blocks', label: 'Блок-шоты', format: (team: TeamBoxScore) => display(team.blocks) },
-  { key: 'turnovers', label: 'Потери', format: (team: TeamBoxScore) => display(team.turnovers) },
-  { key: 'fouls', label: 'Фолы', format: (team: TeamBoxScore) => display(team.fouls) },
-  { key: 'plusMinus', label: '+/−', format: (team: TeamBoxScore) => display(team.plusMinus, 0) },
-]
+  ['points', 'Очки'],
+  ['fieldGoals', 'С игры'],
+  ['threePointers', 'Трёхочковые'],
+  ['freeThrows', 'Штрафные'],
+  ['rebounds', 'Подборы'],
+  ['offensiveRebounds', 'В атаке'],
+  ['defensiveRebounds', 'В защите'],
+  ['assists', 'Передачи'],
+  ['steals', 'Перехваты'],
+  ['blocks', 'Блок-шоты'],
+  ['turnovers', 'Потери'],
+  ['fouls', 'Фолы'],
+  ['plusMinus', '+/−'],
+] as const
+type Metric = (typeof metrics)[number][0]
+function rate(value: number | ShootingLine | null) {
+  return typeof value === 'object' && value !== null ? value.percentage : value
+}
+function values(teams: readonly (TeamBoxScore | null)[], metric: Metric) {
+  const pair = teams.map((team) => team?.[metric] ?? null)
+  const rates = pair.map(rate)
+  return pair.map((value, index) => {
+    const current = rates[index] ?? null
+    const other = rates[1 - index] ?? null
+    const top = Math.max(current ?? 0, other ?? 0)
+    const isShooting = typeof value === 'object' && value !== null
+    return {
+      score: isShooting ? (current === null ? null : (100 * current).toFixed(1) + '%') : current,
+      shots:
+        isShooting && value.made !== null && value.attempted !== null
+          ? value.made + '/' + value.attempted
+          : null,
+      bar:
+        current !== null &&
+        other !== null &&
+        current >= 0 &&
+        other >= 0 &&
+        top > 0 &&
+        metric !== 'plusMinus'
+          ? (100 * current) / (isShooting ? 1 : top)
+          : null,
+    }
+  })
+}
 </script>
 
 <template>
@@ -53,26 +58,36 @@ const metrics = [
         <span>01 / КОМАНДЫ</span>
         <h2 id="team-box-score-heading">Сравнение команд</h2>
       </div>
-      <p>Только показатели из box score</p>
+      <p>Попадания/попытки и процент для бросков</p>
     </header>
     <div class="team-box-score-wrap">
       <table class="team-box-score">
         <thead>
           <tr>
-            <th scope="col">Показатель</th>
-            <th v-for="team in teams" :key="team.team.id" scope="col">
-              <div class="team-box-score-name">
-                <TeamLogo :team="team.team" :size="24" /><span>{{
-                  team.team.abbreviation ?? team.team.displayName
-                }}</span>
-              </div>
-            </th>
+            <template v-for="(team, index) in matchTeams" :key="team.id">
+              <th v-if="index === 1" scope="col">Показатель</th>
+              <th scope="col" :class="'comparison-side-' + index">
+                <div class="team-box-score-name">
+                  <TeamLogo :team="team" :size="28" />
+                  <span>{{ team.abbreviation ?? team.displayName }}</span>
+                </div>
+              </th>
+            </template>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="metric in metrics" :key="metric.key">
-            <th scope="row">{{ metric.label }}</th>
-            <td v-for="team in teams" :key="team.team.id">{{ metric.format(team) }}</td>
+          <tr v-for="[metric, label] in metrics" :key="metric">
+            <template v-for="(stat, index) in values(teams, metric)" :key="index">
+              <th v-if="index === 1" scope="row">{{ label }}</th>
+              <td :class="'comparison-side-' + index">
+                <div class="comparison-value">
+                  <StatValue :value="stat.score" /><small v-if="stat.shots">{{ stat.shots }}</small>
+                </div>
+                <div v-if="stat.bar !== null" class="comparison-track" aria-hidden="true">
+                  <span :style="{ width: stat.bar + '%' }"></span>
+                </div>
+              </td>
+            </template>
           </tr>
         </tbody>
       </table>

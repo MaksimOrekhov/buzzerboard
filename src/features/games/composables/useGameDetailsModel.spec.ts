@@ -36,6 +36,22 @@ function player(
 }
 
 describe('game details player sort', () => {
+  it('sorts shooting by percentage instead of makes and leaves missing rates last', () => {
+    const players = [
+      player('missing', null, null),
+      {
+        ...player('more makes', null, null),
+        fieldGoals: { made: 7, attempted: 14, percentage: 0.5 },
+      },
+      {
+        ...player('higher rate', null, null),
+        fieldGoals: { made: 4, attempted: 5, percentage: 0.8 },
+      },
+    ]
+    expect(
+      sortPlayerLines(players, 'fieldGoals', 'descending').map(({ player }) => player.displayName),
+    ).toEqual(['higher rate', 'more makes', 'missing'])
+  })
   it('sorts descending and leaves unavailable values last', () => {
     expect(
       sortPlayerLines(

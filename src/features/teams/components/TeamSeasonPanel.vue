@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatValue from '@/shared/components/StatValue.vue'
 import type { TeamSeasonProfile } from '@/entities/nba/model'
 import { computed } from 'vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -83,14 +84,13 @@ function formatStat(value: number | null, percent = false, digits = 1) {
     </div>
     <div class="teams-stat-grid">
       <article v-for="stat in stats" :key="stat.label">
-        <span>{{ stat.label }}</span><strong>{{
-          formatStat(stat.value, stat.percent, stat.digits)
-        }}</strong>
+        <span>{{ stat.label }}</span>
+        <StatValue :value="formatStat(stat.value, stat.percent, stat.digits)" />
       </article>
     </div>
     <p class="teams-data-footnote">
-      <AppIcon name="database" :size="15" />PCT* рассчитан по подтверждённому балансу команды.
-      Расширенные метрики в ответе BBS отсутствуют. Незаполненные показатели оставлены пустыми.
+      <AppIcon name="database" :size="15" />PCT* рассчитан по подтверждённому балансу команды. «—»
+      означает, что данных нет.
     </p>
   </section>
 </template>

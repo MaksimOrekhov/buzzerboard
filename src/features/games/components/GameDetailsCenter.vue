@@ -12,11 +12,17 @@ import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
 import GameScoreHero from './GameScoreHero.vue'
 import TeamBoxScoreComparison from './TeamBoxScoreComparison.vue'
 import PlayerBoxScoreTable from './PlayerBoxScoreTable.vue'
+import StatValue from '@/shared/components/StatValue.vue'
 
 const { query, returnTo, apiError, gameId, date } = useGameDetails()
 const response = computed(() => query.data.value ?? null)
 const game = computed(() => response.value?.data.game ?? null)
 const boxScore = computed(() => response.value?.data.boxScore ?? null)
+const comparisonTeams = computed(() =>
+  [game.value?.awayTeam, game.value?.homeTeam].map(
+    (team) => boxScore.value?.teams.find((row) => row.team.id === team?.id) ?? null,
+  ),
+)
 const model = useGameDetailsModel(() => boxScore.value)
 const teamPlayers = (teamId: string) =>
   model.activePlayers.value.filter((line) => line.player.teamId === teamId)
@@ -38,8 +44,8 @@ const unavailableDetails = computed(() =>
   response.value?.boxScoreAvailability === 'snapshot_mismatch'
     ? 'Снимки матча и статистики не совпадают. Показан текущий результат без противоречивых данных игроков.'
     : boxScoreMeta.value?.refreshError
-      ? 'Последнее защищённое обновление не удалось. Показан безопасный кешированный снимок без выдуманных значений.'
-      : 'Статистика ещё не сохранена в D1. Открытие карточки читает только локальный кеш и не обращается к DunkAPI.',
+      ? 'Обновление не удалось. Доступен последний сохранённый результат.'
+      : 'Пока доступен только результат матча.',
 )
 </script>
 
@@ -52,7 +58,7 @@ const unavailableDetails = computed(() =>
           ? `${game.awayTeam.abbreviation ?? 'Гости'} — ${game.homeTeam.abbreviation ?? 'Хозяева'}`
           : 'Карточка матча'
       "
-      description="Результат, командные показатели и строки игроков из доступного box score."
+      description="Результат, сравнение команд и статистика игроков."
     >
       <template #actions
         ><RouterLink
@@ -89,7 +95,7 @@ const unavailableDetails = computed(() =>
       <template #action
         ><div class="game-detail-error-actions">
           <AppButton variant="secondary" icon="refresh" @click="query.refetch()"
-            >Проверить D1 ещё раз</AppButton
+            >Повторить запрос</AppButton
           ><RouterLink :to="returnTo" class="ui-text-link"
             >Вернуться назад<AppIcon name="arrow" :size="14"
           /></RouterLink></div
@@ -98,11 +104,14 @@ const unavailableDetails = computed(() =>
     <template v-else-if="game">
       <GameScoreHero :game="game" />
       <p v-if="query.isRefetchError.value" class="gc-notice gc-notice--warning" role="status">
-        Не удалось повторно прочитать Worker. Показан предыдущий ответ из клиентского кеша.
+        Не удалось обновить данные. Показан предыдущий результат.
       </p>
       <SnapshotStatus v-if="scoreMeta" :meta="scoreMeta" />
       <div v-if="boxScore" class="game-detail-data">
-        <TeamBoxScoreComparison :teams="boxScore.teams" />
+        <TeamBoxScoreComparison
+          :teams="comparisonTeams"
+          :match-teams="[game.awayTeam, game.homeTeam]"
+        />
         <section
           v-if="leaders.length"
           class="game-detail-leaders"
@@ -113,10 +122,9 @@ const unavailableDetails = computed(() =>
               <span>02 / ИГРОКИ</span>
               <h2 id="game-leaders-heading">Лидеры среди доступных данных</h2>
             </div>
-            <p>По полученным строкам box score</p>
           </header>
           <article v-for="leader in leaders" :key="leader.key" class="game-leader-card">
-            <span>{{ leader.label }}</span><strong>{{ leader.maximum }}</strong>
+            <span>{{ leader.label }}</span><StatValue :value="leader.maximum" />
             <div>
               <span v-for="player in leader.players" :key="player.player.id"
                 >{{ player.player.displayName ?? 'Игрок'
@@ -135,7 +143,7 @@ const unavailableDetails = computed(() =>
               <span>{{ leaders.length ? '03' : '02' }} / ИГРОКИ</span>
               <h2 id="player-box-score-heading">Статистика игроков</h2>
             </div>
-            <p>Нажмите на MIN, PTS, REB, AST или +/− для сортировки</p>
+            <p>Выберите набор показателей и нажмите на заголовок столбца.</p>
           </header>
           <div class="player-box-score-grid">
             <PlayerBoxScoreTable

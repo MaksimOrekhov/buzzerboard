@@ -22,14 +22,14 @@
   min-width: 0;
 }
 .favorite-team-card h2 {
-  font-size: 15px;
+  font-size: var(--stat-cell);
   font-weight: 750;
   line-height: 1.5;
   margin: 0;
 }
 .favorite-team-card header p {
   color: var(--gc-muted);
-  font-size: 10px;
+  font-size: var(--stat-meta);
   margin: 4px 0 0;
 }
 .favorite-team-card .gc-icon-button {
@@ -46,7 +46,7 @@
 }
 .favorite-team-card dt {
   color: var(--gc-muted);
-  font-size: 11px;
+  font-size: var(--stat-meta);
 }
 .favorite-team-card dd {
   font-size: 25px;
@@ -115,6 +115,6 @@
 }
 .favorite-game-group h3 > span {
   color: var(--gc-muted);
-  font-size: 10px;
+  font-size: var(--stat-meta);
   font-weight: 450;
 }
