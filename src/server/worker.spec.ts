@@ -366,6 +366,35 @@ function createWorker(repository: MemoryNbaRepository, fetcher = vi.fn<typeof fe
 afterEach(() => vi.restoreAllMocks())
 
 describe('NBA Worker cache API', () => {
+  it('reports health only when the bound D1 can answer a read-only query', async () => {
+    const worker = createWorker(new MemoryNbaRepository())
+    const database = {
+      prepare: vi.fn(() => ({ first: vi.fn().mockResolvedValue({ ok: 1 }) })),
+    }
+    const response = await worker.fetch(new Request('https://buzzerboard.test/api/health'), {
+      ...env,
+      NBA_DB: database as never,
+    })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ status: 'ok' })
+    expect(database.prepare).toHaveBeenCalledWith('SELECT 1 AS ok')
+  })
+
+  it('fails closed when the health check cannot reach D1', async () => {
+    const worker = createWorker(new MemoryNbaRepository())
+    const database = {
+      prepare: vi.fn(() => ({ first: vi.fn().mockRejectedValue(new Error('private detail')) })),
+    }
+    const response = await worker.fetch(new Request('https://buzzerboard.test/api/health'), {
+      ...env,
+      NBA_DB: database as never,
+    })
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ status: 'unavailable' })
+  })
+
   it('serves game detail fallback from the D1 game snapshot without making an upstream request', async () => {
     const repository = new MemoryNbaRepository()
     repository.cache.set(gamesCacheKey('dunkapi', '2026-11-15'), createCompletedGameRecord())

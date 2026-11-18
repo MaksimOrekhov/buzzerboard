@@ -82,6 +82,9 @@ const sectionIsActive = (id: string, path: string) =>
         <main id="game-center-content" class="gc-main-content" tabindex="-1"><RouterView /></main>
         <footer class="gc-page-footer gc-app-footer">
           <span><AppIcon name="basketball" :size="15" />Баскетбол в деталях.</span
+          ><span class="gc-logo-attribution"
+            >Логотипы NBA и команд принадлежат NBA Properties, Inc. и соответствующим командам.
+            BuzzerBoard не связан с NBA.</span
           ><span>NBA · BuzzerBoard</span>
         </footer>
       </div>

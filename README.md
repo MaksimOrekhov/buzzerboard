@@ -51,4 +51,6 @@ Cloudflare Worker, общий D1-кеш, обновление по Cron, защ�
 
 Для визуальных проверок всех разделов и карточки матча используйте `pnpm visual:pro171` (только синтетические ответы, без upstream). Для локального просмотра данных запустите `pnpm worker:dev` с отключённым refresh и `pnpm dev`; Vite проксирует `/api` на локальный Worker.
 
+Закрытый облачный запуск Cloudflare Worker, remote D1, Access-first bootstrap, безопасный перенос локальных BBS-кешей и CI deploy из `main` описаны в [docs/cloudflare-pro169.md](docs/cloudflare-pro169.md). Provider refresh и Cron остаются выключенными.
+
 Состоянием запросов управляет TanStack Vue Query. Pinia не добавлена: общего клиентского состояния пока нет. Локальные настройки храните в `.env.local` (файл игнорируется git). Переменные с префиксом `VITE_` попадают в клиентскую сборку и не должны содержать секреты.

@@ -2,55 +2,54 @@
 import { computed, shallowRef, watch } from 'vue'
 import type { Team } from '@/entities/nba/model'
 const props = withDefaults(defineProps<{ team: Team; size?: number }>(), { size: 40 })
-// CDN aliases are identifiers, not bundled team artwork. Public builds use the fallback.
-const aliases: Record<string, string> = {
-  atl: 'atl',
-  bos: 'bos',
-  bkn: 'bkn',
-  cha: 'cha',
-  chi: 'chi',
-  cle: 'cle',
-  dal: 'dal',
-  den: 'den',
-  det: 'det',
-  gsw: 'gs',
-  hou: 'hou',
-  ind: 'ind',
-  lac: 'lac',
-  lal: 'lal',
-  mem: 'mem',
-  mia: 'mia',
-  mil: 'mil',
-  min: 'min',
-  nop: 'no',
-  nyk: 'ny',
-  okc: 'okc',
-  orl: 'orl',
-  phi: 'phi',
-  phx: 'phx',
-  por: 'por',
-  sac: 'sac',
-  sas: 'sa',
-  tor: 'tor',
-  uta: 'utah',
-  was: 'wsh',
-  wsh: 'wsh',
-  utah: 'utah',
-  gs: 'gs',
-  ny: 'ny',
-  no: 'no',
-  sa: 'sa',
+// Canonical NBA team abbreviations map to the IDs used by the official NBA CDN.
+const logoIds: Record<string, number> = {
+  atl: 1610612737,
+  bos: 1610612738,
+  bkn: 1610612751,
+  cha: 1610612766,
+  chi: 1610612741,
+  cle: 1610612739,
+  dal: 1610612742,
+  den: 1610612743,
+  det: 1610612765,
+  gsw: 1610612744,
+  gs: 1610612744,
+  hou: 1610612745,
+  ind: 1610612754,
+  lac: 1610612746,
+  lal: 1610612747,
+  mem: 1610612763,
+  mia: 1610612748,
+  mil: 1610612749,
+  min: 1610612750,
+  nop: 1610612740,
+  no: 1610612740,
+  nyk: 1610612752,
+  ny: 1610612752,
+  okc: 1610612760,
+  orl: 1610612753,
+  phi: 1610612755,
+  phx: 1610612756,
+  por: 1610612757,
+  sac: 1610612758,
+  sas: 1610612759,
+  sa: 1610612759,
+  tor: 1610612761,
+  uta: 1610612762,
+  utah: 1610612762,
+  was: 1610612764,
+  wsh: 1610612764,
 }
 const key = computed(() =>
   props.team.id.startsWith('nba:team:')
     ? props.team.id.slice(9).toLowerCase()
     : props.team.abbreviation?.toLowerCase(),
 )
-const alias = computed(() => (key.value ? aliases[key.value] : undefined))
+const logoId = computed(() => (key.value ? logoIds[key.value] : undefined))
 const failed = shallowRef(false)
-const base = import.meta.env.DEV ? import.meta.env.VITE_PRIVATE_TEAM_LOGO_BASE_URL : undefined
 const src = computed(() =>
-  base && alias.value ? `${base.replace(/\/$/, '')}/${alias.value}.png` : null,
+  logoId.value ? `https://cdn.nba.com/logos/nba/${logoId.value}/primary/L/logo.svg` : null,
 )
 const initials = computed(
   () =>
