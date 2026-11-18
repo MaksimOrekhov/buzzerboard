@@ -26,7 +26,7 @@
 }
 .teams-eyebrow {
   color: var(--gc-accent);
-  font-size: 11px;
+  font-size: var(--stat-meta);
   font-weight: 750;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -156,14 +156,14 @@
 .teams-card-title strong {
   overflow: hidden;
   color: var(--gc-text);
-  font-size: 14px;
+  font-size: var(--stat-cell);
   font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .teams-card-title small {
   color: var(--gc-muted);
-  font-size: 10px;
+  font-size: var(--stat-meta);
 }
 .teams-favorite {
   color: #758196;
@@ -191,16 +191,16 @@
 }
 .teams-card-stats span {
   color: var(--gc-muted);
-  font-size: 10px;
+  font-size: var(--stat-meta);
 }
 .teams-card-stats strong {
   color: var(--gc-text);
-  font-size: 17px;
+  font-size: var(--stat-value);
   font-weight: 780;
 }
 .teams-card-stats small {
   color: var(--gc-muted);
-  font-size: 9px;
+  font-size: var(--stat-meta);
   font-weight: 500;
 }
 .teams-card-footer {
@@ -344,7 +344,7 @@
 .teams-profile-overview span,
 .teams-profile-overview small {
   color: var(--gc-muted);
-  font-size: 10px;
+  font-size: var(--stat-meta);
 }
 .teams-profile-overview strong {
   font-size: 22px;
@@ -372,7 +372,7 @@
 }
 .teams-panel-heading h2 {
   margin: 4px 0 0;
-  font-size: 20px;
+  font-size: var(--stat-section);
   font-weight: 780;
   letter-spacing: -0.5px;
 }
@@ -381,7 +381,7 @@
 }
 .teams-season-overview {
   display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 14px;
   padding: 14px;
   border: 1px solid #26384a;
@@ -398,7 +398,7 @@
 .teams-record-block > span,
 .teams-record-block > small {
   color: var(--gc-muted);
-  font-size: 10px;
+  font-size: var(--stat-meta);
 }
 .teams-record-block > strong {
   font-size: 27px;
@@ -415,10 +415,10 @@
 }
 .teams-season-facts span {
   color: var(--gc-muted);
-  font-size: 9px;
+  font-size: var(--stat-meta);
 }
 .teams-season-facts strong {
-  font-size: 13px;
+  font-size: var(--stat-cell);
 }
 .teams-splits {
   display: grid;
@@ -437,16 +437,16 @@
 }
 .teams-splits article > span {
   color: var(--gc-secondary);
-  font-size: 11px;
+  font-size: var(--stat-meta);
   font-weight: 700;
 }
 .teams-splits article > strong {
-  font-size: 14px;
+  font-size: var(--stat-cell);
 }
 .teams-splits article > small {
   grid-column: 1 / -1;
   color: var(--gc-muted);
-  font-size: 9px;
+  font-size: var(--stat-meta);
 }
 .teams-stat-grid {
   display: grid;
@@ -465,11 +465,11 @@
 }
 .teams-stat-grid span {
   color: var(--gc-muted);
-  font-size: 9px;
+  font-size: var(--stat-meta);
   line-height: 1.35;
 }
 .teams-stat-grid strong {
-  font-size: 15px;
+  font-size: var(--stat-value);
   font-weight: 750;
 }
 .teams-data-footnote,
@@ -479,7 +479,7 @@
   gap: 7px;
   margin: 13px 0 0;
   color: var(--gc-muted);
-  font-size: 10px;
+  font-size: var(--stat-meta);
   line-height: 1.5;
 }
 .teams-data-footnote > svg,
@@ -493,7 +493,7 @@
 }
 .teams-next-game {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px minmax(95px, 1fr) auto 16px;
+  grid-template-columns: 34px minmax(0, 1fr) auto 16px;
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
@@ -510,7 +510,7 @@
 .teams-next-game-overline {
   grid-column: 1 / -1;
   color: var(--gc-accent);
-  font-size: 9px;
+  font-size: var(--stat-meta);
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -520,12 +520,12 @@
   gap: 2px;
 }
 .teams-next-game-opponent strong {
-  font-size: 10px;
+  font-size: var(--stat-cell);
 }
 .teams-next-game-opponent small,
 .teams-next-game time {
   color: var(--gc-muted);
-  font-size: 9px;
+  font-size: var(--stat-meta);
 }
 .teams-next-game > svg {
   color: var(--gc-accent);
@@ -535,12 +535,12 @@
   grid-template-columns: 50px 29px 28px minmax(55px, 1fr) auto 22px;
   align-items: center;
   gap: 8px;
-  min-height: 46px;
+  min-height: 48px;
   border-bottom: 1px solid var(--gc-line);
 }
 .teams-result-row > time {
   color: var(--gc-muted);
-  font-size: 9px;
+  font-size: var(--stat-meta);
 }
 .teams-result-outcome {
   display: grid;
@@ -548,7 +548,7 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: var(--stat-meta);
   font-weight: 850;
 }
 .teams-result-outcome--w {
@@ -562,7 +562,7 @@
 .teams-result-opponent {
   overflow: hidden;
   color: var(--gc-secondary);
-  font-size: 10px;
+  font-size: var(--stat-cell);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -570,7 +570,7 @@
   color: inherit;
 }
 .teams-result-row > strong {
-  font-size: 11px;
+  font-size: var(--stat-cell);
 }
 .teams-result-row > a {
   display: grid;
@@ -587,7 +587,7 @@
 .teams-data-empty {
   margin: 10px 0;
   color: var(--gc-muted);
-  font-size: 11px;
+  font-size: var(--stat-meta);
 }
 .teams-leaders {
   margin-top: 19px;
@@ -595,7 +595,7 @@
 .teams-leaders > h3 {
   margin: 0 0 9px;
   color: var(--gc-secondary);
-  font-size: 11px;
+  font-size: var(--stat-cell);
   font-weight: 700;
 }
 .teams-leader-grid {
@@ -613,17 +613,15 @@
 }
 .teams-leader-grid article > span {
   color: var(--gc-muted);
-  font-size: 9px;
+  font-size: var(--stat-meta);
 }
 .teams-leader-grid article > strong {
-  font-size: 16px;
+  font-size: var(--stat-value);
 }
 .teams-leader-grid article > small {
-  overflow: hidden;
   color: var(--gc-secondary);
-  font-size: 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: var(--stat-cell);
+  overflow-wrap: anywhere;
 }
 @media (max-width: 1150px) {
   .teams-grid {
@@ -713,11 +711,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .teams-result-row {
-    grid-template-columns: 42px 26px 24px minmax(35px, 1fr) auto 18px;
+    grid-template-columns: 47px 24px 28px minmax(0, 1fr) auto 16px;
     gap: 5px;
   }
   .teams-next-game {
-    grid-template-columns: minmax(0, 1fr) 30px minmax(75px, 1fr) auto 14px;
+    grid-template-columns: 30px minmax(0, 1fr) auto 14px;
     gap: 6px;
     padding: 10px 8px;
   }

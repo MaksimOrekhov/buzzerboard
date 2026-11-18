@@ -69,7 +69,7 @@ function opponentTeam(code: string): Team {
         },
       }"
     >
-      <span class="teams-next-game-overline">Следующая игра · проверена по расписанию BBS</span>
+      <span class="teams-next-game-overline">Следующая игра</span>
       <TeamLogo
         v-if="profile.nextGame.opponentCode"
         :team="opponentTeam(profile.nextGame.opponentCode)"
@@ -135,8 +135,7 @@ function opponentTeam(code: string): Team {
     </div>
     <div v-else class="teams-data-empty">BBS не вернул сезонных лидеров для этой команды.</div>
     <p class="teams-data-footnote">
-      <AppIcon name="database" :size="15" />Матч открывается только если его идентификатор
-      подтверждён кэшированным Game Center.
+      <AppIcon name="database" :size="15" />Ссылки ведут к доступным карточкам матчей.
     </p>
   </section>
 </template>

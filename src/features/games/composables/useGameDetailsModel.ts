@@ -1,7 +1,21 @@
 import { computed, shallowRef } from 'vue'
 import type { GameBoxScore, PlayerBoxScore } from '@/entities/nba/model'
 
-export type PlayerSortKey = 'minutes' | 'points' | 'rebounds' | 'assists' | 'plusMinus'
+export type PlayerSortKey =
+  | 'minutes'
+  | 'points'
+  | 'rebounds'
+  | 'assists'
+  | 'plusMinus'
+  | 'steals'
+  | 'blocks'
+  | 'turnovers'
+  | 'fouls'
+  | 'offensiveRebounds'
+  | 'defensiveRebounds'
+  | 'fieldGoals'
+  | 'threePointers'
+  | 'freeThrows'
 
 function minuteValue(value: string | null): number | null {
   if (value === null || value.trim() === '') return null
@@ -16,14 +30,20 @@ function minuteValue(value: string | null): number | null {
   return Number.isFinite(minutes) && minutes >= 0 ? minutes * 60 : null
 }
 
+function sortValue(line: PlayerBoxScore, key: PlayerSortKey): number | null {
+  if (key === 'minutes') return minuteValue(line.minutes)
+  const value = line[key]
+  return typeof value === 'object' && value !== null ? value.percentage : value
+}
+
 export function sortPlayerLines(
   players: readonly PlayerBoxScore[],
   key: PlayerSortKey,
   direction: 'ascending' | 'descending',
 ): PlayerBoxScore[] {
   return [...players].sort((left, right) => {
-    const leftValue = key === 'minutes' ? minuteValue(left.minutes) : left[key]
-    const rightValue = key === 'minutes' ? minuteValue(right.minutes) : right[key]
+    const leftValue = sortValue(left, key)
+    const rightValue = sortValue(right, key)
     const byName = (left.player.displayName ?? '').localeCompare(right.player.displayName ?? '')
     const byId = left.player.id.localeCompare(right.player.id)
     const tieBreak = byName || byId

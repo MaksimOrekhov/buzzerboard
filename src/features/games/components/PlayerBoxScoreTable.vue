@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed, shallowRef } from 'vue'
 import type { PlayerBoxScore, Team } from '@/entities/nba/model'
 import type { PlayerSortKey } from '@/features/games/composables/useGameDetailsModel'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
+import StatTable from '@/shared/components/StatTable.vue'
 
 defineProps<{
   team: Team
@@ -12,98 +14,110 @@ defineProps<{
 }>()
 defineEmits<{ sort: [key: PlayerSortKey] }>()
 
-const columns: Array<{ key: PlayerSortKey | null; label: string; aria: string }> = [
-  { key: null, label: 'Игрок', aria: 'Игрок' },
-  { key: 'minutes', label: 'MIN', aria: 'Минуты' },
-  { key: 'points', label: 'PTS', aria: 'Очки' },
-  { key: 'rebounds', label: 'REB', aria: 'Подборы' },
-  { key: 'assists', label: 'AST', aria: 'Передачи' },
-  { key: null, label: 'STL', aria: 'Перехваты' },
-  { key: null, label: 'BLK', aria: 'Блок-шоты' },
-  { key: null, label: 'TO', aria: 'Потери' },
-  { key: null, label: 'FG', aria: 'Броски с игры' },
-  { key: null, label: '3P', aria: 'Трёхочковые' },
-  { key: null, label: 'FT', aria: 'Штрафные' },
-  { key: null, label: 'PF', aria: 'Фолы' },
-  { key: 'plusMinus', label: '+/−', aria: 'Плюс-минус' },
-]
-const mobileSorts: Array<{ key: PlayerSortKey; label: string; aria: string }> = [
-  { key: 'points', label: 'PTS', aria: 'Очки' },
-  { key: 'rebounds', label: 'REB', aria: 'Подборы' },
-  { key: 'assists', label: 'AST', aria: 'Передачи' },
-  { key: 'minutes', label: 'MIN', aria: 'Минуты' },
-  { key: 'plusMinus', label: '+/−', aria: 'Плюс-минус' },
-]
-function value(value: number | null) {
-  return value === null ? '—' : value
-}
-function shooting(made: number | null, attempted: number | null, rate: number | null) {
-  if (made === null || attempted === null) return '—'
-  return `${made}/${attempted}${rate === null ? '' : ` · ${(rate * 100).toFixed(0)}%`}`
+const groups = [
+  { key: 'basic', label: 'Основное' },
+  { key: 'shooting', label: 'Броски' },
+  { key: 'other', label: 'Защита и потери' },
+] as const
+const group = shallowRef<(typeof groups)[number]['key']>('basic')
+const columns = {
+  basic: [
+    { key: 'points', label: 'PTS', name: 'Очки' },
+    { key: 'rebounds', label: 'REB', name: 'Подборы' },
+    { key: 'assists', label: 'AST', name: 'Передачи' },
+    { key: 'minutes', label: 'MIN', name: 'Минуты' },
+    { key: 'plusMinus', label: '+/−', name: 'Плюс-минус' },
+  ],
+  shooting: [
+    { key: 'fieldGoals', label: 'FG', name: 'Броски с игры, %' },
+    { key: 'threePointers', label: '3P', name: 'Трёхочковые, %' },
+    { key: 'freeThrows', label: 'FT', name: 'Штрафные, %' },
+  ],
+  other: [
+    { key: 'steals', label: 'STL', name: 'Перехваты' },
+    { key: 'blocks', label: 'BLK', name: 'Блок-шоты' },
+    { key: 'turnovers', label: 'TO', name: 'Потери' },
+    { key: 'fouls', label: 'PF', name: 'Фолы' },
+    { key: 'offensiveRebounds', label: 'OREB', name: 'Подборы в атаке' },
+    { key: 'defensiveRebounds', label: 'DREB', name: 'Подборы в защите' },
+  ],
+} satisfies Record<string, { key: PlayerSortKey; label: string; name: string }[]>
+const visibleColumns = computed(() => columns[group.value])
+
+function cell(line: PlayerBoxScore, key: PlayerSortKey) {
+  const value = line[key]
+  if (value === null) return '—'
+  if (typeof value === 'object') {
+    const shots =
+      value.made === null || value.attempted === null ? '—' : `${value.made}/${value.attempted}`
+    return value.percentage === null ? shots : `${shots} · ${(value.percentage * 100).toFixed(1)}%`
+  }
+  return key === 'plusMinus' && typeof value === 'number' && value > 0 ? `+${value}` : value
 }
 </script>
 
 <template>
   <section
     class="player-box-score"
-    :aria-label="`Статистика игроков ${team.displayName ?? team.abbreviation}`"
+    :aria-label="team.displayName ?? team.abbreviation ?? 'Команда'"
   >
     <header class="player-box-score-heading">
-      <TeamLogo :team="team" :size="32" />
+      <TeamLogo :team="team" :size="40" />
       <div>
         <h3>{{ team.displayName ?? team.abbreviation }}</h3>
-        <p>{{ players.length + didNotPlay.length }} игроков · минуты и box score</p>
+        <p>{{ players.length + didNotPlay.length }} игроков</p>
       </div>
     </header>
     <div
       v-if="players.length"
-      class="player-mobile-sort"
+      class="player-stat-controls"
       role="group"
-      aria-label="Сортировка игроков"
+      aria-label="Набор показателей"
     >
-      <span>Сортировать</span>
       <button
-        v-for="sort in mobileSorts"
-        :key="sort.key"
+        v-for="option in groups"
+        :key="option.key"
         type="button"
-        :aria-label="`Сортировать по: ${sort.aria}`"
-        :aria-pressed="sortBy === sort.key"
-        @click="$emit('sort', sort.key)"
+        class="gc-control"
+        :aria-pressed="group === option.key"
+        @click="group = option.key"
       >
-        {{ sort.label
-        }}<span v-if="sortBy === sort.key" aria-hidden="true">{{
-          direction === 'ascending' ? '↑' : '↓'
-        }}</span>
+        {{ option.label }}
       </button>
     </div>
-    <div v-if="players.length" class="player-box-table-scroll">
+    <StatTable
+      v-if="players.length"
+      class="player-box-table-scroll"
+      :label="`Статистика: ${team.displayName ?? team.abbreviation}`"
+    >
       <table class="player-box-table">
         <caption class="visually-hidden">
-          Статистика игроков команды
+          Статистика:
           {{
             team.displayName ?? team.abbreviation
           }}
         </caption>
         <thead>
           <tr>
+            <th scope="col">Игрок</th>
             <th
-              v-for="column in columns"
-              :key="column.aria"
+              v-for="column in visibleColumns"
+              :key="column.key"
               scope="col"
-              :aria-sort="column.key && sortBy === column.key ? direction : 'none'"
+              :aria-sort="sortBy === column.key ? direction : undefined"
             >
               <button
-                v-if="column.key"
                 type="button"
                 class="player-sort"
-                :title="`Сортировать: ${column.aria}`"
+                :title="column.name"
+                :aria-label="`Сортировать по: ${column.name}`"
                 @click="$emit('sort', column.key)"
               >
                 {{ column.label
-                }}<span aria-hidden="true">{{
-                  sortBy === column.key ? (direction === 'ascending' ? '↑' : '↓') : '↕'
-                }}</span></button
-              ><span v-else>{{ column.label }}</span>
+                }}<span v-if="sortBy === column.key" aria-hidden="true">{{
+                  direction === 'ascending' ? '↑' : '↓'
+                }}</span>
+              </button>
             </th>
           </tr>
         </thead>
@@ -112,174 +126,35 @@ function shooting(made: number | null, attempted: number | null, rate: number | 
             <th scope="row">
               <span class="player-name">{{
                 line.player.displayName ?? `Игрок ${line.player.providerId}`
-              }}</span><span v-if="line.starter" class="player-starter">СТАРТ</span>
+              }}</span>
+              <span v-if="line.starter" class="player-starter">Старт</span>
+              <span v-if="line.didNotPlay === null" class="player-participation"
+                >Участие не подтверждено</span
+              >
             </th>
-            <td>{{ line.minutes ?? '—' }}</td>
-            <td>{{ value(line.points) }}</td>
-            <td>{{ value(line.rebounds) }}</td>
-            <td>{{ value(line.assists) }}</td>
-            <td>{{ value(line.steals) }}</td>
-            <td>{{ value(line.blocks) }}</td>
-            <td>{{ value(line.turnovers) }}</td>
-            <td>
-              {{
-                shooting(
-                  line.fieldGoals.made,
-                  line.fieldGoals.attempted,
-                  line.fieldGoals.percentage,
-                )
-              }}
-            </td>
-            <td>
-              {{
-                shooting(
-                  line.threePointers.made,
-                  line.threePointers.attempted,
-                  line.threePointers.percentage,
-                )
-              }}
-            </td>
-            <td>
-              {{
-                shooting(
-                  line.freeThrows.made,
-                  line.freeThrows.attempted,
-                  line.freeThrows.percentage,
-                )
-              }}
-            </td>
-            <td>{{ value(line.fouls) }}</td>
             <td
-              :class="{
-                'player-plus-minus--positive': line.plusMinus !== null && line.plusMinus > 0,
-                'player-plus-minus--negative': line.plusMinus !== null && line.plusMinus < 0,
-              }"
+              v-for="column in visibleColumns"
+              :key="column.key"
+              :class="{ 'player-primary': column.key === 'points' }"
             >
-              {{
-                line.plusMinus === null
-                  ? '—'
-                  : line.plusMinus > 0
-                    ? `+${line.plusMinus}`
-                    : line.plusMinus
-              }}
+              {{ cell(line, column.key) }}
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
-    <p v-else class="player-box-unavailable">
-      Статистика игроков этой команды в ответе источника отсутствует.
+    </StatTable>
+    <p v-if="players.length" class="player-stat-legend">
+      {{ visibleColumns.map(({ label, name }) => label + ' — ' + name).join(' · ') }}
+      <template v-if="group === 'shooting'">. В ячейке: попадания/попытки и процент.</template>
     </p>
+    <p v-else class="player-box-unavailable">Нет статистики игроков этой команды.</p>
     <details v-if="didNotPlay.length" class="player-dnp">
       <summary>
         Не играли <span>{{ didNotPlay.length }}</span>
       </summary>
       <ul>
         <li v-for="line in didNotPlay" :key="line.player.id">
-          {{ line.player.displayName ?? `Игрок ${line.player.providerId}`
-          }}<span>DNP · без игрового времени</span>
-        </li>
-      </ul>
-    </details>
-    <div v-if="players.length" class="player-mobile-list">
-      <article v-for="line in players" :key="line.player.id" class="player-mobile-card">
-        <header>
-          <div>
-            <strong>{{ line.player.displayName ?? `Игрок ${line.player.providerId}` }}</strong><span
-              v-if="line.starter"
-              >СТАРТ</span
-            >
-          </div>
-          <span>{{ line.minutes ?? '—' }} мин</span>
-        </header>
-        <dl>
-          <div>
-            <dt>PTS</dt>
-            <dd>{{ value(line.points) }}</dd>
-          </div>
-          <div>
-            <dt>REB</dt>
-            <dd>{{ value(line.rebounds) }}</dd>
-          </div>
-          <div>
-            <dt>AST</dt>
-            <dd>{{ value(line.assists) }}</dd>
-          </div>
-          <div>
-            <dt>STL</dt>
-            <dd>{{ value(line.steals) }}</dd>
-          </div>
-          <div>
-            <dt>BLK</dt>
-            <dd>{{ value(line.blocks) }}</dd>
-          </div>
-          <div>
-            <dt>TO</dt>
-            <dd>{{ value(line.turnovers) }}</dd>
-          </div>
-          <div>
-            <dt>FG</dt>
-            <dd>
-              {{
-                shooting(
-                  line.fieldGoals.made,
-                  line.fieldGoals.attempted,
-                  line.fieldGoals.percentage,
-                )
-              }}
-            </dd>
-          </div>
-          <div>
-            <dt>3P</dt>
-            <dd>
-              {{
-                shooting(
-                  line.threePointers.made,
-                  line.threePointers.attempted,
-                  line.threePointers.percentage,
-                )
-              }}
-            </dd>
-          </div>
-          <div>
-            <dt>FT</dt>
-            <dd>
-              {{
-                shooting(
-                  line.freeThrows.made,
-                  line.freeThrows.attempted,
-                  line.freeThrows.percentage,
-                )
-              }}
-            </dd>
-          </div>
-          <div>
-            <dt>PF</dt>
-            <dd>{{ value(line.fouls) }}</dd>
-          </div>
-          <div>
-            <dt>+/−</dt>
-            <dd>
-              {{
-                line.plusMinus === null
-                  ? '—'
-                  : line.plusMinus > 0
-                    ? `+${line.plusMinus}`
-                    : line.plusMinus
-              }}
-            </dd>
-          </div>
-        </dl>
-      </article>
-    </div>
-    <details v-if="didNotPlay.length" class="player-dnp player-dnp--mobile">
-      <summary>
-        Не играли <span>{{ didNotPlay.length }}</span>
-      </summary>
-      <ul>
-        <li v-for="line in didNotPlay" :key="line.player.id">
-          {{ line.player.displayName ?? `Игрок ${line.player.providerId}`
-          }}<span>DNP · без игрового времени</span>
+          {{ line.player.displayName ?? `Игрок ${line.player.providerId}` }}
         </li>
       </ul>
     </details>

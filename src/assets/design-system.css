@@ -9,6 +9,10 @@
   --gc-line: #272e3d;
   --gc-accent: #70c8ef;
   --gc-accent-soft: #193345;
+  --stat-meta: 0.8125rem;
+  --stat-cell: 1rem;
+  --stat-value: 1.375rem;
+  --stat-section: 1.375rem;
   --gc-success: #8ed5b5;
   --gc-warning: #e6bc7b;
   --gc-radius: 12px;

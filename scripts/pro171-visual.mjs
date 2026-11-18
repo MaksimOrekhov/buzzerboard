@@ -107,6 +107,28 @@ function syntheticBoxScore(game) {
     ],
     players: [
       playerLine(game.homeTeam, `scorer-${game.providerId}`, Math.max(1, game.score.home - 86)),
+      ...Array.from({ length: 14 }, (_, index) => {
+        const row = playerLine(
+          game.homeTeam,
+          `home-extra-${index}`,
+          index === 0 ? Math.max(1, game.score.home - 86) : index === 1 ? null : 1,
+        )
+        return {
+          ...row,
+          player: {
+            ...row.player,
+            displayName:
+              index === 0
+                ? 'Synthetic exceptionally long player name with multiple surnames'
+                : `Synthetic home player ${index}`,
+          },
+          didNotPlay: index === 1 ? null : false,
+          plusMinus: index === 2 ? -12 : row.plusMinus,
+        }
+      }),
+      ...Array.from({ length: 13 }, (_, index) =>
+        playerLine(game.awayTeam, `away-extra-${index}`, index === 0 ? null : 1),
+      ),
       playerLine(game.awayTeam, `reserve-${game.providerId}`, null, true),
     ],
   }
@@ -289,9 +311,23 @@ try {
         .trim(),
       'Не играли 1',
     )
-    if (width <= 640)
-      await page.getByRole('button', { name: 'Сортировать по: Очки' }).first().click()
-    else await page.locator('.player-sort').filter({ hasText: 'PTS' }).first().click()
+    const playerTable = page.locator('.player-box-score').first()
+    await playerTable.getByRole('button', { name: 'Сортировать по: Очки' }).focus()
+    await page.keyboard.press('Enter')
+    assert.equal(await playerTable.locator('[aria-sort="ascending"]').innerText(), 'PTS↑')
+    await playerTable.getByRole('button', { name: 'Броски', exact: true }).click()
+    await playerTable.getByRole('button', { name: 'Сортировать по: Броски с игры, %' }).click()
+    await playerTable.getByRole('button', { name: 'Основное', exact: true }).click()
+    assert.equal(await playerTable.locator('tbody tr').count(), 13)
+    assert.equal(await page.locator('.player-box-score').last().locator('tbody tr').count(), 15)
+    assert.equal(await page.getByText('Участие не подтверждено', { exact: true }).count(), 1)
+    assert.equal(await page.locator('.game-leader-card').first().locator('small').count(), 2)
+    assert.equal(
+      await playerTable
+        .locator('.player-box-table-scroll')
+        .evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
+      true,
+    )
     assert.equal(await page.locator('.game-leader-card').count(), 3)
     await capture('game-details')
     await page.getByRole('link', { name: 'К игровому дню' }).click()
