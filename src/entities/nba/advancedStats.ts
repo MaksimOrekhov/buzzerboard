@@ -63,6 +63,18 @@ export const advancedMetrics = [
   format: 'percent' | 'number'
 }[]
 
+export const gameAdvancedMetrics = advancedMetrics.map((metric) =>
+  metric.key === 'gmSc'
+    ? {
+        ...metric,
+        short: 'GmSc',
+        label: 'Game Score за матч',
+        description:
+          'Оценка Джона Холлинджера для одной игры, рассчитанная по полному box score матча.',
+      }
+    : metric,
+)
+
 export const per36Metrics = [
   { key: 'pts36', short: 'PTS/36', label: 'Очки за 36 минут', source: 'pts' },
   { key: 'reb36', short: 'REB/36', label: 'Подборы за 36 минут', source: 'reb' },
@@ -91,50 +103,107 @@ export interface BoxScoreAdvancedInputs {
   fouls: number | null
 }
 
-const ROUNDING_TOLERANCE = 0.1
-
 function validNonnegative(value: number | null): value is number {
   return value !== null && Number.isFinite(value) && value >= 0
 }
 
-function validShooting(line: BoxScoreAdvancedInputs['fieldGoals']): boolean {
+type Precision = 'exact' | 'rounded'
+
+function tolerance(precision: Precision): number {
+  return precision === 'rounded' ? 0.1 : 0
+}
+
+function validShooting(
+  line: BoxScoreAdvancedInputs['fieldGoals'],
+  allowedTolerance: number,
+  requireMade = true,
+): boolean {
+  if (!validNonnegative(line.attempted) || (requireMade && !validNonnegative(line.made)))
+    return false
   return (
-    validNonnegative(line.made) &&
-    validNonnegative(line.attempted) &&
-    line.made <= line.attempted + ROUNDING_TOLERANCE
+    line.made === null ||
+    (validNonnegative(line.made) && line.made <= line.attempted + allowedTolerance)
   )
 }
 
-function shotInputsValid(line: BoxScoreAdvancedInputs, metric: AdvancedMetric): boolean {
-  if (metric === 'efg' || metric === 'twoPoint') {
+function validKnownThreePointLine(line: BoxScoreAdvancedInputs, allowedTolerance: number): boolean {
+  const { made, attempted } = line.threePointers
+  if (attempted !== null && !validShooting(line.threePointers, allowedTolerance, false))
+    return false
+  if (made !== null && !validNonnegative(made)) return false
+  if (
+    made !== null &&
+    line.fieldGoals.made !== null &&
+    made > line.fieldGoals.made + allowedTolerance
+  )
+    return false
+  if (
+    attempted !== null &&
+    line.fieldGoals.attempted !== null &&
+    attempted > line.fieldGoals.attempted + allowedTolerance
+  )
+    return false
+  return true
+}
+
+function shotInputsValid(
+  line: BoxScoreAdvancedInputs,
+  metric: AdvancedMetric,
+  allowedTolerance: number,
+): boolean {
+  if (metric === 'efg') {
     return (
-      validShooting(line.fieldGoals) &&
-      validShooting(line.threePointers) &&
-      line.threePointers.made! <= line.fieldGoals.made! + ROUNDING_TOLERANCE &&
-      line.threePointers.attempted! <= line.fieldGoals.attempted! + ROUNDING_TOLERANCE
+      validNonnegative(line.fieldGoals.made) &&
+      validNonnegative(line.fieldGoals.attempted) &&
+      validNonnegative(line.threePointers.made) &&
+      line.fieldGoals.made <= line.fieldGoals.attempted + allowedTolerance &&
+      validKnownThreePointLine(line, allowedTolerance)
     )
   }
-  if (metric === 'ts')
+  if (metric === 'ts') {
     return (
       validNonnegative(line.points) &&
-      validShooting(line.fieldGoals) &&
-      validShooting(line.freeThrows)
+      validShooting(line.fieldGoals, allowedTolerance, false) &&
+      validShooting(line.freeThrows, allowedTolerance, false) &&
+      validKnownThreePointLine(line, allowedTolerance)
     )
-  if (metric === 'threeRate')
+  }
+  if (metric === 'threeRate') {
     return (
-      validShooting(line.fieldGoals) &&
-      validShooting(line.threePointers) &&
-      line.threePointers.attempted! <= line.fieldGoals.attempted! + ROUNDING_TOLERANCE
+      validShooting(line.fieldGoals, allowedTolerance, false) &&
+      validShooting(line.threePointers, allowedTolerance, false) &&
+      validKnownThreePointLine(line, allowedTolerance)
     )
+  }
   if (metric === 'freeThrowRate')
-    return validShooting(line.fieldGoals) && validShooting(line.freeThrows)
+    return (
+      validShooting(line.fieldGoals, allowedTolerance, false) &&
+      validShooting(line.freeThrows, allowedTolerance, false)
+    )
+  if (metric === 'twoPoint') {
+    if (
+      !validShooting(line.fieldGoals, allowedTolerance) ||
+      !validShooting(line.threePointers, allowedTolerance) ||
+      !validKnownThreePointLine(line, allowedTolerance)
+    )
+      return false
+    const made = line.fieldGoals.made! - line.threePointers.made!
+    const attempts = line.fieldGoals.attempted! - line.threePointers.attempted!
+    return (
+      made >= -allowedTolerance &&
+      attempts >= -allowedTolerance &&
+      made <= attempts + 2 * allowedTolerance
+    )
+  }
   return true
 }
 
 export function calculateBoxScoreAdvanced(
   line: BoxScoreAdvancedInputs,
   metric: AdvancedMetric,
+  options: { precision?: Precision } = {},
 ): number | null {
+  const allowedTolerance = tolerance(options.precision ?? 'exact')
   if (metric === 'astTo') {
     if (
       !validNonnegative(line.assists) ||
@@ -161,8 +230,9 @@ export function calculateBoxScoreAdvanced(
     ]
     if (
       !required.every(validNonnegative) ||
-      !validShooting(line.fieldGoals) ||
-      !validShooting(line.freeThrows)
+      !validShooting(line.fieldGoals, allowedTolerance) ||
+      !validShooting(line.freeThrows, allowedTolerance) ||
+      !validKnownThreePointLine(line, allowedTolerance)
     )
       return null
     return (
@@ -179,7 +249,7 @@ export function calculateBoxScoreAdvanced(
       line.turnovers!
     )
   }
-  if (!shotInputsValid(line, metric)) return null
+  if (!shotInputsValid(line, metric, allowedTolerance)) return null
   const fga = line.fieldGoals.attempted!
   if (metric === 'efg')
     return fga === 0 ? null : (line.fieldGoals.made! + 0.5 * line.threePointers.made!) / fga
@@ -190,15 +260,18 @@ export function calculateBoxScoreAdvanced(
   if (metric === 'threeRate') return fga === 0 ? null : line.threePointers.attempted! / fga
   if (metric === 'freeThrowRate') return fga === 0 ? null : line.freeThrows.attempted! / fga
   const attempts = fga - line.threePointers.attempted!
-  return attempts <= 0 ? null : (line.fieldGoals.made! - line.threePointers.made!) / attempts
+  const made = line.fieldGoals.made! - line.threePointers.made!
+  return attempts <= 0 || made < 0 || made > attempts + 2 * allowedTolerance
+    ? null
+    : made / attempts
 }
 
 export function parseMinutes(value: number | string | null): number | null {
   if (value === null || (typeof value === 'string' && value.trim() === '')) return null
   if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? value : null
   const trimmed = value.trim()
-  const clock = /^(\d+):([0-5]\d)$/.exec(trimmed)
-  if (clock) return Number(clock[1]) + Number(clock[2]) / 60
+  const clock = /^(\d+):(\d{1,2})$/.exec(trimmed)
+  if (clock && Number(clock[2]) < 60) return Number(clock[1]) + Number(clock[2]) / 60
   const minutes = Number(trimmed)
   return Number.isFinite(minutes) && minutes >= 0 ? minutes : null
 }
@@ -237,7 +310,7 @@ export function seasonAdvancedMetric(
     const value = stats[source]
     return validNonnegative(value) ? (value * 36) / stats.min : null
   }
-  return calculateBoxScoreAdvanced(seasonInputs(stats), metric)
+  return calculateBoxScoreAdvanced(seasonInputs(stats), metric, { precision: 'rounded' })
 }
 
 export function playerBoxScoreAdvanced(

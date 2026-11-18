@@ -134,6 +134,11 @@ function metricValue(player: NonNullable<typeof data.value>['players'][number], 
     seasonAdvancedMetric(stats, key as AdvancedStatsMetric),
   )
 }
+function sampleContext(player: NonNullable<typeof data.value>['players'][number]) {
+  const stats = player.stats
+  if (!stats) return ''
+  return `GP ${formatPlayerStat('gp', stats.gp)} · MIN ${formatPlayerStat('min', stats.min)} · FGA ${formatPlayerStat('fga', stats.fga)}`
+}
 const filtered = computed(() => {
   const term = search.value.toLowerCase().trim()
   const minGp = Math.min(100, Math.max(0, Number(route.query.gp) || 0))
@@ -356,6 +361,12 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
                         ><span v-else>Команда не подтверждена</span
                         >{{ player.position ? ' · ' + player.position : '' }}</small
                       >
+                      <small
+                        v-if="group === 'advanced' || group === 'per36'"
+                        class="player-sample-context"
+                      >
+                        {{ sampleContext(player) }}
+                      </small>
                     </div>
                   </div>
                 </th>

@@ -94,11 +94,118 @@ describe('Advanced Stats v1 calculations', () => {
   })
 
   it('uses rounded per-game means directly without pretending they are exact season totals', () => {
-    const rounded = { ...seasonStats, gp: 2, fgm: 9.9, fga: 20.1, threeM: 3.2, threeA: 7.1 }
-    expect(seasonAdvancedMetric(rounded, 'efg')).toBe((9.9 + 0.5 * 3.2) / 20.1)
+    const rounded = { ...seasonStats, gp: 2, fgm: 10, fga: 9.9, threeM: 3.2, threeA: 3.3 }
+    expect(seasonAdvancedMetric(rounded, 'efg')).toBe((10 + 0.5 * 3.2) / 9.9)
     expect(seasonAdvancedMetric({ ...rounded, gp: 80 }, 'efg')).toBe(
       seasonAdvancedMetric(rounded, 'efg'),
     )
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: 10, attempted: 9.9 },
+          threePointers: { made: 3, attempted: 3.3 },
+        },
+        'efg',
+      ),
+    ).toBeNull()
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: 10, attempted: 9.9 },
+          threePointers: { made: 3, attempted: 3.3 },
+        },
+        'efg',
+        { precision: 'rounded' },
+      ),
+    ).toBeCloseTo((10 + 0.5 * 3) / 9.9, 12)
+  })
+
+  it('computes rates from only their required inputs and rejects known contradictions', () => {
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: null, attempted: 20 },
+          freeThrows: { made: null, attempted: 6 },
+        },
+        'ts',
+      ),
+    ).toBeCloseTo(28 / (2 * (20 + 0.44 * 6)), 12)
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: null, attempted: 20 },
+          threePointers: { made: null, attempted: 7 },
+        },
+        'threeRate',
+      ),
+    ).toBe(7 / 20)
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: null, attempted: 20 },
+          freeThrows: { made: null, attempted: 6 },
+        },
+        'freeThrowRate',
+      ),
+    ).toBe(6 / 20)
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: -1, attempted: 20 },
+          freeThrows: { made: null, attempted: 6 },
+        },
+        'ts',
+      ),
+    ).toBeNull()
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: 10, attempted: 20 },
+          threePointers: { made: 4, attempted: null },
+        },
+        'efg',
+      ),
+    ).toBe(0.6)
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: 10, attempted: 20 },
+          threePointers: { made: 4, attempted: 21 },
+        },
+        'threeRate',
+      ),
+    ).toBeNull()
+  })
+
+  it('rejects impossible derived two-point makes and attempts without clamping', () => {
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: 9, attempted: 10 },
+          threePointers: { made: 0, attempted: 8 },
+        },
+        'twoPoint',
+      ),
+    ).toBeNull()
+    expect(
+      calculateBoxScoreAdvanced(
+        {
+          ...line,
+          fieldGoals: { made: 9, attempted: 10 },
+          threePointers: { made: 10, attempted: 8 },
+        },
+        'twoPoint',
+      ),
+    ).toBeNull()
   })
 
   it('calculates the hand-checked Game Score and allows a negative result', () => {
@@ -161,13 +268,14 @@ describe('Advanced Stats v1 calculations', () => {
       calculateBoxScoreAdvanced(
         {
           ...line,
-          points: 100,
+          points: 3,
           fieldGoals: { made: 1, attempted: 1 },
+          threePointers: { made: 1, attempted: 1 },
           freeThrows: { made: 0, attempted: 0 },
         },
         'ts',
       ),
-    ).toBe(50)
+    ).toBe(1.5)
     expect(
       calculateBoxScoreAdvanced(
         {
@@ -201,6 +309,7 @@ describe('Advanced Stats v1 calculations', () => {
 
   it('parses MM:SS and decimal minutes without accepting invalid values', () => {
     expect(parseMinutes('35:30')).toBe(35.5)
+    expect(parseMinutes('35:5')).toBeCloseTo(35 + 5 / 60, 12)
     expect(parseMinutes('35.5')).toBe(35.5)
     expect(parseMinutes(0)).toBe(0)
     expect(parseMinutes('35:75')).toBeNull()
@@ -235,6 +344,11 @@ describe('Advanced Stats v1 calculations', () => {
     expect(sorted).toHaveLength(645)
     expect(sorted.at(-1)?.stats).toBeNull()
     expect(sorted.at(0)?.id).toBe('player-643')
+    const ascending = [...rows].sort((left, right) =>
+      comparePlayers(left, right, 'efg', true, seasonAdvancedMetric),
+    )
+    expect(ascending.at(-1)?.stats).toBeNull()
+    expect(ascending.at(0)?.id).toBe('player-0')
     expect(rows.at(0)?.id).toBe('player-0')
   })
 })

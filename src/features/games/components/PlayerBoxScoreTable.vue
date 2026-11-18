@@ -8,7 +8,7 @@ import StatTable from '@/shared/components/StatTable.vue'
 import VerifiedPlayerLink from '@/features/players/VerifiedPlayerLink.vue'
 import { bbsPlayerId } from '@/entities/nba/players'
 import {
-  advancedMetrics,
+  gameAdvancedMetrics,
   formatAdvancedStat,
   playerBoxScoreAdvanced,
 } from '@/entities/nba/advancedStats'
@@ -57,7 +57,7 @@ const columns: Record<
 }
 const visibleColumns = computed(() => (group.value === 'advanced' ? [] : columns[group.value]))
 const advancedColumns = computed(() =>
-  advancedMetrics.map(({ key, short, label, description }) => ({
+  gameAdvancedMetrics.map(({ key, short, label, description }) => ({
     key,
     label: short,
     name: label,
@@ -71,8 +71,8 @@ const currentColumns = computed(() =>
 function cell(line: PlayerBoxScore, key: PlayerSortKey) {
   if (group.value === 'advanced')
     return formatAdvancedStat(
-      key as (typeof advancedMetrics)[number]['key'],
-      playerBoxScoreAdvanced(line, key as (typeof advancedMetrics)[number]['key']),
+      key as (typeof gameAdvancedMetrics)[number]['key'],
+      playerBoxScoreAdvanced(line, key as (typeof gameAdvancedMetrics)[number]['key']),
     )
   if (key === 'minutes') return line.minutes ?? '—'
   const value = line[key as Exclude<PlayerSortKey, AdvancedMetric>]

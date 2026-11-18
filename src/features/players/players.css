@@ -159,6 +159,13 @@
   font-size: var(--stat-meta);
   font-weight: 500;
 }
+.player-identity .player-sample-context {
+  color: var(--gc-secondary);
+  font-size: max(var(--stat-meta), 0.8125rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+  white-space: normal;
+}
 .player-panel,
 .player-empty {
   padding: clamp(12px, 2vw, 24px);
