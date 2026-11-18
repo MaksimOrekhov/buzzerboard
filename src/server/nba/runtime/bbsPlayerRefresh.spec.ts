@@ -287,6 +287,7 @@ describe('scheduled BBS player refresh', () => {
     let maxStatementsPerTick = 0
     for (let tick = 0; tick < 1_500; tick += 1) {
       clock += 10 * 60_000
+      if (tick === 250) lock.token = 'recovered-lock-after-restart'
       const utcDay = new Date(clock).toISOString().slice(0, 10)
       if (utcDay !== dayKey) {
         dayKey = utcDay
@@ -294,8 +295,8 @@ describe('scheduled BBS player refresh', () => {
         maxDailyTotal = Math.max(maxDailyTotal, dayRequests)
       }
       d1.database
-        .prepare('UPDATE nba_refresh_locks SET lease_expires_at_ms=? WHERE lock_key=? AND token=?')
-        .run(clock + 30_000, lock.key, lock.token)
+        .prepare('UPDATE nba_refresh_locks SET token=?,lease_expires_at_ms=? WHERE lock_key=?')
+        .run(lock.token, clock + 30_000, lock.key)
       const before = d1.operations
       status = await runScheduledBbsPlayerRefresh(d1, env, repository, fetcher, clock, lock)
       maxStatementsPerTick = Math.max(maxStatementsPerTick, d1.operations - before)
@@ -312,6 +313,7 @@ describe('scheduled BBS player refresh', () => {
       .get(playerSeason)!.progress_json as string
 
     expect(status).toMatchObject({ phase: 'idle', total: 645, updated: 645 })
+    expect(lock.token).toBe('recovered-lock-after-restart')
     expect(fetcher).toHaveBeenCalledTimes(648) // 645 averages, one isolated retry, and profile + gamelog.
     expect(calls.get(playerUuid(14))).toBe(2)
     expect(saved.players).toHaveLength(645)
