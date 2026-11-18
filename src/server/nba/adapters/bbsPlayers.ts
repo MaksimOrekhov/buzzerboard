@@ -75,6 +75,8 @@ export function normalizeBbsPlayerAverage(
     three: gp ? percentage(row.fg3_pct) : null,
     ft: gp ? percentage(row.ft_pct) : null,
   }
+  if (gp > 0 && Object.entries(stats).every(([key, value]) => key === 'gp' || value === null))
+    throw new Error('BBS positive-GP row lacks season averages')
   const candidate = { ...player, stats }
   if (!isPlayerEntry(candidate) || Object.keys(stats).length !== playerMetrics.length)
     throw new Error('Invalid BBS player average values')

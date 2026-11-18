@@ -48,7 +48,9 @@ export interface NbaPlayerEntry {
 export interface PlayerRefreshSummary {
   phase: 'directory' | 'averages' | 'publish' | 'retry' | 'gameRefs' | 'enrich' | 'idle'
   total: number
+  checked: number
   updated: number
+  retained: number
   failed: number
   cycleStartedAt: string | null
   lastCompletedAt: string | null

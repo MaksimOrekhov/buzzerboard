@@ -182,7 +182,9 @@ export function isPlayerRefreshSummary(value: unknown): value is PlayerRefreshSu
       String(value.phase),
     ) &&
     count(value.total) &&
+    count(value.checked) &&
     count(value.updated) &&
+    count(value.retained) &&
     count(value.failed) &&
     (value.cycleStartedAt === null || timestamp(value.cycleStartedAt)) &&
     (value.lastCompletedAt === null || timestamp(value.lastCompletedAt)) &&

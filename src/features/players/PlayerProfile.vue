@@ -110,15 +110,15 @@ const advancedStats = computed(() => seasonAdvancedMetrics(data.value?.player.st
         <p class="player-meta">
           BBS · Снимок {{ new Date(data.fetchedAt).toLocaleString('ru-RU')
           }}{{ data.isStale ? ' · устарел' : '' }}. Средние за игру; GP — количество матчей. Средние
-          этого игрока проверены:
+          этого игрока обновлены:
           {{
             data.player.averageUpdatedAt
               ? new Date(data.player.averageUpdatedAt).toLocaleString('ru-RU')
-              : 'ещё не проверялись'
+              : 'нет даты'
           }}.
           <template v-if="data.refreshStatus">
-            Цикл обновления: {{ data.refreshStatus.updated }}/{{ data.refreshStatus.total }}
-            игроков; последний полный цикл
+            Цикл обновления: {{ data.refreshStatus.checked }}/{{ data.refreshStatus.total }}
+            игроков проверено. Последний завершённый проход
             {{
               data.refreshStatus.lastCompletedAt
                 ? new Date(data.refreshStatus.lastCompletedAt).toLocaleString('ru-RU')

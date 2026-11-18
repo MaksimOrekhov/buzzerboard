@@ -1,5 +1,5 @@
 import type { NbaPlayerEntry, PlayerStats } from '@/entities/nba/players'
-import { playerSeason } from '@/entities/nba/players'
+import { playerMetrics, playerSeason } from '@/entities/nba/players'
 import {
   bbsDirectoryPlayer,
   normalizeBbsPlayerDirectoryPage,
@@ -7,7 +7,6 @@ import {
 import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import {
   calendarDate,
-  isPlayerDetail,
   isPlayerEntry,
   isStoredPlayers,
   record,
@@ -40,6 +39,11 @@ const GLOBAL_PAUSE_CODES = new Set([
   'storage_unavailable',
 ])
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
+class InvalidDirectory extends Error {}
+class InvalidPlayerDetail extends Error {}
+
+type SchedulerLease = { key: string; token: string; coreReserve?: number }
+
 const MAX_SNAPSHOT_BYTES = 1_800_000
 
 type PlayerRefreshPhase =
@@ -60,6 +64,7 @@ interface PlayerRefreshProgress {
   lastCompletedAt: string | null
   nextCycleAt: number
   successful: number
+  retained: number
   lastCycleTotal: number
   failed: number
   retries: PlayerRetry[]
@@ -93,6 +98,8 @@ function parseProgress(json: string, season: number): PlayerRefreshProgress | nu
       Number(value.nextCycleAt) < 0 ||
       !Number.isSafeInteger(value.successful) ||
       Number(value.successful) < 0 ||
+      !Number.isSafeInteger(value.retained) ||
+      Number(value.retained) < 0 ||
       !Number.isSafeInteger(value.lastCycleTotal) ||
       Number(value.lastCycleTotal) < 0 ||
       !Number.isSafeInteger(value.failed) ||
@@ -128,13 +135,13 @@ function parseProgress(json: string, season: number): PlayerRefreshProgress | nu
   }
 }
 
-async function saveProgress(
+function progressWrite(
   db: D1Database,
   progress: PlayerRefreshProgress,
-  lock: { key: string; token: string },
+  lock: SchedulerLease,
   now: number,
-): Promise<boolean> {
-  const result = await db
+) {
+  return db
     .prepare(
       `INSERT INTO nba_player_refresh_state (season_end_year, progress_json, updated_at_ms)
      SELECT ?1, ?2, ?3 WHERE EXISTS (
@@ -144,8 +151,31 @@ async function saveProgress(
      WHERE EXISTS (SELECT 1 FROM nba_refresh_locks WHERE lock_key = ?4 AND token = ?5 AND lease_expires_at_ms > ?3)`,
     )
     .bind(progress.seasonEndYear, JSON.stringify(progress), now, lock.key, lock.token)
-    .run()
-  return result.meta?.changes === 1
+}
+
+async function saveProgress(
+  db: D1Database,
+  progress: PlayerRefreshProgress,
+  lock: SchedulerLease,
+  now: number,
+) {
+  requireWrite(await progressWrite(db, progress, lock, now).run())
+}
+
+function requireWrite(result: { meta?: { changes?: number } } | undefined) {
+  if (result?.meta?.changes !== 1) throw new Error('Player refresh write lost its scheduler lease')
+}
+
+async function commitProgress(
+  db: D1Database,
+  progress: PlayerRefreshProgress,
+  lock: SchedulerLease,
+  writes: (now: number) => ReturnType<D1Database['prepare']>[],
+) {
+  // All writes use the same fence instant inside one D1 transaction.
+  const now = Date.now()
+  const results = await db.batch([...writes(now), progressWrite(db, progress, lock, now)])
+  requireWrite(results.at(-1))
 }
 
 async function loadProgress(db: D1Database, season: number): Promise<PlayerRefreshProgress | null> {
@@ -165,39 +195,36 @@ async function loadSnapshot(db: D1Database, season: number): Promise<StoredPlaye
     .bind(season)
     .first<{ payload: string }>()
   if (!row) return null
-  try {
-    const payload: unknown = JSON.parse(row.payload)
-    return isStoredPlayers(payload, season) ? payload : null
-  } catch {
-    return null
-  }
+  const payload: unknown = JSON.parse(row.payload)
+  if (!isStoredPlayers(payload, season)) throw new Error('Invalid existing player snapshot')
+  return payload
 }
 
-async function saveSnapshot(
-  db: D1Database,
-  season: number,
-  data: StoredPlayers,
-  lock: { key: string; token: string },
-  now: number,
-): Promise<boolean> {
+function snapshotWrite(db: D1Database, season: number, data: StoredPlayers, lock: SchedulerLease) {
   if (!isStoredPlayers(data, season)) throw new Error('Refusing to publish invalid player snapshot')
-  const observations = [data.directoryAt, ...Object.values(data.averageAt)].filter(timestamp)
-  const fetchedAt = observations.reduce((oldest, value) =>
-    Date.parse(value) < Date.parse(oldest) ? value : oldest,
-  )
   const payload = JSON.stringify(data)
   if (new TextEncoder().encode(payload).byteLength >= MAX_SNAPSHOT_BYTES)
     throw new Error('Player snapshot exceeds safe D1 row size')
-  const result = await db
+  return (now: number) =>
+    db
+      .prepare(
+        `INSERT INTO nba_player_snapshot (season_end_year, fetched_at, payload)
+     SELECT ?1, ?2, ?3 WHERE EXISTS (
+       SELECT 1 FROM nba_refresh_locks WHERE lock_key=?4 AND token=?5 AND lease_expires_at_ms>?6
+     )
+     ON CONFLICT(season_end_year) DO UPDATE SET fetched_at=excluded.fetched_at,payload=excluded.payload`,
+      )
+      .bind(season, oldestObservation(data), payload, lock.key, lock.token, now)
+}
+
+function deleteDirectoryPages(db: D1Database, season: number, lock: SchedulerLease, now: number) {
+  return db
     .prepare(
-      `INSERT INTO nba_player_snapshot (season_end_year, fetched_at, payload)
-     VALUES (?1, ?2, ?3)
-     ON CONFLICT(season_end_year) DO UPDATE SET fetched_at=excluded.fetched_at, payload=excluded.payload
-     WHERE EXISTS (SELECT 1 FROM nba_refresh_locks WHERE lock_key=?4 AND token=?5 AND lease_expires_at_ms>?6)`,
+      `DELETE FROM nba_player_refresh_directory_pages WHERE season_end_year=?1 AND EXISTS (
+      SELECT 1 FROM nba_refresh_locks WHERE lock_key=?2 AND token=?3 AND lease_expires_at_ms>?4
+    )`,
     )
-    .bind(season, fetchedAt, payload, lock.key, lock.token, now)
-    .run()
-  return result.meta?.changes === 1
+    .bind(season, lock.key, lock.token, now)
 }
 
 function initialProgress(
@@ -217,6 +244,7 @@ function initialProgress(
     lastCompletedAt: null,
     nextCycleAt: 0,
     successful: 0,
+    retained: 0,
     lastCycleTotal: 0,
     failed: 0,
     retries: [],
@@ -261,14 +289,14 @@ function teamCrosswalk(value: unknown): Map<string, string> {
   return result
 }
 
-async function saveDirectoryPage(
+function directoryPageWrite(
   db: D1Database,
   season: number,
   page: { offset: number; total: number; payload: unknown; observedAt: string },
-  lock: { key: string; token: string },
+  lock: SchedulerLease,
   now: number,
 ) {
-  const result = await db
+  return db
     .prepare(
       `INSERT INTO nba_player_refresh_directory_pages (season_end_year,page_offset,total_rows,payload_json,observed_at)
      SELECT ?1,?2,?3,?4,?5 WHERE EXISTS (
@@ -285,19 +313,18 @@ async function saveDirectoryPage(
       lock.token,
       now,
     )
-    .run()
-  return result.meta?.changes === 1
 }
 
 async function publishDirectory(
   db: D1Database,
   repository: NbaRepository,
   progress: PlayerRefreshProgress,
-  lock: { key: string; token: string },
+  lock: SchedulerLease,
   now: number,
 ): Promise<StoredPlayers> {
   const total = progress.directoryTotal
-  if (!total || progress.directoryOffset < total) throw new Error('Incomplete BBS player directory')
+  if (!total || progress.directoryOffset < total)
+    throw new InvalidDirectory('Incomplete BBS player directory')
   const pages = await db
     .prepare(
       'SELECT page_offset,total_rows,payload_json,observed_at FROM nba_player_refresh_directory_pages WHERE season_end_year=?1 ORDER BY page_offset',
@@ -314,18 +341,23 @@ async function publishDirectory(
       pageRow.total_rows !== total ||
       !timestamp(pageRow.observed_at)
     )
-      throw new Error('Incomplete staged BBS player directory')
-    const page = normalizeBbsPlayerDirectoryPage(
-      JSON.parse(pageRow.payload_json),
-      progress.seasonEndYear - 1,
-      pageRow.page_offset,
-    )
+      throw new InvalidDirectory('Incomplete staged BBS player directory')
+    let page
+    try {
+      page = normalizeBbsPlayerDirectoryPage(
+        JSON.parse(pageRow.payload_json),
+        progress.seasonEndYear - 1,
+        pageRow.page_offset,
+      )
+    } catch {
+      throw new InvalidDirectory('Invalid staged directory page')
+    }
     if (page.total !== total)
-      throw new Error('BBS player directory total changed during pagination')
+      throw new InvalidDirectory('BBS player directory total changed during pagination')
     rows.push(...page.rows)
     if (Date.parse(pageRow.observed_at) < Date.parse(oldest)) oldest = pageRow.observed_at
   }
-  if (rows.length !== total) throw new Error('Incomplete staged BBS player directory')
+  if (rows.length !== total) throw new InvalidDirectory('Incomplete staged BBS player directory')
   const providerTeams = await repository.getCache(
     teamDirectoryCacheKey('bbs', progress.seasonEndYear as never),
   )
@@ -334,8 +366,14 @@ async function publishDirectory(
   )
   const incoming = new Map<string, NbaPlayerEntry>()
   for (const row of rows) {
-    const player = bbsDirectoryPlayer(row, teamByProviderId)
-    if (incoming.has(player.id)) throw new Error('Duplicate BBS player directory identity')
+    let player
+    try {
+      player = bbsDirectoryPlayer(row, teamByProviderId)
+    } catch {
+      throw new InvalidDirectory('Invalid staged BBS player')
+    }
+    if (incoming.has(player.id))
+      throw new InvalidDirectory('Duplicate BBS player directory identity')
     incoming.set(player.id, player)
   }
   const previous = await loadSnapshot(db, progress.seasonEndYear)
@@ -376,39 +414,35 @@ async function publishDirectory(
     },
   }
   const data = refreshCoverage(base)
-  if (!isStoredPlayers(data, progress.seasonEndYear))
-    throw new Error('BBS player directory failed snapshot validation')
-  if (!(await saveSnapshot(db, progress.seasonEndYear, data, lock, Date.now())))
-    throw new Error('Lost scheduler lease before directory publication')
-  await db.batch([
-    db
-      .prepare('DELETE FROM nba_player_refresh_directory_pages WHERE season_end_year=?1')
-      .bind(progress.seasonEndYear),
-  ])
   progress.phase = 'averages'
   progress.playerIds = players.map(({ id }) => id.slice('bbs:player:'.length))
   progress.cursor = 0
   progress.directoryOffset = 0
   progress.directoryTotal = null
+  const snapshot = snapshotWrite(db, progress.seasonEndYear, data, lock)
+  await commitProgress(db, progress, lock, (now) => [
+    snapshot(now),
+    deleteDirectoryPages(db, progress.seasonEndYear, lock, now),
+  ])
   return data
 }
 
-async function stageAverage(
+function averageWrite(
   db: D1Database,
   season: number,
   playerId: string,
   stats: PlayerStats | null,
   observedAt: string,
-  lock: { key: string; token: string },
+  lock: SchedulerLease,
   now: number,
-): Promise<boolean> {
-  const result = await db
+) {
+  return db
     .prepare(
       `INSERT INTO nba_player_refresh_observations (season_end_year,player_id,stats_json,observed_at,published_at_ms)
      SELECT ?1,?2,?3,?4,NULL WHERE EXISTS (
        SELECT 1 FROM nba_refresh_locks WHERE lock_key=?5 AND token=?6 AND lease_expires_at_ms>?7
      ) ON CONFLICT(season_end_year,player_id) DO UPDATE SET stats_json=excluded.stats_json,observed_at=excluded.observed_at,published_at_ms=NULL
-     WHERE nba_player_refresh_observations.observed_at < excluded.observed_at`,
+     WHERE nba_player_refresh_observations.observed_at <= excluded.observed_at`,
     )
     .bind(
       season,
@@ -419,8 +453,6 @@ async function stageAverage(
       lock.token,
       now,
     )
-    .run()
-  return (result.meta?.changes ?? 0) === 1
 }
 
 async function pendingObservations(db: D1Database, season: number, limit: number) {
@@ -435,97 +467,56 @@ async function pendingObservations(db: D1Database, season: number, limit: number
 async function publishObservations(
   db: D1Database,
   progress: PlayerRefreshProgress,
-  lock: { key: string; token: string },
-  now: number,
-): Promise<number> {
-  const result = await pendingObservations(db, progress.seasonEndYear, OBSERVATION_BATCH_SIZE)
-  const observations = result.results ?? []
-  if (!observations.length) return 0
+  lock: SchedulerLease,
+  observations: { player_id: string; stats_json: string; observed_at: string }[],
+) {
   const data = await loadSnapshot(db, progress.seasonEndYear)
   if (!data) throw new Error('Player snapshot unavailable while publishing season averages')
-  const playersById = new Map(data.players.map((player) => [player.id, player]))
-  const touched: string[] = []
+  const indices = new Map(data.players.map(({ id }, index) => [id, index]))
   for (const row of observations) {
-    const player = playersById.get(row.player_id)
-    if (!player || !timestamp(row.observed_at)) continue
-    let stats: unknown
-    try {
-      stats = JSON.parse(row.stats_json)
-    } catch {
-      continue
-    }
-    if (stats !== null && !isPlayerEntry({ ...player, stats })) continue
+    const index = indices.get(row.player_id)
+    const player = index === undefined ? undefined : data.players[index]
+    const stats = JSON.parse(row.stats_json) as PlayerStats | null
+    if (
+      !player ||
+      index === undefined ||
+      !timestamp(row.observed_at) ||
+      (stats !== null && !isPlayerEntry({ ...player, stats }))
+    )
+      throw new Error('Invalid staged player observation')
     const previousAt = data.averageAt[row.player_id]
-    if (previousAt && Date.parse(previousAt) >= Date.parse(row.observed_at)) {
-      touched.push(row.player_id)
+    if (
+      stats === null ||
+      (player.stats?.gp ?? 0) > (stats.gp ?? 0) ||
+      (player.stats &&
+        playerMetrics.some(([key]) => player.stats?.[key] != null && stats[key] === null)) ||
+      (previousAt && Date.parse(previousAt) >= Date.parse(row.observed_at))
+    ) {
+      progress.retained += 1
       continue
     }
-    if (stats !== null) {
-      const updated = { ...player, stats: stats as PlayerStats }
-      const index = data.players.findIndex(({ id }) => id === row.player_id)
-      data.players[index] = updated
-      playersById.set(row.player_id, updated)
-    }
+    data.players[index] = { ...player, stats }
     data.averageAt[row.player_id] = row.observed_at
-    touched.push(row.player_id)
+    progress.successful += 1
   }
-  const updated = refreshCoverage(data)
-  if (!isStoredPlayers(updated, progress.seasonEndYear))
-    throw new Error('Refusing invalid staged player averages')
-  const payload = JSON.stringify(updated)
-  if (new TextEncoder().encode(payload).byteLength >= MAX_SNAPSHOT_BYTES)
-    throw new Error('Player snapshot exceeds safe D1 row size')
-  const statements = [
-    db
-      .prepare(
-        `INSERT INTO nba_player_snapshot (season_end_year,fetched_at,payload) VALUES (?1,?2,?3)
-       ON CONFLICT(season_end_year) DO UPDATE SET fetched_at=excluded.fetched_at,payload=excluded.payload
-       WHERE EXISTS (SELECT 1 FROM nba_refresh_locks WHERE lock_key=?4 AND token=?5 AND lease_expires_at_ms>?6)`,
-      )
-      .bind(progress.seasonEndYear, oldestObservation(updated), payload, lock.key, lock.token, now),
-    ...touched.map((id) =>
+  const snapshot = snapshotWrite(db, progress.seasonEndYear, refreshCoverage(data), lock)
+  await commitProgress(db, progress, lock, (now) => [
+    snapshot(now),
+    ...observations.map((row) =>
       db
         .prepare(
-          'UPDATE nba_player_refresh_observations SET published_at_ms=?3 WHERE season_end_year=?1 AND player_id=?2 AND published_at_ms IS NULL',
+          `UPDATE nba_player_refresh_observations SET published_at_ms=?3
+     WHERE season_end_year=?1 AND player_id=?2 AND published_at_ms IS NULL AND observed_at=?4
+       AND EXISTS (SELECT 1 FROM nba_refresh_locks WHERE lock_key=?5 AND token=?6 AND lease_expires_at_ms>?3)`,
         )
-        .bind(progress.seasonEndYear, id, now),
+        .bind(progress.seasonEndYear, row.player_id, now, row.observed_at, lock.key, lock.token),
     ),
-  ]
-  const batch = await db.batch(statements)
-  return batch[0]?.meta?.changes === 1 ? touched.length : 0
+  ])
 }
 
 function oldestObservation(data: StoredPlayers) {
   const dates = [data.directoryAt, ...Object.values(data.averageAt)].filter(timestamp)
   return dates.reduce((oldest, value) => (Date.parse(value) < Date.parse(oldest) ? value : oldest))
-}
-
-async function updatePlayerDetail(
-  db: D1Database,
-  progress: PlayerRefreshProgress,
-  playerId: string,
-  update: (detail: StoredPlayerDetail) => StoredPlayerDetail,
-  lock: { key: string; token: string },
-  now: number,
-) {
-  const data = await loadSnapshot(db, progress.seasonEndYear)
-  if (!data) throw new Error('Player snapshot unavailable during profile enrichment')
-  const id = `bbs:player:${playerId}`
-  if (!data.players.some((player) => player.id === id))
-    throw new Error('Unknown BBS player during enrichment')
-  const current: StoredPlayerDetail = data.details[id] ?? {
-    birthDate: null,
-    currentTeam: null,
-    profileAt: null,
-    logAt: null,
-    games: [],
-  }
-  data.details[id] = update(current)
-  const refreshed = refreshCoverage(data)
-  if (!isStoredPlayers(refreshed, progress.seasonEndYear))
-    throw new Error('Refusing invalid enriched player snapshot')
-  if (!(await saveSnapshot(db, progress.seasonEndYear, refreshed, lock, now)))
-    throw new Error('Lost scheduler lease while publishing player enrichment')
 }
 
 function normalizedProfile(
@@ -536,17 +527,17 @@ function normalizedProfile(
   const root = record(payload) && record(payload.data) ? payload.data : null
   const profile = root && record(root.player) ? root.player : null
   if (!profile || `bbs:player:${profile.id}` !== `bbs:player:${id}` || profile.league !== 'NBA')
-    throw new Error('BBS player profile identity mismatch')
+    throw new InvalidPlayerDetail('BBS player profile identity mismatch')
   const birthDate = profile.date_of_birth
   if (birthDate !== null && birthDate !== undefined && !calendarDate(birthDate))
-    throw new Error('Invalid BBS player birth date')
+    throw new InvalidPlayerDetail('Invalid BBS player birth date')
   const current = profile.current_team
   if (
     current !== null &&
     current !== undefined &&
     (!record(current) || typeof current.id !== 'string' || !UUID.test(current.id))
   )
-    throw new Error('Invalid BBS player current team')
+    throw new InvalidPlayerDetail('Invalid BBS player current team')
   return {
     birthDate: typeof birthDate === 'string' ? birthDate : null,
     currentTeam:
@@ -571,7 +562,8 @@ function normalizedPlayerLog(
 ): StoredPlayerDetail['games'] {
   const data = record(payload) && 'data' in payload ? payload.data : payload
   const rows = Array.isArray(data) ? data : record(data) ? data.games : null
-  if (!Array.isArray(rows) || rows.length > 15) throw new Error('Invalid BBS player game log')
+  if (!Array.isArray(rows) || rows.length > 15)
+    throw new InvalidPlayerDetail('Invalid BBS player game log')
   const games: StoredPlayerDetail['games'] = []
   const seen = new Set<string>()
   for (const row of rows) {
@@ -580,11 +572,11 @@ function normalizedPlayerLog(
       !seasonDate(row.date, season) ||
       (row.player_id != null && String(row.player_id) !== playerId)
     )
-      throw new Error('BBS player game log identity/date mismatch')
+      throw new InvalidPlayerDetail('BBS player game log identity/date mismatch')
     const matchId =
       row.match_id === null || row.match_id === undefined ? null : String(row.match_id)
     if (matchId !== null && !/^[\w-]{1,100}$/.test(matchId))
-      throw new Error('Invalid BBS player game reference')
+      throw new InvalidPlayerDetail('Invalid BBS player game reference')
     const team = readString(row.abbr)
     const opponent = team
       ? (createTeam('bbs', team, team, null)?.abbreviation ?? team.slice(0, 130))
@@ -613,13 +605,12 @@ function normalizedPlayerLog(
 }
 
 async function enrichOnePlayer(
-  db: D1Database,
   repository: NbaRepository,
   fetcher: typeof fetch,
   env: WorkerEnvironment,
   progress: PlayerRefreshProgress,
   snapshot: StoredPlayers,
-  lock: { key: string; token: string },
+  lock: SchedulerLease,
   now: number,
 ) {
   if (snapshot.players.length === 0) return
@@ -641,6 +632,7 @@ async function enrichOnePlayer(
   })
   if (!candidate) return
   const id = bbsPlayerIdValue(candidate.id)
+  progress.lastEnrichedPlayerId = id
   const teamCache = await repository.getCache(
     teamDirectoryCacheKey('bbs', progress.seasonEndYear as never),
   )
@@ -656,20 +648,6 @@ async function enrichOnePlayer(
   )
   const profile = normalizedProfile(profilePayload, id, teams)
   const profileAt = new Date(Date.now()).toISOString()
-  await updatePlayerDetail(
-    db,
-    progress,
-    id,
-    (detail) => ({
-      ...detail,
-      birthDate: profile.birthDate ?? detail.birthDate,
-      currentTeam: profile.currentTeam ?? detail.currentTeam,
-      profileAt,
-    }),
-    lock,
-    Date.now(),
-  )
-
   const logPayload = await getBbsJson(
     `/v1/players/${id}/gamelog?season=${progress.seasonEndYear - 1}&limit=15`,
     env,
@@ -680,32 +658,32 @@ async function enrichOnePlayer(
   )
   const games = normalizedPlayerLog(logPayload, id, progress.seasonEndYear)
   const logAt = new Date(Date.now()).toISOString()
-  const keepGames = games.length > 0 || !old?.games.length
-  if (
-    isPlayerDetail(
-      {
-        ...(old ?? { birthDate: null, currentTeam: null, profileAt: null, logAt: null, games: [] }),
-        games: keepGames ? games : old!.games,
-      },
-      progress.seasonEndYear,
-    )
-  ) {
-    await updatePlayerDetail(
-      db,
-      progress,
-      id,
-      (detail) => ({
-        ...detail,
-        games: keepGames ? games : detail.games,
-        logAt,
-      }),
-      lock,
-      Date.now(),
-    )
-  } else {
-    throw new Error('Invalid normalized BBS player game log')
+  const keepGames =
+    games.length > 0 &&
+    games.length >= (old?.games.length ?? 0) &&
+    (old?.games.every((prior) => {
+      const incoming = games.find((game) =>
+        prior.matchId
+          ? game.matchId === prior.matchId
+          : game.date === prior.date && game.opponent === prior.opponent,
+      )
+      return (
+        !incoming ||
+        (['pts', 'reb', 'ast', 'min'] as const).every(
+          (field) => prior[field] === null || incoming[field] !== null,
+        )
+      )
+    }) ??
+      true) &&
+    (old?.games.every((prior) => games.some((game) => game.date >= prior.date)) ?? true)
+  snapshot.details[candidate.id] = {
+    birthDate: profile.birthDate ?? old?.birthDate ?? null,
+    currentTeam: profile.currentTeam ?? old?.currentTeam ?? null,
+    profileAt: profile.birthDate && profile.currentTeam ? profileAt : (old?.profileAt ?? null),
+    games: keepGames ? games : (old?.games ?? []),
+    logAt: keepGames ? logAt : (old?.logAt ?? null),
   }
-  progress.lastEnrichedPlayerId = id
+  return refreshCoverage(snapshot)
 }
 
 async function refreshRecentGameRefs(
@@ -730,6 +708,7 @@ async function refreshRecentGameRefs(
     base?.capability === 'games'
       ? base.data
           .filter((game) => game.provider === 'bbs' && game.status === 'final')
+          .slice(0, 15)
           .map((game) => ({ date: game.nbaGameDate, gameId: game.id, base }))
       : [],
   )
@@ -780,7 +759,11 @@ async function refreshRecentGameRefs(
     const recentIds = new Set(refs.map((ref) => ref.gameId))
     boxLinks += combined.filter((game) => game.gameId && recentIds.has(game.gameId)).length
   }
-  return refreshCoverage({ ...snapshot, gameRefs, coverage: { ...snapshot.coverage, boxLinks } })
+  return refreshCoverage({
+    ...snapshot,
+    gameRefs,
+    coverage: { ...snapshot.coverage, boxLinks: Math.max(snapshot.coverage.boxLinks, boxLinks) },
+  })
 }
 
 function bbsPlayerIdValue(value: string) {
@@ -789,18 +772,13 @@ function bbsPlayerIdValue(value: string) {
   return id
 }
 
-function parseAverageResponse(payload: unknown, player: NbaPlayerEntry, startYear: number) {
-  const wrapped = record(payload) && 'data' in payload ? payload : { data: payload }
-  return normalizeAverage(wrapped, player, startYear)
-}
-
 async function getDirectoryPage(
   db: D1Database,
   repository: NbaRepository,
   fetcher: typeof fetch,
   env: WorkerEnvironment,
   progress: PlayerRefreshProgress,
-  lock: { key: string; token: string },
+  lock: SchedulerLease,
   now: number,
 ) {
   const offset = progress.directoryOffset
@@ -812,34 +790,40 @@ async function getDirectoryPage(
     now,
     lock,
   )
-  const page = normalizeBbsPlayerDirectoryPage(payload, progress.seasonEndYear - 1, offset)
+  let page
+  try {
+    page = normalizeBbsPlayerDirectoryPage(payload, progress.seasonEndYear - 1, offset)
+  } catch {
+    throw new InvalidDirectory('Invalid BBS player directory page')
+  }
   if (progress.directoryTotal !== null && progress.directoryTotal !== page.total)
-    throw new Error('BBS player directory total changed during pagination')
-  if (!progress.directoryTotal) progress.directoryTotal = page.total
-  const observedAt = new Date(Date.now()).toISOString()
-  if (
-    !(await saveDirectoryPage(
+    throw new InvalidDirectory('BBS player directory total changed during pagination')
+  progress.directoryTotal = page.total
+  progress.directoryOffset += page.rows.length
+  progress.pauseUntil = null
+  await commitProgress(db, progress, lock, (time) => [
+    directoryPageWrite(
       db,
       progress.seasonEndYear,
-      { offset, total: page.total, payload, observedAt },
+      {
+        offset,
+        total: page.total,
+        payload,
+        observedAt: new Date(time).toISOString(),
+      },
       lock,
-      Date.now(),
-    ))
-  )
-    throw new Error('Lost scheduler lease while staging player directory')
-  progress.directoryOffset += page.rows.length
-  if (progress.directoryOffset >= page.total) {
-    await publishDirectory(db, repository, progress, lock, Date.now())
-    progress.cycleStartedAt = new Date(Date.now()).toISOString()
-  }
+      time,
+    ),
+  ])
 }
 
 function retryAfter(cause: unknown, fallback: number) {
   return cause &&
     typeof cause === 'object' &&
     'retryAt' in cause &&
-    Number.isFinite(Number(cause.retryAt))
-    ? Number(cause.retryAt)
+    typeof cause.retryAt === 'number' &&
+    Number.isFinite(cause.retryAt)
+    ? cause.retryAt
     : fallback
 }
 
@@ -852,8 +836,10 @@ function isGlobalError(cause: unknown) {
   )
 }
 
-function nextUtcDay(now: number) {
-  return Math.floor(now / 86_400_000) * 86_400_000 + 86_400_000
+function nextCoreWindow(cycleStart: number) {
+  const date = getDateKeyInTimeZone(new Date(cycleStart), NBA_TIME_ZONE)
+  // Noon UTC on the next NBA date is before the outer scheduler's 10:00 ET gate.
+  return Date.parse(`${date}T12:00:00.000Z`) + 86_400_000
 }
 
 function publicStatus(progress: PlayerRefreshProgress) {
@@ -865,7 +851,9 @@ function publicStatus(progress: PlayerRefreshProgress) {
         : progress.phase === 'directory'
           ? (progress.directoryTotal ?? progress.playerIds.length)
           : progress.playerIds.length,
+    checked: progress.successful + progress.retained + progress.failed,
     updated: progress.successful,
+    retained: progress.retained,
     failed: progress.failed,
     cycleStartedAt: progress.cycleStartedAt,
     lastCompletedAt: progress.lastCompletedAt,
@@ -884,35 +872,24 @@ export function parseBbsPlayerRefreshStatus(
 async function finishCycle(
   db: D1Database,
   progress: PlayerRefreshProgress,
-  lock: { key: string; token: string },
+  lock: SchedulerLease,
   now: number,
+  snapshot?: StoredPlayers,
 ) {
   progress.lastCycleTotal = progress.playerIds.length
   progress.phase = 'idle'
   progress.lastCompletedAt = new Date(now).toISOString()
-  progress.nextCycleAt = nextUtcDay(now)
+  progress.nextCycleAt = nextCoreWindow(
+    Date.parse(progress.cycleStartedAt ?? new Date(now).toISOString()),
+  )
   progress.cursor = 0
   progress.playerIds = []
   progress.retries = []
   progress.pauseUntil = null
-  await saveProgress(db, progress, lock, now)
-}
-
-async function maybePublish(
-  db: D1Database,
-  progress: PlayerRefreshProgress,
-  lock: { key: string; token: string },
-  now: number,
-  force: boolean,
-) {
-  const count = await db
-    .prepare(
-      'SELECT COUNT(*) AS total FROM nba_player_refresh_observations WHERE season_end_year=?1 AND published_at_ms IS NULL',
-    )
-    .bind(progress.seasonEndYear)
-    .first<{ total: number }>()
-  if (!count || count.total === 0 || (!force && count.total < OBSERVATION_BATCH_SIZE)) return 0
-  return publishObservations(db, progress, lock, now)
+  if (snapshot) {
+    const write = snapshotWrite(db, progress.seasonEndYear, snapshot, lock)
+    await commitProgress(db, progress, lock, (time) => [write(time)])
+  } else await saveProgress(db, progress, lock, now)
 }
 
 export async function runScheduledBbsPlayerRefresh(
@@ -921,7 +898,7 @@ export async function runScheduledBbsPlayerRefresh(
   repository: NbaRepository,
   fetcher: typeof fetch,
   now: number,
-  lock: { key: string; token: string },
+  lock: SchedulerLease,
 ) {
   if (
     env.BBS_PLAYER_REFRESH_ENABLED !== 'true' ||
@@ -931,183 +908,153 @@ export async function runScheduledBbsPlayerRefresh(
   )
     return null
   const season = playerSeason
-  const snapshot = await loadSnapshot(db, season)
   let progress = await loadProgress(db, season)
-  if (!progress) progress = initialProgress(season, snapshot, now)
-  if (progress.pauseUntil !== null && progress.pauseUntil > now) return publicStatus(progress)
-  if (progress.phase === 'idle') {
-    if (now < progress.nextCycleAt) return publicStatus(progress)
-    const lastCompletedAt = progress.lastCompletedAt
-    const lastEnrichedPlayerId = progress.lastEnrichedPlayerId
-    const directoryDue = !snapshot || now - Date.parse(snapshot.directoryAt) >= DIRECTORY_REFRESH_MS
-    progress = initialProgress(season, snapshot, now)
-    progress.phase = directoryDue ? 'directory' : 'averages'
-    progress.lastCompletedAt = lastCompletedAt
-    progress.lastEnrichedPlayerId = lastEnrichedPlayerId
+  if (!progress || (progress.phase === 'idle' && now >= progress.nextCycleAt)) {
+    const previous = progress
+    progress = initialProgress(season, await loadSnapshot(db, season), now)
+    progress.lastCompletedAt = previous?.lastCompletedAt ?? null
+    progress.lastEnrichedPlayerId = previous?.lastEnrichedPlayerId ?? null
   }
+  if (progress.phase === 'idle' || (progress.pauseUntil ?? 0) > now) return publicStatus(progress)
+
   try {
     if (progress.phase === 'directory') {
-      await getDirectoryPage(db, repository, fetcher, env, progress, lock, now)
-      progress.pauseUntil = null
-      await saveProgress(db, progress, lock, Date.now())
-      return publicStatus(progress)
-    }
-    if (progress.phase === 'averages') {
-      if (progress.cursor >= progress.playerIds.length) {
-        progress.phase = progress.retries.length ? 'retry' : 'publish'
-        await maybePublish(db, progress, lock, Date.now(), true)
-        await saveProgress(db, progress, lock, Date.now())
-        return publicStatus(progress)
-      }
-      const playerId = progress.playerIds[progress.cursor]!
-      const fullId = `bbs:player:${playerId}`
-      const payload = await getBbsJson(
-        `/v1/nba/players/${playerId}/season-averages?season=${season - 1}`,
-        env,
-        repository,
-        fetcher,
-        now,
-        lock,
-      )
-      const placeholder: NbaPlayerEntry = {
-        id: fullId,
-        name: 'Player',
-        team: null,
-        position: null,
-        number: null,
-        height: null,
-        weight: null,
-        stats: null,
-      }
-      const stats = parseAverageResponse(payload, placeholder, season - 1)
+      if (progress.directoryTotal !== null && progress.directoryOffset === progress.directoryTotal)
+        await publishDirectory(db, repository, progress, lock, now)
+      else await getDirectoryPage(db, repository, fetcher, env, progress, lock, now)
+    } else if (
+      progress.phase === 'averages' ||
+      progress.phase === 'publish' ||
+      progress.phase === 'retry'
+    ) {
+      const observations =
+        (await pendingObservations(db, season, OBSERVATION_BATCH_SIZE)).results ?? []
       if (
-        !(await stageAverage(
-          db,
-          season,
-          playerId,
-          stats,
-          new Date(Date.now()).toISOString(),
-          lock,
-          Date.now(),
-        ))
-      )
-        throw new Error('Lost scheduler lease while staging player average')
-      progress.cursor += 1
-      progress.successful += 1
-      progress.pauseUntil = null
-      await maybePublish(
-        db,
-        progress,
-        lock,
-        Date.now(),
-        progress.cursor >= progress.playerIds.length,
-      )
-      if (progress.cursor >= progress.playerIds.length)
-        progress.phase = progress.retries.length ? 'retry' : 'publish'
-      await saveProgress(db, progress, lock, Date.now())
-      return publicStatus(progress)
-    }
-    if (progress.phase === 'publish') {
-      const written = await maybePublish(db, progress, lock, Date.now(), true)
-      const count = await db
-        .prepare(
-          'SELECT COUNT(*) AS total FROM nba_player_refresh_observations WHERE season_end_year=?1 AND published_at_ms IS NULL',
-        )
-        .bind(season)
-        .first<{ total: number }>()
-      if ((count?.total ?? 0) === 0) progress.phase = 'gameRefs'
-      else if (!written) throw new Error('Unable to publish staged player averages')
-      await saveProgress(db, progress, lock, Date.now())
-      return publicStatus(progress)
-    }
-    if (progress.phase === 'gameRefs') {
-      if (snapshot) {
-        const data = await refreshRecentGameRefs(repository, snapshot, season, now)
-        if (!(await saveSnapshot(db, season, data, lock, Date.now())))
-          throw new Error('Lost scheduler lease while publishing cached player game links')
+        observations.length === OBSERVATION_BATCH_SIZE ||
+        (progress.phase === 'publish' && observations.length > 0)
+      ) {
+        await publishObservations(db, progress, lock, observations)
+      } else if (progress.phase === 'publish') {
+        progress.phase = 'gameRefs'
+        await saveProgress(db, progress, lock, Date.now())
+      } else {
+        await refreshAverage(db, repository, fetcher, env, progress, lock, now)
       }
+    } else if (progress.phase === 'gameRefs') {
+      const snapshot = await loadSnapshot(db, season)
+      if (!snapshot) throw new Error('Missing player snapshot for game links')
+      const data = await refreshRecentGameRefs(repository, snapshot, season, now)
       progress.phase = 'enrich'
-      await saveProgress(db, progress, lock, Date.now())
-      return publicStatus(progress)
-    }
-    if (progress.phase === 'retry') {
-      const retryIndex = progress.retries.findIndex((entry) => entry.retryAt <= now)
-      if (retryIndex < 0) {
-        if (progress.retries.length) return publicStatus(progress)
-        progress.phase = 'publish'
-        await saveProgress(db, progress, lock, Date.now())
-        return publicStatus(progress)
-      }
-      const retry = progress.retries[retryIndex]!
-      const payload = await getBbsJson(
-        `/v1/nba/players/${retry.id}/season-averages?season=${season - 1}`,
-        env,
-        repository,
-        fetcher,
-        now,
-        lock,
-      )
-      const player = snapshot?.players.find(({ id }) => id === `bbs:player:${retry.id}`)
-      if (!player) throw new Error('Player disappeared during averages retry')
-      const stats = parseAverageResponse(payload, player, season - 1)
-      if (
-        !(await stageAverage(
-          db,
-          season,
-          retry.id,
-          stats,
-          new Date(Date.now()).toISOString(),
-          lock,
-          Date.now(),
-        ))
-      )
-        throw new Error('Lost scheduler lease while staging player average retry')
-      progress.retries.splice(retryIndex, 1)
-      progress.successful += 1
-      progress.phase = progress.retries.length ? 'retry' : 'publish'
-      await maybePublish(db, progress, lock, Date.now(), true)
-      await saveProgress(db, progress, lock, Date.now())
-      return publicStatus(progress)
-    }
-    if (progress.phase === 'enrich') {
-      if (snapshot)
-        await enrichOnePlayer(db, repository, fetcher, env, progress, snapshot, lock, now)
-      await finishCycle(db, progress, lock, Date.now())
-      return publicStatus(progress)
-    }
-  } catch (cause) {
-    if (isGlobalError(cause)) {
-      progress.pauseUntil = retryAfter(cause, Date.now() + 15 * 60_000)
-    } else if (progress.phase === 'averages' && progress.cursor < progress.playerIds.length) {
-      const id = progress.playerIds[progress.cursor]!
-      progress.cursor += 1
-      progress.failed += 1
-      progress.retries.push({ id, attempts: 1, retryAt: Date.now() + PLAYER_RETRY_MS })
-      if (progress.cursor >= progress.playerIds.length) progress.phase = 'retry'
-    } else if (progress.phase === 'retry') {
-      const due = progress.retries.find((retry) => retry.retryAt <= now)
-      if (due) {
-        if (due.attempts >= 3) {
-          progress.retries = progress.retries.filter((retry) => retry.id !== due.id)
-          progress.failed += 1
-        } else {
-          due.attempts += 1
-          due.retryAt = Date.now() + PLAYER_RETRY_MS * 2 ** (due.attempts - 1)
+      const write = snapshotWrite(db, season, data, lock)
+      await commitProgress(db, progress, lock, (time) => [write(time)])
+    } else if (progress.phase === 'enrich') {
+      const snapshot = await loadSnapshot(db, season)
+      let enriched
+      const lastEnriched = progress.lastEnrichedPlayerId
+      try {
+        if (snapshot)
+          enriched = await enrichOnePlayer(repository, fetcher, env, progress, snapshot, lock, now)
+      } catch (cause) {
+        if (!(cause instanceof InvalidPlayerDetail) && !isRejectedPlayerResponse(cause)) {
+          progress.lastEnrichedPlayerId = lastEnriched
+          throw cause
         }
       }
-    } else {
-      progress.pauseUntil = Date.now() + PLAYER_RETRY_MS
+      await finishCycle(db, progress, lock, Date.now(), enriched)
     }
-    await saveProgress(db, progress, lock, Date.now())
-    return publicStatus(progress)
-  } finally {
-    /* The outer scheduled runner owns and releases the shared lease. */
+  } catch (cause) {
+    if (cause instanceof InvalidDirectory) {
+      progress.directoryOffset = 0
+      progress.directoryTotal = null
+      progress.pauseUntil = Date.now() + PLAYER_RETRY_MS
+      await commitProgress(db, progress, lock, (time) => [
+        deleteDirectoryPages(db, season, lock, time),
+      ])
+    } else if (isGlobalError(cause)) {
+      progress.pauseUntil = retryAfter(cause, Date.now() + PLAYER_RETRY_MS)
+      await saveProgress(db, progress, lock, Date.now())
+    } else {
+      throw cause
+    }
   }
   return publicStatus(progress)
 }
 
-export function playerRefreshPublicStatus(progress: PlayerRefreshProgress | null) {
-  return progress ? publicStatus(progress) : null
+function isRejectedPlayerResponse(cause: unknown) {
+  return (
+    record(cause) &&
+    ['not_found', 'invalid_response', 'invalid_request'].includes(String(cause.code))
+  )
 }
 
-export type { PlayerRefreshProgress }
+async function refreshAverage(
+  db: D1Database,
+  repository: NbaRepository,
+  fetcher: typeof fetch,
+  env: WorkerEnvironment,
+  progress: PlayerRefreshProgress,
+  lock: SchedulerLease,
+  now: number,
+) {
+  const retry =
+    progress.phase === 'retry' ? progress.retries.find((item) => item.retryAt <= now) : undefined
+  const id = progress.phase === 'averages' ? progress.playerIds[progress.cursor] : retry?.id
+  if (!id) return
+  let payload: unknown
+  let rejected = false
+  try {
+    payload = await getBbsJson(
+      `/v1/nba/players/${id}/season-averages?season=${progress.seasonEndYear - 1}`,
+      env,
+      repository,
+      fetcher,
+      now,
+      lock,
+    )
+  } catch (cause) {
+    if (!isRejectedPlayerResponse(cause)) throw cause
+    rejected = true
+  }
+  let stats: PlayerStats | null = null
+  if (!rejected) {
+    try {
+      stats = normalizeAverage(
+        Array.isArray(payload) ? { data: payload } : payload,
+        {
+          id: `bbs:player:${id}`,
+          name: 'Player',
+          team: null,
+          position: null,
+          number: null,
+          height: null,
+          weight: null,
+          stats: null,
+        },
+        progress.seasonEndYear - 1,
+      )
+    } catch {
+      rejected = true
+    }
+  }
+  if (!retry) progress.cursor += 1
+  if (rejected) {
+    if (!retry) progress.retries.push({ id, attempts: 1, retryAt: now + PLAYER_RETRY_MS })
+    else if (retry.attempts < 3) {
+      retry.attempts += 1
+      retry.retryAt = now + PLAYER_RETRY_MS * 2 ** (retry.attempts - 1)
+    } else {
+      progress.retries = progress.retries.filter((item) => item !== retry)
+      progress.failed += 1
+    }
+  } else if (retry) {
+    progress.retries = progress.retries.filter((item) => item !== retry)
+  }
+  if (progress.cursor === progress.playerIds.length)
+    progress.phase = progress.retries.length ? 'retry' : 'publish'
+  progress.pauseUntil = null
+  if (rejected) await saveProgress(db, progress, lock, Date.now())
+  else
+    await commitProgress(db, progress, lock, (time) => [
+      averageWrite(db, progress.seasonEndYear, id, stats, new Date(time).toISOString(), lock, time),
+    ])
+}

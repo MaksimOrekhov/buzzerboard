@@ -140,7 +140,7 @@ function sampleContext(player: NonNullable<typeof data.value>['players'][number]
   return `GP ${formatPlayerStat('gp', stats.gp)} · MIN ${formatPlayerStat('min', stats.min)} · FGA ${formatPlayerStat('fga', stats.fga)}`
 }
 function formatFreshness(value: string | null | undefined) {
-  return value ? new Date(value).toLocaleString('ru-RU') : 'ещё не проверялись'
+  return value ? new Date(value).toLocaleString('ru-RU') : 'нет даты'
 }
 function refreshPhaseLabel(phase: string) {
   return (
@@ -305,9 +305,11 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
         Средние за матч; GP — матчи сезона. Пороги GP, минут и FGA — пользовательские, по умолчанию
         выключены.
         <template v-if="data?.refreshStatus">
-          Автообновление BBS: {{ refreshPhaseLabel(data.refreshStatus.phase) }},
-          {{ data.refreshStatus.updated }}/{{ data.refreshStatus.total }} обновлено в цикле;
-          последний полный цикл: {{ formatFreshness(data.refreshStatus.lastCompletedAt) }}.
+          Автообновление BBS: {{ refreshPhaseLabel(data.refreshStatus.phase) }}, проверено
+          {{ data.refreshStatus.checked }}/{{ data.refreshStatus.total }}, обновлено
+          {{ data.refreshStatus.updated }}, сохранено без изменений
+          {{ data.refreshStatus.retained }}, не удалось {{ data.refreshStatus.failed }}. Последний
+          завершённый проход: {{ formatFreshness(data.refreshStatus.lastCompletedAt) }}.
         </template>
       </p>
       <div class="players-table-panel">
