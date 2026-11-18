@@ -180,6 +180,11 @@ it('reimports into SQLite without dropping enrichment, downgrading observations 
     expect(isStoredPlayers(initial)).toBe(true)
     expect(initial.gameRefs[playerId]).toEqual([ref])
     expect(initial.details[playerId]?.games[0]).toMatchObject({ pts: 24, gameId: null })
+    db.exec(`CREATE TABLE nba_player_refresh_state (
+      season_end_year INTEGER PRIMARY KEY,
+      progress_json TEXT NOT NULL,
+      updated_at_ms INTEGER NOT NULL
+    )`)
     const sqliteReader = {
       prepare: (query: string) => ({
         bind: (season: number) => ({

@@ -224,6 +224,7 @@ export interface WorkerAssets {
 
 export interface WorkerEnvironment {
   BBS_PLAYERS_ENABLED?: string
+  BBS_PLAYER_REFRESH_ENABLED?: string
   NBA_DB?: D1Database
   ASSETS?: WorkerAssets
   DUNKAPI_REFRESH_ENABLED?: string

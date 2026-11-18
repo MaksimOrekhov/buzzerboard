@@ -41,6 +41,7 @@ import {
 import type { NbaRefreshTarget } from './types'
 import type { BoxScoreRefreshOutcome } from './gameDetails'
 import { isSameFinalGameSnapshot } from '@/shared/api/nba/gameDetailsGuards'
+import { runScheduledBbsPlayerRefresh } from './bbsPlayerRefresh'
 
 const DEFAULT_DAILY_LIMIT = 150
 const DEFAULT_MINUTE_LIMIT = 10
@@ -152,7 +153,7 @@ async function lockStillOwned(
   }
 }
 
-async function getBbsJson(
+export async function getBbsJson(
   path: string,
   env: WorkerEnvironment,
   repository: NbaRepository,
@@ -1302,8 +1303,18 @@ export async function runScheduledBbsRefresh(
   }
   try {
     let progress = await repository.getScheduledBbsProgress()
-    if (!progress && currentHour < 10) return []
-    if (progress?.cycleDate === today && progress.tasks.length === 0) return []
+    if (
+      currentHour < 10 &&
+      (!progress || (progress.cycleDate !== today && progress.tasks.length === 0))
+    )
+      return []
+    if (progress?.cycleDate === today && progress.tasks.length === 0) {
+      await runScheduledBbsPlayerRefresh(env.NBA_DB, env, repository, fetcher, now, {
+        key: QUEUE_LOCK_KEY,
+        token,
+      })
+      return []
+    }
     if (!progress) {
       const daily = scheduledBbsTasksForDate(today)
       if (!daily.length) return []
@@ -1334,7 +1345,14 @@ export async function runScheduledBbsRefresh(
       throw new Error('BBS refresh queue exceeds limit')
     if (progress.cycleDate === today && progress.tasks.length === 0) return []
     const taskIndex = firstDueTask(progress, now)
-    if (taskIndex < 0) return []
+    if (taskIndex < 0) {
+      if (progress.tasks.length === 0)
+        await runScheduledBbsPlayerRefresh(env.NBA_DB, env, repository, fetcher, now, {
+          key: QUEUE_LOCK_KEY,
+          token,
+        })
+      return []
+    }
     if (!(await saveOwnedProgress(progress))) return []
     const item = progress.tasks[taskIndex]
     if (!item) return []

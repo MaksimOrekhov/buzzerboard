@@ -8,6 +8,7 @@ import {
   type PlayerGame,
   type PlayerResponse,
   type PlayersResponse,
+  type PlayerRefreshSummary,
 } from './players.ts'
 
 export interface PlayerGameRef {
@@ -75,7 +76,10 @@ export function isPlayerEntry(value: unknown): value is NbaPlayerEntry {
     !playerId(value.id) ||
     !text(value.name) ||
     !team(value.team) ||
-    ![value.position, value.number, value.height, value.weight].every(nullableText)
+    ![value.position, value.number, value.height, value.weight].every(nullableText) ||
+    (Object.hasOwn(value, 'averageUpdatedAt') &&
+      value.averageUpdatedAt !== null &&
+      !timestamp(value.averageUpdatedAt))
   )
     return false
   const stats = value.stats
@@ -164,7 +168,25 @@ function snapshot(value: unknown): value is Record<string, unknown> {
     value.seasonEndYear === playerSeason &&
     timestamp(value.fetchedAt) &&
     typeof value.isStale === 'boolean' &&
-    isCoverage(value.coverage)
+    isCoverage(value.coverage) &&
+    (!Object.hasOwn(value, 'refreshStatus') ||
+      value.refreshStatus === null ||
+      isPlayerRefreshSummary(value.refreshStatus))
+  )
+}
+
+export function isPlayerRefreshSummary(value: unknown): value is PlayerRefreshSummary {
+  return (
+    record(value) &&
+    ['directory', 'averages', 'publish', 'retry', 'gameRefs', 'enrich', 'idle'].includes(
+      String(value.phase),
+    ) &&
+    count(value.total) &&
+    count(value.updated) &&
+    count(value.failed) &&
+    (value.cycleStartedAt === null || timestamp(value.cycleStartedAt)) &&
+    (value.lastCompletedAt === null || timestamp(value.lastCompletedAt)) &&
+    count(value.nextCycleAt)
   )
 }
 export function isPlayersResponse(value: unknown): value is PlayersResponse {

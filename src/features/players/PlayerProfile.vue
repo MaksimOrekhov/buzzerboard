@@ -109,7 +109,22 @@ const advancedStats = computed(() => seasonAdvancedMetrics(data.value?.player.st
         <h2>Статистика сезона</h2>
         <p class="player-meta">
           BBS · Снимок {{ new Date(data.fetchedAt).toLocaleString('ru-RU')
-          }}{{ data.isStale ? ' · устарел' : '' }}. Средние за игру; GP — количество матчей.
+          }}{{ data.isStale ? ' · устарел' : '' }}. Средние за игру; GP — количество матчей. Средние
+          этого игрока проверены:
+          {{
+            data.player.averageUpdatedAt
+              ? new Date(data.player.averageUpdatedAt).toLocaleString('ru-RU')
+              : 'ещё не проверялись'
+          }}.
+          <template v-if="data.refreshStatus">
+            Цикл обновления: {{ data.refreshStatus.updated }}/{{ data.refreshStatus.total }}
+            игроков; последний полный цикл
+            {{
+              data.refreshStatus.lastCompletedAt
+                ? new Date(data.refreshStatus.lastCompletedAt).toLocaleString('ru-RU')
+                : 'ещё не завершён'
+            }}.
+          </template>
         </p>
         <template v-if="data.player.stats">
           <div v-for="section in sections" :key="section.key">
