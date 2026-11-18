@@ -5,6 +5,7 @@ import { TooltipProvider } from 'reka-ui'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { navigationItems, comingSoonItems } from './navigation'
 import AppIcon from '@/shared/components/AppIcon.vue'
+import NbaLeagueLogo from '@/shared/components/NbaLeagueLogo.vue'
 import '@/assets/design-system.css'
 const route = useRoute()
 const sectionIsActive = (id: string, path: string) =>
@@ -20,7 +21,7 @@ const sectionIsActive = (id: string, path: string) =>
           ><span>buzzerboard<span class="gc-brand-period">.</span></span></RouterLink
         >
         <div class="gc-league">
-          <span class="gc-league-symbol">NBA</span>
+          <NbaLeagueLogo />
           <div>
             <strong>Национальная<br />баскетбольная ассоциация</strong>
           </div>

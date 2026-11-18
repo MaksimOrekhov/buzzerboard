@@ -12,6 +12,8 @@ Big Balls Sports Data's [Terms of Service](https://bigballsdata.com/legal/terms)
 
 At the owner's direction, `TeamLogo.vue` loads all 30 NBA team marks at runtime from the official NBA CDN at `https://cdn.nba.com/logos/nba/{teamId}/primary/L/logo.svg`. Canonical team IDs map to NBA team IDs, and initials remain the fallback if the CDN request fails. No logo files are stored in GitHub or bundled with the Worker. The image request uses `no-referrer`. Access still protects the application, API and Worker assets, while the CDN logo URLs themselves are public and the signed-in browser contacts `cdn.nba.com`.
 
+The sidebar league mark uses the official color NBA logo directly from `https://cdn.nba.com/logos/nba/nba-logoman.svg` with the same `no-referrer` behavior and an NBA text fallback. It is served by the NBA CDN at runtime, not bundled or proxied by BuzzerBoard.
+
 **Rights limitation:** the [NBA Terms of Use](https://www.nba.com/termsofuse) identify team marks as intellectual property and state that the terms do not grant a license without written permission. No written NBA/team permission or separate license is on record. The owner requested a rights attribution in the application footer and selected direct CDN loading for the private site; attribution and private Access do not establish a license. Logo rights remain unconfirmed and are reported separately.
 
 ## Owner setup (one time)
@@ -29,7 +31,7 @@ At the owner's direction, `TeamLogo.vue` loads all 30 NBA team marks at runtime 
 - Cloudflare Access is attached to this Worker with **All traffic** and the reusable **BuzzerBoard owner** policy. The policy allows one exact verified email. Unauthenticated `GET /` and `GET /api/health` both returned HTTP 302 to the Access login before data import.
 - Remote D1 in WEUR now contains 51 retained BBS cache rows (17 box scores, 3 game/date snapshots, 1 team directory, 30 team-season profiles) and one validated 2027 player snapshot with 645 players. A prior read recorded 827,392 bytes of D1 storage; this is a point-in-time database size, not measured daily consumption. No DunkAPI/ESPN rows, provider ledger, credentials, or raw provider payloads were copied. The local databases are unchanged.
 - Worker deployment version: `61f6ef96-7b09-42d2-92b4-43edde8e94ef`. Cron and BBS/DunkAPI refresh remain disabled.
-- A post-import anonymous route sweep and authenticated owner smoke are not independently verified: this environment cannot resolve/reach the Worker hostname, and no authenticated browser session is available. The owner's supplied authenticated screenshots show games, teams and players responding, while `/api/standings` returns 503.
+- The PRO-196 anonymous route sweep returned Access redirects for the sampled pages and API paths after import. An authenticated owner smoke was not performed in this CLI session; owner-provided screenshots show games, teams and players responding, while `/api/standings` returns 503.
 - Standings are absent: Wrangler is configured for the disabled DunkAPI standings provider and remote D1 has no standings snapshot. `/api/standings` therefore returns 503; no fallback data was invented or fetched.
 - The screenshots show `/api/games`, `/api/teams` and `/api/players` returning 200 and repeated `/api/standings` requests returning 503. They do not verify game-detail routes, favorites persistence, all protected routes or an anonymous request after seeding.
 
@@ -60,15 +62,34 @@ The D1 identifier is committed in the Wrangler binding after database creation. 
 
 ### D1 migration and data preservation
 
-`wrangler d1 migrations apply --remote` applies only migrations absent from Wrangler's D1 migration ledger; it does not reseed data. Migrations 0003 and 0005 rebuild `nba_cache` while copying every existing row with `INSERT ... SELECT`; migration 0006 only adds `nba_player_snapshot`. Migrations 0001–0006 were applied before the initial seed. Later deployments must apply only new, reviewed migration files before deploying code; they must never delete or recreate the D1 database. The saved Wrangler OAuth token has expired and cannot refresh because the current network cannot reach Cloudflare, so the remote migration ledger could not be freshly queried in this review turn. This PR adds no migration and does not re-import data.
+`wrangler d1 migrations apply --remote` applies only migrations absent from Wrangler's D1 migration ledger; it does not reseed data. Migrations 0003 and 0005 rebuild `nba_cache` while copying every existing row with `INSERT ... SELECT`; migration 0006 only adds `nba_player_snapshot`. Migrations 0001–0006 were applied before the initial seed. Later deployments must apply only new, reviewed migration files before deploying code; they must never delete or recreate the D1 database. On 2026-11-18 an authenticated, read-only Wrangler session successfully read remote D1 info, query insights and the migration-independent snapshot metadata. This PR adds no migration and does not re-import data.
 
 ## Free limits and rollback
 
-As checked 2026-11-18, Cloudflare documents Workers Free at 100,000 requests/day and 10 ms CPU per invocation; D1 Free at 500 MB/database, 5 million rows read/day, 100,000 rows written/day, 50 D1 queries per Worker invocation, 2 MB max row size and 100 KB SQL statements. A 329 KB player JSON value is below the row cap; its SQL stays short because it is sent as a bound parameter. These are plan ceilings, not actual consumption. Current CPU, request, D1 read/write and storage usage could not be verified because Wrangler has no authenticated Cloudflare session and the dashboard is inaccessible from the current network. No plan upgrade was made; the owner must inspect Workers → Metrics and D1 → Metrics in Cloudflare Dashboard to record actual usage.
+### PRO-196 measured usage (2026-11-18)
+
+Measurements were taken from the deployed `buzzerboard` Worker and remote D1 `buzzerboard-nba-cache` using the owner's authenticated Wrangler session. No provider endpoint was called. Cloudflare Worker analytics covers the 24 hours ending 2026-11-18 09:50 UTC; D1 `d1 info` and `d1 insights --time-period 1d` are rolling 24-hour views at collection time. The D1 counts include migration/deployment and manual validation activity, so they are not a clean estimate of ordinary page traffic.
+
+| Resource           |                                          Observed |                                Free allowance |                                                   Approximate headroom |
+| ------------------ | ------------------------------------------------: | --------------------------------------------: | ---------------------------------------------------------------------: |
+| Worker requests    |                                          21 / 24h |                                 100,000 / day |                                                                >99.97% |
+| Worker errors      |                                           0 / 24h |                     no separate request quota |                                                             0 observed |
+| Worker subrequests |                                           0 / 24h |                          included in requests |                                                                      — |
+| Worker CPU         | max reported hourly p50/p99 18,503 µs (18.503 ms) |              10 ms CPU per invocation on Free | observed quantile exceeds limit; investigate under representative load |
+| D1 database size   |                    827,392 bytes (about 0.79 MiB) |         500 MB per database; 5 GB per account |                                      about 0.16% of per-database limit |
+| D1 queries         |                       104 reads + 78 writes / 24h | query count itself is not the daily allowance |                                                                      — |
+| D1 rows read       |                                         746 / 24h |                               5,000,000 / day |                                                          about 99.985% |
+| D1 rows written    |                                         244 / 24h |                                 100,000 / day |                                                          about 99.756% |
+
+The 21 Worker requests were spread across 19 hourly analytics buckets, so the CPU quantiles are based on very sparse traffic and should not be treated as a stable latency profile. The reported 18.503 ms CPU quantile is above the documented 10 ms Free CPU budget; no error was recorded in the same interval, but high-CPU requests may be terminated at the plan limit. Confirm again with representative catalog/profile traffic before relying on the margin. The D1 query insights attributed 91 reads to `SELECT record_json FROM nba_cache WHERE cache_key=?1` (63 rows read, average D1 duration 0.1232 ms), and 49 cache upserts (147 rows written, average 0.2318 ms); migration statements also appear in the 24-hour query list.
+
+The player snapshot currently has 645 players in one 329,283-byte (about 321.6 KiB) JSON value, well below D1's 2 MiB per-value limit. Its route loads and parses the full snapshot for catalog and profile requests and validates the player set; profile lookup then scans that list. This is the main identified scaling risk for player pages: response/parse/validation work grows with the whole snapshot even when a single profile is requested. D1 storage and daily row quotas are currently far from their ceilings; Worker CPU is the item to watch. The 329 KB snapshot fits today, but should be monitored against the 2 MiB row cap if richer fields or additional seasons are added.
+
+Current documented Free limits (checked 2026-11-18): Workers Free 100,000 requests/day and 10 ms CPU per invocation; D1 Free 5 million rows read/day, 100,000 rows written/day, 500 MB per database and 5 GB account storage. The D1 Worker invocation query cap is 50 operations; the per-value limit is 2 MiB. No plan change was made. Provider refresh and Cron remain disabled. The anonymous route check returned HTTP 302 for `/`, `/favorites`, `/api/health`, `/api/players?seasonEndYear=2027` and `/api/teams?seasonEndYear=2027`. This confirms Access gates these tested paths; other methods and untested paths were not probed. The authenticated Wrangler command reported no pending D1 migrations. Sources: [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [D1 limits](https://developers.cloudflare.com/d1/platform/limits/), [D1 analytics](https://developers.cloudflare.com/d1/observability/metrics-analytics/), [Workers analytics](https://developers.cloudflare.com/analytics/graphql-api/tutorials/querying-workers-metrics/).
 
 ### Owner smoke checks
 
-After the next approved main deployment, from a machine without a Cloudflare Access session, check that every route returns an Access redirect (302), not HTML, JSON or SVG content:
+From a machine without a Cloudflare Access session, the 2026-11-18 sample check verified redirects for the routes below. Repeat after material Access or routing changes; the check does not cover every HTTP method or asset path:
 
 ```sh
 for path in / /games /teams /players /favorites /api/health /api/players?seasonEndYear=2027 /api/teams?seasonEndYear=2027; do
@@ -77,7 +98,7 @@ for path in / /games /teams /players /favorites /api/health /api/players?seasonE
 done
 ```
 
-Then, in the owner's normal browser after Access sign-in, verify the overview, a game and its details, teams, player profiles and favorites. These requests use only existing remote D1 data; keep provider refresh disabled. In Cloudflare Dashboard record Workers → Metrics (requests, CPU, errors) and D1 → Metrics (storage, reads, writes) and confirm the plan remains Free. This PR cannot perform those authenticated post-deploy checks because it must remain unmerged and the current Cloudflare session/network is unavailable.
+The owner can verify the overview, a game and its details, teams, player profiles and favorites in a browser after Access sign-in. Keep provider refresh disabled; these pages should read only existing remote D1 data. Authenticated browser route and favorites behavior was not re-tested for PRO-196.
 
 Cloudflare retains previous Worker deployments for rollback. Use Cloudflare Dashboard → Workers & Pages → `buzzerboard` → Deployments → **Rollback** to the last verified version. Migrations are applied before code; never reverse or delete an applied migration as a code rollback. Pause the `production` GitHub environment to stop future deployments. Provider Cron and refresh remain disabled.
 
