@@ -208,6 +208,24 @@ describe('Advanced Stats v1 calculations', () => {
     ).toBeNull()
   })
 
+  it('rejects a rounded season 2P% above 100%', () => {
+    expect(
+      seasonAdvancedMetric(
+        { ...seasonStats, gp: 1, fgm: 0.2, fga: 0.2, threeM: 0, threeA: 0.1 },
+        'twoPoint',
+      ),
+    ).toBeNull()
+  })
+
+  it('rejects a rounded season 3PAr above 100%', () => {
+    expect(
+      seasonAdvancedMetric(
+        { ...seasonStats, gp: 1, fgm: 0.1, fga: 0.1, threeM: 0.1, threeA: 0.2 },
+        'threeRate',
+      ),
+    ).toBeNull()
+  })
+
   it('calculates the hand-checked Game Score and allows a negative result', () => {
     expect(seasonAdvancedMetric(seasonStats, 'gmSc')).toBeCloseTo(22.1, 12)
     expect(playerBoxScoreAdvanced(playerBox, 'gmSc')).toBeCloseTo(22.1, 12)

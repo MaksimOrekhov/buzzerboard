@@ -108,6 +108,7 @@ function validNonnegative(value: number | null): value is number {
 }
 
 type Precision = 'exact' | 'rounded'
+const RATIO_EPSILON = Number.EPSILON * 8
 
 function tolerance(precision: Precision): number {
   return precision === 'rounded' ? 0.1 : 0
@@ -257,13 +258,17 @@ export function calculateBoxScoreAdvanced(
     const denominator = 2 * (fga + 0.44 * line.freeThrows.attempted!)
     return denominator === 0 ? null : line.points! / denominator
   }
-  if (metric === 'threeRate') return fga === 0 ? null : line.threePointers.attempted! / fga
+  if (metric === 'threeRate') {
+    if (fga === 0) return null
+    const ratio = line.threePointers.attempted! / fga
+    return ratio < -RATIO_EPSILON || ratio > 1 + RATIO_EPSILON ? null : ratio
+  }
   if (metric === 'freeThrowRate') return fga === 0 ? null : line.freeThrows.attempted! / fga
   const attempts = fga - line.threePointers.attempted!
   const made = line.fieldGoals.made! - line.threePointers.made!
-  return attempts <= 0 || made < 0 || made > attempts + 2 * allowedTolerance
-    ? null
-    : made / attempts
+  if (attempts <= 0) return null
+  const ratio = made / attempts
+  return ratio < -RATIO_EPSILON || ratio > 1 + RATIO_EPSILON ? null : ratio
 }
 
 export function parseMinutes(value: number | string | null): number | null {
