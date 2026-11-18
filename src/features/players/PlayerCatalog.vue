@@ -139,6 +139,22 @@ function sampleContext(player: NonNullable<typeof data.value>['players'][number]
   if (!stats) return ''
   return `GP ${formatPlayerStat('gp', stats.gp)} · MIN ${formatPlayerStat('min', stats.min)} · FGA ${formatPlayerStat('fga', stats.fga)}`
 }
+function formatFreshness(value: string | null | undefined) {
+  return value ? new Date(value).toLocaleString('ru-RU') : 'нет даты'
+}
+function refreshPhaseLabel(phase: string) {
+  return (
+    {
+      directory: 'обновляется каталог',
+      averages: 'обновляются средние',
+      publish: 'сохраняются средние',
+      retry: 'повторная проверка отдельных игроков',
+      gameRefs: 'связываются недавние матчи',
+      enrich: 'обогащаются профили',
+      idle: 'ожидает следующего цикла',
+    }[phase] ?? 'статус неизвестен'
+  )
+}
 const filtered = computed(() => {
   const term = search.value.toLowerCase().trim()
   const minGp = Math.min(100, Math.max(0, Number(route.query.gp) || 0))
@@ -288,6 +304,13 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
       <p class="player-meta">
         Средние за матч; GP — матчи сезона. Пороги GP, минут и FGA — пользовательские, по умолчанию
         выключены.
+        <template v-if="data?.refreshStatus">
+          Автообновление BBS: {{ refreshPhaseLabel(data.refreshStatus.phase) }}, проверено
+          {{ data.refreshStatus.checked }}/{{ data.refreshStatus.total }}, обновлено
+          {{ data.refreshStatus.updated }}, сохранено без изменений
+          {{ data.refreshStatus.retained }}, не удалось {{ data.refreshStatus.failed }}. Последний
+          завершённый проход: {{ formatFreshness(data.refreshStatus.lastCompletedAt) }}.
+        </template>
       </p>
       <div class="players-table-panel">
         <header class="players-panel-heading">
@@ -366,6 +389,9 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
                         class="player-sample-context"
                       >
                         {{ sampleContext(player) }}
+                      </small>
+                      <small v-if="data?.refreshStatus">
+                        Средние BBS: {{ formatFreshness(player.averageUpdatedAt) }}
                       </small>
                     </div>
                   </div>

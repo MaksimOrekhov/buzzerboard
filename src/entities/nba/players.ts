@@ -42,6 +42,19 @@ export interface NbaPlayerEntry {
   height: string | null
   weight: string | null
   stats: PlayerStats | null
+  averageUpdatedAt?: string | null
+}
+
+export interface PlayerRefreshSummary {
+  phase: 'directory' | 'averages' | 'publish' | 'retry' | 'gameRefs' | 'enrich' | 'idle'
+  total: number
+  checked: number
+  updated: number
+  retained: number
+  failed: number
+  cycleStartedAt: string | null
+  lastCompletedAt: string | null
+  nextCycleAt: number
 }
 
 export interface PlayerGame {
@@ -77,6 +90,7 @@ export interface PlayerSnapshot {
   fetchedAt: string
   isStale: boolean
   coverage: PlayerCoverage
+  refreshStatus?: PlayerRefreshSummary | null
 }
 
 export interface PlayersResponse extends PlayerSnapshot {

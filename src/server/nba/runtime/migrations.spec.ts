@@ -35,6 +35,8 @@ describe('BBS D1 migration', () => {
       database.exec(migration('0004_provider_cooldowns.sql'))
       database.exec(migration('0005_team_season_cache.sql'))
       database.exec(migration('0006_bbs_players.sql'))
+      database.exec(migration('0007_scheduled_bbs_refresh.sql'))
+      database.exec(migration('0008_bbs_player_refresh.sql'))
       expect(database.prepare('SELECT count(*) AS count FROM nba_player_snapshot').get()).toEqual({
         count: 0,
       })
@@ -74,6 +76,13 @@ describe('BBS D1 migration', () => {
           )
           .get(),
       ).toEqual({ name: 'nba_provider_cooldowns' })
+      expect(
+        database
+          .prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name = 'nba_player_refresh_observations'",
+          )
+          .get(),
+      ).toEqual({ name: 'nba_player_refresh_observations' })
     } finally {
       database.close()
     }

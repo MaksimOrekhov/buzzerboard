@@ -8,6 +8,7 @@ import type { GameId } from '@/entities/nba/model'
 import type { PlayerResponse, PlayersResponse } from '@/entities/nba/players'
 import { gameDetailsCacheKey, gamesCacheKey } from './cacheKeys'
 import { boxPlayerLine, combinePlayerGames, verifiedPlayerBox } from './playerGames'
+import { parseBbsPlayerRefreshStatus } from './bbsPlayerRefresh'
 import type { D1Database, NbaRepository } from './types'
 
 type ReadResult =
@@ -61,9 +62,14 @@ export async function readPlayerSnapshot(
   playerId?: string,
 ): Promise<ReadResult> {
   const row = await db
-    .prepare('SELECT fetched_at, payload FROM nba_player_snapshot WHERE season_end_year = ?1')
+    .prepare(
+      `SELECT s.fetched_at, s.payload, r.progress_json
+       FROM nba_player_snapshot s
+       LEFT JOIN nba_player_refresh_state r ON r.season_end_year = s.season_end_year
+       WHERE s.season_end_year = ?1`,
+    )
     .bind(season)
-    .first<{ fetched_at: string; payload: string }>()
+    .first<{ fetched_at: string; payload: string; progress_json: string | null }>()
   if (!row) return { status: 'cache_miss' }
   if (!timestamp(row.fetched_at)) return { status: 'invalid_response' }
   const cached = validatedSnapshot(db, row.payload, season)
@@ -75,10 +81,22 @@ export async function readPlayerSnapshot(
     fetchedAt: row.fetched_at,
     isStale: now - Date.parse(row.fetched_at) >= 24 * 60 * 60_000,
     coverage: data.coverage,
+    refreshStatus: parseBbsPlayerRefreshStatus(row.progress_json, season),
   }
-  if (!playerId) return { status: 'ready', data: { ...meta, players: data.players } }
+  if (!playerId)
+    return {
+      status: 'ready',
+      data: {
+        ...meta,
+        players: data.players.map((player) => ({
+          ...player,
+          averageUpdatedAt: data.averageAt[player.id] ?? null,
+        })),
+      },
+    }
   const player = cached.playersById.get(playerId)
   if (!player) return { status: 'not_found' }
+  const playerWithAverageAt = { ...player, averageUpdatedAt: data.averageAt[playerId] ?? null }
   const stored = data.details[playerId]
   const refs = data.gameRefs[playerId] ?? []
   const dates = new Map(
@@ -111,7 +129,7 @@ export async function readPlayerSnapshot(
           games,
         }
       : null
-  const response = { ...meta, player, detail }
+  const response = { ...meta, player: playerWithAverageAt, detail }
   return isPlayerResponse(response)
     ? { status: 'ready', data: response }
     : { status: 'invalid_response' }

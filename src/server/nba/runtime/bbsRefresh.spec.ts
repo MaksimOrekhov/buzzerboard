@@ -919,6 +919,35 @@ describe('BBS cached refresh flow', () => {
     vi.restoreAllMocks()
   })
 
+  it('does not spend player quota before the new core queue is scheduled', async () => {
+    const beforeWindow = Date.parse('2026-11-18T14:59:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(beforeWindow)
+    const repository = new MemoryRepository()
+    repository.scheduledBbsProgress = {
+      cycleDate: '2026-11-17' as NbaGameDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [],
+    }
+    const prepare = vi.fn()
+    const fetcher = vi.fn(async () => new Response('{}')) as typeof fetch
+
+    await runScheduledBbsRefresh(
+      {
+        ...environment,
+        BBS_PLAYER_REFRESH_ENABLED: 'true',
+        NBA_DB: { prepare } as never,
+      },
+      repository,
+      fetcher,
+      beforeWindow,
+    )
+
+    expect(prepare).not.toHaveBeenCalled()
+    expect(fetcher).not.toHaveBeenCalled()
+    vi.restoreAllMocks()
+  })
+
   it('defers one local item while advancing independent queued work and preserves de-duplicated retry state on rollover', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(now)
     const repository = new MemoryRepository()
