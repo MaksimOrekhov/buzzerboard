@@ -23,6 +23,79 @@ export interface Team {
   displayName: string | null
 }
 
+export interface TeamProviderReference {
+  teamId: TeamId
+  providerTeamId: ProviderRecordId
+}
+
+export interface NbaTeamReference {
+  code: string
+  name: string
+  conference: Conference
+  division: string
+  team: Team
+}
+
+export interface TeamRecordSplit {
+  wins: number | null
+  losses: number | null
+  ties: number | null
+}
+
+export interface TeamSeasonStats {
+  gamesPlayed: number | null
+  pointsPerGame: number | null
+  fieldGoalPercentage: number | null
+  threePointPercentage: number | null
+  reboundsPerGame: number | null
+  assistsPerGame: number | null
+  turnoversPerGame: number | null
+}
+
+export interface TeamSeasonLeader {
+  playerId: PlayerId
+  displayName: string
+  statLabel: string
+  statValue: number | null
+}
+
+export interface TeamRecentGame {
+  gameId: GameId | null
+  nbaGameDate: NbaGameDate
+  opponentCode: string
+  result: 'W' | 'L'
+  pointsFor: number
+  pointsAgainst: number
+  venue: 'home' | 'away' | null
+}
+
+export interface TeamUpcomingGame {
+  gameId: GameId | null
+  nbaGameDate: NbaGameDate | null
+  startsAt: UtcTimestamp | null
+  isHome: boolean | null
+  opponentCode: string | null
+}
+
+export interface TeamSeasonProfile {
+  team: Team
+  seasonEndYear: SeasonEndYear
+  wins: number | null
+  losses: number | null
+  /** Calculated from the provider's confirmed W-L record. */
+  winPercentage: number | null
+  overallRank: number | null
+  conferenceRank: number | null
+  gamesBack: number | null
+  streak: string | null
+  home: TeamRecordSplit | null
+  away: TeamRecordSplit | null
+  stats: TeamSeasonStats
+  lastTen: readonly TeamRecentGame[] | null
+  leaders: readonly TeamSeasonLeader[]
+  nextGame: TeamUpcomingGame | null
+}
+
 export interface Score {
   home: number | null
   away: number | null

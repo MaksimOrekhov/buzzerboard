@@ -7,14 +7,20 @@ import type {
   NbaProviderId,
   SeasonEndYear,
   StandingsRow,
+  TeamId,
+  TeamProviderReference,
+  TeamSeasonProfile,
   UtcTimestamp,
 } from '@/entities/nba/model'
 
-export type NbaCacheCapability = 'games' | 'standings' | 'schedule' | 'boxScore'
+export type NbaCacheCapability =
+  'games' | 'standings' | 'schedule' | 'boxScore' | 'teamSeason' | 'teamDirectory'
 
 export type NbaRefreshTarget =
   | { type: 'games'; date: NbaGameDate }
   | { type: 'standings'; seasonEndYear: SeasonEndYear }
+  | { type: 'teamSeason'; teamCode: string; seasonEndYear: SeasonEndYear }
+  | { type: 'teamDirectory'; seasonEndYear: SeasonEndYear }
   | { type: 'schedule' }
 
 export interface GameDateCoverage {
@@ -58,7 +64,27 @@ export type BoxScoreCacheRecord = CacheRecordBase & {
   data: GameBoxScore | null
 }
 
-export type NbaCacheRecord = GamesCacheRecord | StandingsCacheRecord | BoxScoreCacheRecord
+export type TeamSeasonCacheRecord = CacheRecordBase & {
+  capability: 'teamSeason'
+  teamId: TeamId
+  seasonEndYear: SeasonEndYear
+  /** BBS UUID used only by server-side refresh routes; never sent to clients. */
+  providerTeamId: string
+  data: TeamSeasonProfile
+}
+
+export type TeamDirectoryCacheRecord = CacheRecordBase & {
+  capability: 'teamDirectory'
+  seasonEndYear: SeasonEndYear
+  data: readonly TeamProviderReference[]
+}
+
+export type NbaCacheRecord =
+  | GamesCacheRecord
+  | StandingsCacheRecord
+  | BoxScoreCacheRecord
+  | TeamSeasonCacheRecord
+  | TeamDirectoryCacheRecord
 
 export interface CreditUsage {
   month: string

@@ -55,7 +55,7 @@ explicit actions flow up. No global store or additional data provider was added.
 **Overview** uses the existing read-only games/standings queries, shows the selected NBA
 day, four games and five teams by PCT for the selected conference. These teams are not
 labeled with official positions. Loading, missing data and stale metadata remain visible.
-Upcoming sections Teams, Players and Analytics remain explicitly marked as future work.
+Players and Analytics remain explicitly marked as future work.
 
 **Game Center** preserves the approved composition and functionality. It now uses the
 shared heading, search, tabs, calendar, states, source details and icon set. The scoreboard
@@ -74,6 +74,15 @@ GB still requires the existing full-conference, valid-record, consistent-PCT and
 leader checks. Filtering does not change that eligibility. Incomplete/tied data keeps
 its explanation. Comparison takes two source-backed teams, including across conferences,
 and compares records/PCT/venue/conference/last-ten/margin without inventing missing fields.
+
+**Teams** adds a searchable 30-franchise catalogue with conference, favourites and
+sortable season fields, plus a complete profile route for each canonical team. BBS
+season data stays in its own cache namespace. Profiles show only the audited record,
+available splits, basic per-game/shooting values, last-ten rows and provider-supplied
+leaders. Missing splits and conference ranks remain null; advanced metrics are not
+presented because the BBS team-season endpoint does not return them. Team links connect
+the catalogue, standings, Game Center, favourites and profiles. See
+[`docs/bbs-team-season-pro189.md`](./bbs-team-season-pro189.md) for the real-data audit.
 
 **Favorites** uses the existing versioned ID storage. Teams come from the available
 standings. Games come from loaded query snapshots, grouped by NBA date with each group's

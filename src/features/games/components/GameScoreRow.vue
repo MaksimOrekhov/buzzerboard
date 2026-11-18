@@ -4,6 +4,7 @@ import { computed, useId } from 'vue'
 import type { Game, GameStatus } from '@/entities/nba/model'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
+import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 import { RouterLink } from 'vue-router'
 const props = defineProps<{
@@ -68,7 +69,7 @@ const winner = computed(() =>
         :class="{ 'gc-match-team--winner': winner === 'away' }"
       >
         <TeamLogo :team="game.awayTeam" />
-        <div>
+        <TeamProfileLink :team="game.awayTeam" class="gc-team-profile-copy">
           <span class="gc-team-name">{{
             game.awayTeam.displayName ?? game.awayTeam.abbreviation ?? 'Команда гостей'
           }}</span><span class="gc-team-abbr"
@@ -77,7 +78,7 @@ const winner = computed(() =>
               · W</span
             ></span
           >
-        </div>
+        </TeamProfileLink>
         <span class="gc-mobile-score" :class="{ 'gc-score--muted': winner === 'home' }">{{
           game.score.away ?? '—'
         }}</span>
@@ -105,7 +106,7 @@ const winner = computed(() =>
         :class="{ 'gc-match-team--winner': winner === 'home' }"
       >
         <TeamLogo :team="game.homeTeam" />
-        <div>
+        <TeamProfileLink :team="game.homeTeam" class="gc-team-profile-copy">
           <span class="gc-team-name">{{
             game.homeTeam.displayName ?? game.homeTeam.abbreviation ?? 'Команда хозяев'
           }}</span><span class="gc-team-abbr"
@@ -114,7 +115,7 @@ const winner = computed(() =>
               · W</span
             ></span
           >
-        </div>
+        </TeamProfileLink>
         <span class="gc-mobile-score" :class="{ 'gc-score--muted': winner === 'away' }">{{
           game.score.home ?? '—'
         }}</span>

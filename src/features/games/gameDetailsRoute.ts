@@ -24,7 +24,13 @@ export function gameCenterReturnTo(state: {
 
 export function safeGameReturnTo(value: unknown): string {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return '/games'
-  const path = value.split('?')[0]
-  if (path !== '/games' && path !== '/' && path !== '/favorites') return '/games'
+  const path = value.split('?')[0] ?? ''
+  if (
+    path !== '/games' &&
+    path !== '/' &&
+    path !== '/favorites' &&
+    !/^\/teams\/[A-Z0-9]+$/.test(path)
+  )
+    return '/games'
   return value
 }

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 import TeamLogo from './TeamLogo.vue'
+import TeamProfileLink from './TeamProfileLink.vue'
 import SortHeader from './SortHeader.vue'
 import type { Conference, StandingsRow, TeamId } from '@/entities/nba/model'
 import type { SortDirection, StandingsSortKey } from '@/features/standings/standingsModel'
@@ -112,12 +113,11 @@ function teamName(row: StandingsRow) {
                 >
                   <AppIcon name="star" :size="16" /></button
                 ><TeamLogo :team="row.team" :size="34" />
-                <div class="table-team-copy">
-                  <span class="table-team-name">{{ teamName(row) }}</span><span
-                    class="table-team-abbr"
-                    >{{ row.team.abbreviation ?? 'NBA' }}</span
-                  >
-                </div>
+                <TeamProfileLink :team="row.team" class="table-team-copy">
+                  <span class="table-team-name team-profile-link-text">{{
+                    teamName(row)
+                  }}</span><span class="table-team-abbr">{{ row.team.abbreviation ?? 'NBA' }}</span>
+                </TeamProfileLink>
               </div>
             </th>
             <td class="record-cell" :class="{ 'ui-sorted-column': sortBy === 'wins' }">

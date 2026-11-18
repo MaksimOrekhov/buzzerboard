@@ -1,10 +1,35 @@
-import type { Game, GameId, NbaApiError, NbaGameDate, UtcTimestamp } from '@/entities/nba/model'
+import type {
+  Game,
+  GameId,
+  NbaApiError,
+  NbaGameDate,
+  SeasonEndYear,
+  UtcTimestamp,
+} from '@/entities/nba/model'
+import { findNbaTeam } from '@/entities/nba/teamCatalog'
+import { normalizeBbsTeamDirectory, normalizeBbsTeamSeason } from '@/server/nba/adapters/bbsTeams'
 import { normalizeBbsGameBox, normalizeBbsGames } from '@/server/nba/adapters/bbs'
-import { createNbaApiError, mapHttpStatusToNbaError } from '@/server/nba/adapters/errors'
+import {
+  NbaAdapterError,
+  createNbaApiError,
+  mapHttpStatusToNbaError,
+} from '@/server/nba/adapters/errors'
 import { parseNbaGameDate } from '@/server/nba/adapters/normalizers/primitives'
 import { getDateKeyInTimeZone, NBA_TIME_ZONE } from '@/shared/utils/nbaDate'
-import type { BoxScoreCacheRecord, NbaCacheRecord, NbaRepository, WorkerEnvironment } from './types'
-import { gameDetailsCacheKey, gamesCacheKey } from './cacheKeys'
+import type {
+  BoxScoreCacheRecord,
+  NbaCacheRecord,
+  NbaRepository,
+  TeamDirectoryCacheRecord,
+  TeamSeasonCacheRecord,
+  WorkerEnvironment,
+} from './types'
+import {
+  gameDetailsCacheKey,
+  gamesCacheKey,
+  teamDirectoryCacheKey,
+  teamSeasonCacheKey,
+} from './cacheKeys'
 import type { NbaRefreshTarget } from './types'
 import type { BoxScoreRefreshOutcome } from './gameDetails'
 import { isSameFinalGameSnapshot } from '@/shared/api/nba/gameDetailsGuards'
@@ -19,6 +44,10 @@ const GAME_TTL_MS = 6 * 60 * MINUTE_MS
 const GAME_STALE_MS = 7 * DAY_MS
 const BOX_TTL_MS = DAY_MS
 const BOX_STALE_MS = 30 * DAY_MS
+const TEAM_SEASON_TTL_MS = 6 * 60 * MINUTE_MS
+const TEAM_SEASON_STALE_MS = 7 * DAY_MS
+const TEAM_DIRECTORY_TTL_MS = 7 * DAY_MS
+const TEAM_DIRECTORY_STALE_MS = 30 * DAY_MS
 const COOLDOWN_MS = 15 * MINUTE_MS
 const DEFAULT_REQUEST_INTERVAL_MS = 6_100
 let previousRequestStartedAt = 0
@@ -40,6 +69,17 @@ export interface BbsBoxTarget {
   type: 'boxScore'
   date: NbaGameDate
   gameId: GameId
+}
+
+export interface BbsTeamSeasonTarget {
+  type: 'teamSeason'
+  teamCode: string
+  seasonEndYear: SeasonEndYear
+}
+
+export interface BbsTeamDirectoryTarget {
+  type: 'teamDirectory'
+  seasonEndYear: SeasonEndYear
 }
 
 function timestamp(value: number): UtcTimestamp {
@@ -233,7 +273,13 @@ async function getBbsJson(
   }
   try {
     const payload: unknown = await response.json()
-    if (payload && typeof payload === 'object' && 'error' in payload) {
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      'error' in payload &&
+      (payload as Record<string, unknown>).error !== null &&
+      (payload as Record<string, unknown>).error !== undefined
+    ) {
       throw createNbaApiError('invalid_response', 'bbs')
     }
     return payload
@@ -770,6 +816,235 @@ export async function refreshBbsGameBoxScore(
     const retryAt =
       Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
     return result('deferred', error, retryAt)
+  }
+}
+
+/** Refresh the one standings-to-directory crosswalk used by later per-team jobs. */
+export async function refreshBbsTeamDirectory(
+  target: BbsTeamDirectoryTarget,
+  env: WorkerEnvironment,
+  repository: NbaRepository,
+  fetcher: typeof fetch,
+  now: number,
+): Promise<BbsRefreshOutcome> {
+  const cacheKey = teamDirectoryCacheKey('bbs', target.seasonEndYear)
+  const previousCache = await repository.getCache(cacheKey)
+  let previous = previousCache?.capability === 'teamDirectory' ? previousCache : null
+  const result = (
+    state: BbsRefreshOutcome['state'],
+    error: NbaApiError | null,
+    record: TeamDirectoryCacheRecord | null = previous,
+    retryAt: number | null = record?.retryAt ?? null,
+  ) => outcome(target, state, record, Date.now(), error, retryAt)
+
+  if (previous && now >= previous.staleUntil) {
+    await repository.deleteCache(cacheKey)
+    previous = null
+  }
+  if (previous && now < previous.expiresAt) return result('up_to_date', null, previous, null)
+  if (previous?.retryAt && previous.retryAt > now)
+    return result('deferred', previous.refreshError, previous, previous.retryAt)
+  if (env.BBS_REFRESH_ENABLED !== 'true' || !env.BBS_API_KEY)
+    return result('deferred', createNbaApiError('not_configured', 'bbs'))
+
+  const lockKey = `bbs:team-directory:season=${target.seasonEndYear}`
+  const token = crypto.randomUUID()
+  if (!(await repository.tryAcquireLock(lockKey, token, now, now + LOCK_MS)))
+    return result(
+      'in_progress',
+      Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
+        retryAt: now + LOCK_MS,
+      }),
+    )
+
+  try {
+    const startYear = Number(target.seasonEndYear) - 1
+    const standings = await getBbsJson(
+      `/v1/standings?league=nba&season=${startYear}`,
+      env,
+      repository,
+      fetcher,
+      now,
+      { key: lockKey, token },
+    )
+    const directory = await getBbsJson(
+      '/v1/teams?sport=basketball&league=nba&limit=100',
+      env,
+      repository,
+      fetcher,
+      now,
+      { key: lockKey, token },
+    )
+    const references = normalizeBbsTeamDirectory(standings, directory, target.seasonEndYear)
+    const receivedAt = Date.now()
+    const fresh: TeamDirectoryCacheRecord = {
+      cacheKey,
+      capability: 'teamDirectory',
+      provider: 'bbs',
+      seasonEndYear: target.seasonEndYear,
+      data: references,
+      fetchedAt: timestamp(receivedAt),
+      providerUpdatedAt: null,
+      rejectedRecords: 0,
+      expiresAt: receivedAt + TEAM_DIRECTORY_TTL_MS,
+      staleUntil: receivedAt + TEAM_DIRECTORY_STALE_MS,
+      retryAt: null,
+      refreshError: null,
+    }
+    if (!(await repository.putCacheIfLockOwned(fresh, lockKey, token, Date.now())))
+      throw Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
+        retryAt: Date.now() + LOCK_MS,
+      })
+    return result('refreshed', null, fresh, null)
+  } catch (cause) {
+    const error =
+      cause instanceof NbaAdapterError
+        ? cause.details
+        : cause && typeof cause === 'object' && 'code' in cause
+          ? (cause as NbaApiError)
+          : createNbaApiError('upstream_unavailable', 'bbs', true)
+    const retryAt =
+      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
+    const failed = cacheFailure(previous, error, Date.now(), retryAt)
+    if (failed) {
+      try {
+        await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())
+      } catch {
+        /* The previous valid crosswalk remains authoritative. */
+      }
+    }
+    return result(
+      'deferred',
+      error,
+      failed?.capability === 'teamDirectory' ? failed : previous,
+      retryAt,
+    )
+  } finally {
+    try {
+      await repository.releaseLock(lockKey, token)
+    } catch {
+      /* The lease expires safely. */
+    }
+  }
+}
+
+/** Refresh exactly one previously cross-walked team-season snapshot. */
+export async function refreshBbsTeamSeason(
+  target: BbsTeamSeasonTarget,
+  env: WorkerEnvironment,
+  repository: NbaRepository,
+  fetcher: typeof fetch,
+  now: number,
+): Promise<BbsRefreshOutcome> {
+  const reference = findNbaTeam(target.teamCode)
+  if (!reference)
+    return outcome(target, 'deferred', null, now, createNbaApiError('invalid_request', 'bbs'))
+  const cacheKey = teamSeasonCacheKey('bbs', reference.team.id, target.seasonEndYear)
+  const previousCache = await repository.getCache(cacheKey)
+  let previous = previousCache?.capability === 'teamSeason' ? previousCache : null
+  const directoryCache = await repository.getCache(
+    teamDirectoryCacheKey('bbs', target.seasonEndYear),
+  )
+  const directory = directoryCache?.capability === 'teamDirectory' ? directoryCache : null
+  const providerReference =
+    directory?.data.find((entry) => entry.teamId === reference.team.id) ?? null
+  const result = (
+    state: BbsRefreshOutcome['state'],
+    error: NbaApiError | null,
+    record: TeamSeasonCacheRecord | null = previous,
+    retryAt: number | null = record?.retryAt ?? null,
+  ) => outcome(target, state, record, Date.now(), error, retryAt)
+
+  if (previous && now >= previous.staleUntil) {
+    await repository.deleteCache(cacheKey)
+    previous = null
+  }
+  if (previous && now < previous.expiresAt) return result('up_to_date', null, previous, null)
+  if (previous?.retryAt && previous.retryAt > now)
+    return result('deferred', previous.refreshError, previous, previous.retryAt)
+  if (env.BBS_REFRESH_ENABLED !== 'true' || !env.BBS_API_KEY)
+    return result('deferred', createNbaApiError('not_configured', 'bbs'))
+  if (
+    !providerReference ||
+    directory!.seasonEndYear !== target.seasonEndYear ||
+    directory!.staleUntil <= now
+  )
+    return result('deferred', createNbaApiError('cache_miss', 'bbs', true))
+
+  const lockKey = `bbs:team-season:season=${target.seasonEndYear}:team=${reference.code}`
+  const token = crypto.randomUUID()
+  if (!(await repository.tryAcquireLock(lockKey, token, now, now + LOCK_MS)))
+    return result(
+      'in_progress',
+      Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
+        retryAt: now + LOCK_MS,
+      }),
+    )
+
+  try {
+    const startYear = Number(target.seasonEndYear) - 1
+    const payload = await getBbsJson(
+      `/v1/teams/${encodeURIComponent(providerReference.providerTeamId)}/season?season=${startYear}`,
+      env,
+      repository,
+      fetcher,
+      now,
+      { key: lockKey, token },
+    )
+    const receivedAt = Date.now()
+    const normalized = normalizeBbsTeamSeason(payload, reference, target.seasonEndYear)
+    if (normalized.providerTeamId !== providerReference.providerTeamId)
+      throw createNbaApiError('invalid_response', 'bbs')
+    const refreshed: TeamSeasonCacheRecord = {
+      cacheKey,
+      capability: 'teamSeason',
+      provider: 'bbs',
+      teamId: reference.team.id,
+      seasonEndYear: target.seasonEndYear,
+      providerTeamId: providerReference.providerTeamId,
+      data: normalized.data,
+      fetchedAt: timestamp(receivedAt),
+      providerUpdatedAt: normalized.providerUpdatedAt,
+      rejectedRecords: normalized.rejectedRecords,
+      expiresAt: receivedAt + TEAM_SEASON_TTL_MS,
+      staleUntil: receivedAt + TEAM_SEASON_STALE_MS,
+      retryAt: null,
+      refreshError: null,
+    }
+    if (!(await repository.putCacheIfLockOwned(refreshed, lockKey, token, Date.now())))
+      throw Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
+        retryAt: Date.now() + LOCK_MS,
+      })
+    return result('refreshed', null, refreshed, null)
+  } catch (cause) {
+    const error =
+      cause instanceof NbaAdapterError
+        ? cause.details
+        : cause && typeof cause === 'object' && 'code' in cause
+          ? (cause as NbaApiError)
+          : createNbaApiError('upstream_unavailable', 'bbs', true)
+    const retryAt =
+      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
+    const failed = cacheFailure(previous, error, Date.now(), retryAt)
+    if (failed) {
+      try {
+        await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())
+      } catch {
+        /* The previous valid snapshot remains authoritative. */
+      }
+    }
+    return result(
+      'deferred',
+      error,
+      failed?.capability === 'teamSeason' ? failed : previous,
+      retryAt,
+    )
+  } finally {
+    try {
+      await repository.releaseLock(lockKey, token)
+    } catch {
+      /* The lease expires safely. */
+    }
   }
 }
 

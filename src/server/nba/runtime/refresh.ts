@@ -5,8 +5,10 @@ import type {
   NbaProviderId,
   SeasonEndYear,
   StandingsRow,
+  TeamSeasonProfile,
   UtcTimestamp,
 } from '@/entities/nba/model'
+import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
 import {
   NbaAdapterError,
@@ -22,10 +24,21 @@ import type {
   NbaRepository,
   WorkerEnvironment,
 } from '@/server/nba/runtime/types'
-import { gamesCacheKey, scheduleCacheKey, standingsCacheKey } from '@/server/nba/runtime/cacheKeys'
+import {
+  gamesCacheKey,
+  scheduleCacheKey,
+  standingsCacheKey,
+  teamDirectoryCacheKey,
+  teamSeasonCacheKey,
+} from '@/server/nba/runtime/cacheKeys'
 import { getDateKeyInTimeZone, NBA_TIME_ZONE } from '@/shared/utils/nbaDate'
 import { readDunkApiCreditBudget } from '@/server/nba/runtime/creditBudget'
-import { refreshBbsGames, runScheduledBbsRefresh } from '@/server/nba/runtime/bbsRefresh'
+import {
+  refreshBbsGames,
+  refreshBbsTeamDirectory,
+  refreshBbsTeamSeason,
+  runScheduledBbsRefresh,
+} from '@/server/nba/runtime/bbsRefresh'
 
 const PROVIDER_URL = 'https://mcp.dunkapi.com/v1'
 const UPSTREAM_TIMEOUT_MS = 12_000
@@ -143,6 +156,8 @@ export function getProviderForTarget(
   target: NbaRefreshTarget,
   env: WorkerEnvironment,
 ): NbaProviderId | null {
+  if (target.type === 'teamSeason' || target.type === 'teamDirectory')
+    return env.BBS_REFRESH_ENABLED === 'true' ? 'bbs' : null
   const capability = target.type === 'standings' ? 'standings' : 'games'
   const resolved = resolveProviderForCapability(
     capability,
@@ -154,11 +169,18 @@ export function getProviderForTarget(
 
 export function cacheKeyForTarget(target: NbaRefreshTarget, provider: NbaProviderId): string {
   if (target.type === 'standings') return standingsCacheKey(provider, target.seasonEndYear)
+  if (target.type === 'teamDirectory') return teamDirectoryCacheKey(provider, target.seasonEndYear)
+  if (target.type === 'teamSeason') {
+    const team = findNbaTeam(target.teamCode)
+    if (!team) throw new Error('Team season refresh requires a canonical NBA team code')
+    return teamSeasonCacheKey(provider, team.team.id, target.seasonEndYear)
+  }
   if (target.type === 'schedule') return scheduleCacheKey(provider)
   return gamesCacheKey(provider, target.date)
 }
 
 function providerRequest(target: NbaRefreshTarget): ProviderRequest | null {
+  if (target.type === 'teamSeason' || target.type === 'teamDirectory') return null
   if (target.type === 'standings') {
     return {
       endpoint: 'get_standings',
@@ -193,6 +215,12 @@ function timePolicy(target: NbaRefreshTarget): { freshMs: number; maxStaleMs: nu
   }
   if (target.type === 'schedule') {
     return { freshMs: SCHEDULE_FRESH_TTL_MS, maxStaleMs: SCHEDULE_MAX_STALE_MS }
+  }
+  if (target.type === 'teamSeason') {
+    return { freshMs: 6 * 60 * 60_000, maxStaleMs: 7 * 24 * 60 * 60_000 }
+  }
+  if (target.type === 'teamDirectory') {
+    return { freshMs: 7 * 24 * 60 * 60_000, maxStaleMs: 30 * 24 * 60 * 60_000 }
   }
   return { freshMs: GAME_FRESH_TTL_MS, maxStaleMs: GAME_MAX_STALE_MS }
 }
@@ -257,7 +285,7 @@ async function postDunkApi(
 function createCacheRecord(
   target: NbaRefreshTarget,
   provider: NbaProviderId,
-  data: readonly Game[] | readonly StandingsRow[],
+  data: readonly Game[] | readonly StandingsRow[] | TeamSeasonProfile,
   fetchedAt: UtcTimestamp,
   providerUpdatedAt: UtcTimestamp | null,
   rejectedRecords: number,
@@ -278,6 +306,8 @@ function createCacheRecord(
   if (target.type === 'standings') {
     return { ...base, capability: 'standings', data: data as readonly StandingsRow[] }
   }
+  if (target.type === 'teamSeason' || target.type === 'teamDirectory')
+    throw new Error('BBS team cache records are provider scoped.')
   if (target.type === 'schedule') {
     const coverage = getScheduleCoverage(now)
     return { ...base, capability: 'schedule', data: data as readonly Game[], coverage }
@@ -324,6 +354,12 @@ export async function refreshNbaResource(
   fetcher: typeof fetch,
   now: number,
 ): Promise<RefreshOutcome> {
+  if (target.type === 'teamSeason') {
+    return refreshBbsTeamSeason(target, env, repository, fetcher, now)
+  }
+  if (target.type === 'teamDirectory') {
+    return refreshBbsTeamDirectory(target, env, repository, fetcher, now)
+  }
   const provider = getProviderForTarget(target, env)
   if (!provider) {
     const error = createNbaApiError('not_configured', null)

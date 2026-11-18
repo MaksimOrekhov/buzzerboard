@@ -27,7 +27,10 @@ const teamAliases: Readonly<Record<string, string>> = {
   SA: 'SAS',
   SAS: 'SAS',
   UTA: 'UTA',
+  UTAH: 'UTA',
   UTH: 'UTA',
+  WAS: 'WAS',
+  WSH: 'WAS',
 }
 const nbaTeamCodes = new Set([
   'ATL',

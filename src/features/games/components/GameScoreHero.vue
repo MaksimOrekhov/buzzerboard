@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { Game } from '@/entities/nba/model'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
+import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
 import AppBadge from '@/shared/components/AppBadge.vue'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 
@@ -38,11 +39,11 @@ const localStart = computed(() =>
     <div class="game-detail-scoreline">
       <div class="game-detail-side" :class="{ 'game-detail-side--winner': winner === 'away' }">
         <TeamLogo :team="game.awayTeam" :size="76" />
-        <div>
+        <TeamProfileLink :team="game.awayTeam" class="game-detail-team-link">
           <span>{{
             game.awayTeam.displayName ?? game.awayTeam.abbreviation ?? 'Гости'
           }}</span><small>ГОСТИ · {{ game.awayTeam.abbreviation }}</small>
-        </div>
+        </TeamProfileLink>
         <strong>{{ game.score.away ?? '—' }}</strong>
       </div>
       <div class="game-detail-center">
@@ -55,11 +56,11 @@ const localStart = computed(() =>
       >
         <strong>{{ game.score.home ?? '—' }}</strong>
         <TeamLogo :team="game.homeTeam" :size="76" />
-        <div>
+        <TeamProfileLink :team="game.homeTeam" class="game-detail-team-link">
           <span>{{
             game.homeTeam.displayName ?? game.homeTeam.abbreviation ?? 'Хозяева'
           }}</span><small>ХОЗЯЕВА · {{ game.homeTeam.abbreviation }}</small>
-        </div>
+        </TeamProfileLink>
       </div>
     </div>
     <div class="game-detail-venue">

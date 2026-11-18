@@ -10,6 +10,8 @@ describe('application routes', () => {
     ['/games', 'games', 'Матчи'],
     ['/games/dunkapi%3Agame%3Asynthetic-1?date=2026-11-15', 'game-details', 'Матч'],
     ['/standings', 'standings', 'Турнирная таблица'],
+    ['/teams', 'teams', 'Команды'],
+    ['/teams/LAL', 'team-profile', 'Профиль команды'],
     ['/news', 'news', 'Новости'],
     ['/favorites', 'favorites', 'Избранное'],
     ['/somewhere-else', 'not-found', 'Страница не найдена'],
@@ -30,6 +32,7 @@ describe('application routes', () => {
       'home',
       'games',
       'standings',
+      'teams',
       'news',
       'favorites',
     ])
@@ -37,6 +40,7 @@ describe('application routes', () => {
       'Обзор',
       'Матчи',
       'Турнирная таблица',
+      'Команды',
       'Новости',
       'Избранное',
     ])

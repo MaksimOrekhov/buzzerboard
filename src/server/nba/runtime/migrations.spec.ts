@@ -33,6 +33,7 @@ describe('BBS D1 migration', () => {
 
       database.exec(migration('0003_bbs_provider.sql'))
       database.exec(migration('0004_provider_cooldowns.sql'))
+      database.exec(migration('0005_team_season_cache.sql'))
       const prior = database
         .prepare('SELECT provider, record_json FROM nba_cache WHERE cache_key = ?')
         .get('dunkapi:nba:games:date=2026-11-15') as { provider: string; record_json: string }
@@ -47,6 +48,17 @@ describe('BBS D1 migration', () => {
         INSERT INTO nba_cache
           (cache_key, capability, provider, record_json, expires_at_ms, stale_until_ms, updated_at_ms)
         VALUES ('bbs:nba:games:date=2026-11-15', 'games', 'bbs', '{}', 2000, 3000, 1000)
+      `,
+          )
+          .run(),
+      ).not.toThrow()
+      expect(() =>
+        database
+          .prepare(
+            `
+        INSERT INTO nba_cache
+          (cache_key, capability, provider, record_json, expires_at_ms, stale_until_ms, updated_at_ms)
+        VALUES ('bbs:nba:team-directory:season=2027', 'teamDirectory', 'bbs', '{}', 2000, 3000, 1000)
       `,
           )
           .run(),
