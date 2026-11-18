@@ -1,5 +1,10 @@
 import { computed, shallowRef } from 'vue'
 import type { GameBoxScore, PlayerBoxScore } from '@/entities/nba/model'
+import {
+  parseMinutes,
+  playerBoxScoreAdvanced,
+  type AdvancedMetric,
+} from '@/entities/nba/advancedStats'
 
 export type PlayerSortKey =
   | 'minutes'
@@ -16,22 +21,25 @@ export type PlayerSortKey =
   | 'fieldGoals'
   | 'threePointers'
   | 'freeThrows'
+  | AdvancedMetric
 
 function minuteValue(value: string | null): number | null {
-  if (value === null || value.trim() === '') return null
-  const trimmed = value.trim()
-  const clock = /^(\d+):(\d{1,2})$/.exec(trimmed)
-  if (clock) {
-    const minutes = Number(clock[1])
-    const seconds = Number(clock[2])
-    return seconds < 60 ? minutes * 60 + seconds : null
-  }
-  const minutes = Number(trimmed)
-  return Number.isFinite(minutes) && minutes >= 0 ? minutes * 60 : null
+  const minutes = parseMinutes(value)
+  return minutes === null ? null : minutes * 60
 }
 
 function sortValue(line: PlayerBoxScore, key: PlayerSortKey): number | null {
   if (key === 'minutes') return minuteValue(line.minutes)
+  if (
+    key === 'efg' ||
+    key === 'ts' ||
+    key === 'gmSc' ||
+    key === 'astTo' ||
+    key === 'threeRate' ||
+    key === 'freeThrowRate' ||
+    key === 'twoPoint'
+  )
+    return playerBoxScoreAdvanced(line, key)
   const value = line[key]
   return typeof value === 'object' && value !== null ? value.percentage : value
 }

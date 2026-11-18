@@ -2,10 +2,17 @@
 import { computed, shallowRef } from 'vue'
 import type { PlayerBoxScore, Team } from '@/entities/nba/model'
 import type { PlayerSortKey } from '@/features/games/composables/useGameDetailsModel'
+import type { AdvancedMetric } from '@/entities/nba/advancedStats'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import StatTable from '@/shared/components/StatTable.vue'
 import VerifiedPlayerLink from '@/features/players/VerifiedPlayerLink.vue'
 import { bbsPlayerId } from '@/entities/nba/players'
+import {
+  advancedMetrics,
+  formatAdvancedStat,
+  playerBoxScoreAdvanced,
+} from '@/entities/nba/advancedStats'
+import AppTooltip from '@/shared/components/AppTooltip.vue'
 
 defineProps<{
   team: Team
@@ -20,9 +27,13 @@ const groups = [
   { key: 'basic', label: 'Основное' },
   { key: 'shooting', label: 'Броски' },
   { key: 'other', label: 'Защита и потери' },
+  { key: 'advanced', label: 'Эффективность' },
 ] as const
 const group = shallowRef<(typeof groups)[number]['key']>('basic')
-const columns = {
+const columns: Record<
+  Exclude<(typeof groups)[number]['key'], 'advanced'>,
+  { key: PlayerSortKey; label: string; name: string; description?: string }[]
+> = {
   basic: [
     { key: 'points', label: 'PTS', name: 'Очки' },
     { key: 'rebounds', label: 'REB', name: 'Подборы' },
@@ -43,11 +54,28 @@ const columns = {
     { key: 'offensiveRebounds', label: 'OREB', name: 'Подборы в атаке' },
     { key: 'defensiveRebounds', label: 'DREB', name: 'Подборы в защите' },
   ],
-} satisfies Record<string, { key: PlayerSortKey; label: string; name: string }[]>
-const visibleColumns = computed(() => columns[group.value])
+}
+const visibleColumns = computed(() => (group.value === 'advanced' ? [] : columns[group.value]))
+const advancedColumns = computed(() =>
+  advancedMetrics.map(({ key, short, label, description }) => ({
+    key,
+    label: short,
+    name: label,
+    description,
+  })),
+)
+const currentColumns = computed(() =>
+  group.value === 'advanced' ? advancedColumns.value : visibleColumns.value,
+)
 
 function cell(line: PlayerBoxScore, key: PlayerSortKey) {
-  const value = line[key]
+  if (group.value === 'advanced')
+    return formatAdvancedStat(
+      key as (typeof advancedMetrics)[number]['key'],
+      playerBoxScoreAdvanced(line, key as (typeof advancedMetrics)[number]['key']),
+    )
+  if (key === 'minutes') return line.minutes ?? '—'
+  const value = line[key as Exclude<PlayerSortKey, AdvancedMetric>]
   if (value === null) return '—'
   if (typeof value === 'object') {
     const shots =
@@ -103,23 +131,24 @@ function cell(line: PlayerBoxScore, key: PlayerSortKey) {
           <tr>
             <th scope="col">Игрок</th>
             <th
-              v-for="column in visibleColumns"
+              v-for="column in currentColumns"
               :key="column.key"
               scope="col"
               :aria-sort="sortBy === column.key ? direction : undefined"
             >
-              <button
-                type="button"
-                class="player-sort"
-                :title="column.name"
-                :aria-label="`Сортировать по: ${column.name}`"
-                @click="$emit('sort', column.key)"
-              >
-                {{ column.label
-                }}<span v-if="sortBy === column.key" aria-hidden="true">{{
-                  direction === 'ascending' ? '↑' : '↓'
-                }}</span>
-              </button>
+              <AppTooltip :text="column.description ?? column.name">
+                <button
+                  type="button"
+                  class="player-sort"
+                  :aria-label="`Сортировать по: ${column.name}`"
+                  @click="$emit('sort', column.key)"
+                >
+                  {{ column.label
+                  }}<span v-if="sortBy === column.key" aria-hidden="true">{{
+                    direction === 'ascending' ? '↑' : '↓'
+                  }}</span>
+                </button>
+              </AppTooltip>
             </th>
           </tr>
         </thead>
@@ -141,7 +170,7 @@ function cell(line: PlayerBoxScore, key: PlayerSortKey) {
               >
             </th>
             <td
-              v-for="column in visibleColumns"
+              v-for="column in currentColumns"
               :key="column.key"
               :class="{ 'player-primary': column.key === 'points' }"
             >
@@ -152,8 +181,11 @@ function cell(line: PlayerBoxScore, key: PlayerSortKey) {
       </table>
     </StatTable>
     <p v-if="players.length" class="player-stat-legend">
-      {{ visibleColumns.map(({ label, name }) => label + ' — ' + name).join(' · ') }}
+      {{ currentColumns.map(({ label, name }) => label + ' — ' + name).join(' · ') }}
       <template v-if="group === 'shooting'">. В ячейке: попадания/попытки и процент.</template>
+      <template v-if="group === 'advanced'"
+        >. Значения для одной игры по имеющимся строкам box score.</template
+      >
     </p>
     <p v-else class="player-box-unavailable">Нет статистики игроков этой команды.</p>
     <details v-if="didNotPlay.length" class="player-dnp">

@@ -9,8 +9,17 @@ import {
   playerMetrics,
   playerPath,
   type PlayerGroup,
+  type PlayerMetric,
   type PlayerSort,
 } from '@/entities/nba/players'
+import {
+  advancedMetrics,
+  formatAdvancedStat,
+  meetsPlayerThresholds,
+  per36Metrics,
+  seasonAdvancedMetric,
+  type AdvancedStatsMetric,
+} from '@/entities/nba/advancedStats'
 import { usePlayers } from './api'
 import { usePlayerFavorites } from './usePlayerFavorites'
 import PageHeading from '@/shared/components/PageHeading.vue'
@@ -20,6 +29,7 @@ import AppSegmented from '@/shared/components/AppSegmented.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import StatTable from '@/shared/components/StatTable.vue'
+import AppTooltip from '@/shared/components/AppTooltip.vue'
 
 const props = defineProps<{ favoritesOnly?: boolean }>()
 const route = useRoute()
@@ -30,6 +40,8 @@ const groups = [
   { value: 'basic', label: 'Основное' },
   { value: 'shooting', label: 'Броски' },
   { value: 'defense', label: 'Защита и потери' },
+  { value: 'advanced', label: 'Эффективность' },
+  { value: 'per36', label: 'За 36 минут' },
 ] as const
 const group = computed<PlayerGroup>(
   () => groups.find((item) => item.value === route.query.group)?.value ?? 'basic',
@@ -48,12 +60,26 @@ function set(key: string, value: string) {
 watch(search, (value) => {
   if (value !== (route.query.q ?? '')) set('q', value)
 })
-const metrics = computed(() => playerMetrics.filter((column) => column[3] === group.value))
-const defaults: Record<PlayerGroup, PlayerSort> = { basic: 'pts', shooting: 'fg', defense: 'stl' }
+const metrics = computed(() => {
+  if (group.value === 'advanced')
+    return advancedMetrics.map(({ key, short, label }) => ({ key, short, label }))
+  if (group.value === 'per36')
+    return per36Metrics.map(({ key, short, label }) => ({ key, short, label }))
+  return playerMetrics
+    .filter((column) => column[3] === group.value)
+    .map(([key, short, label]) => ({ key, short, label }))
+})
+const defaults: Record<PlayerGroup, PlayerSort> = {
+  basic: 'pts',
+  shooting: 'fg',
+  defense: 'stl',
+  advanced: 'ts',
+  per36: 'pts36',
+}
 const sort = computed<PlayerSort>(() => {
   if (route.query.sort === 'name') return 'name'
   return (
-    metrics.value.find((column) => column[0] === route.query.sort)?.[0] ?? defaults[group.value]
+    metrics.value.find((column) => column.key === route.query.sort)?.key ?? defaults[group.value]
   )
 })
 const ascending = computed(() => route.query.dir === 'asc')
@@ -98,9 +124,21 @@ function selected(key: string, options: readonly { value: string }[]) {
 function selectFilter(key: string, value: string) {
   set(key, value === 'all' ? '' : value)
 }
+function metricValue(player: NonNullable<typeof data.value>['players'][number], key: PlayerSort) {
+  if (key === 'name') return null
+  const stats = player.stats
+  if (!stats) return null
+  if (key in stats) return formatPlayerStat(key as PlayerMetric, stats[key as PlayerMetric])
+  return formatAdvancedStat(
+    key as AdvancedStatsMetric,
+    seasonAdvancedMetric(stats, key as AdvancedStatsMetric),
+  )
+}
 const filtered = computed(() => {
   const term = search.value.toLowerCase().trim()
   const minGp = Math.min(100, Math.max(0, Number(route.query.gp) || 0))
+  const minMinutes = Math.min(48, Math.max(0, Number(route.query.min) || 0))
+  const minFga = Math.min(40, Math.max(0, Number(route.query.fga) || 0))
   const team = selected('team', teamOptions)
   const conference = selected('conference', conferenceOptions)
   const position = selected('position', positionOptions.value)
@@ -112,10 +150,10 @@ const filtered = computed(() => {
         (conference === 'all' ||
           (player.team && findNbaTeam(player.team)?.conference === conference)) &&
         (position === 'all' || player.position === position) &&
-        (!minGp || (player.stats?.gp ?? 0) >= minGp) &&
+        meetsPlayerThresholds(player.stats, { gp: minGp, minutes: minMinutes, fga: minFga }) &&
         (!(props.favoritesOnly || route.query.favorites === '1') || ids.value.has(player.id)),
     )
-    .sort((a, b) => comparePlayers(a, b, sort.value, ascending.value))
+    .sort((a, b) => comparePlayers(a, b, sort.value, ascending.value, seasonAdvancedMetric))
 })
 const pageCount = computed(() => Math.max(1, Math.ceil(filtered.value.length / 25)))
 const page = computed(() =>
@@ -186,12 +224,30 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
           @update:model-value="selectFilter('position', $event)"
         />
         <label
-          >Минимум матчей<input
+          >Мин. матчей<input
             type="number"
             min="0"
             max="100"
             :value="route.query.gp ?? 0"
             @change="change('gp', $event)"
+        /></label>
+        <label
+          >Мин. минут за игру<input
+            type="number"
+            min="0"
+            max="48"
+            step="0.5"
+            :value="route.query.min ?? 0"
+            @change="change('min', $event)"
+        /></label>
+        <label
+          >Мин. FGA за игру<input
+            type="number"
+            min="0"
+            max="40"
+            step="0.5"
+            :value="route.query.fga ?? 0"
+            @change="change('fga', $event)"
         /></label>
         <button
           v-if="!favoritesOnly"
@@ -204,8 +260,29 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
           <AppIcon name="star" :size="17" /><span>Избранные</span>
         </button>
       </div>
+      <details v-if="group === 'advanced' || group === 'per36'" class="player-method-note">
+        <summary>Методика расширенных показателей</summary>
+        <p>
+          Это расчёты BuzzerBoard по средним BBS, а не официальные рейтинги NBA. Сезонные отношения
+          приблизительны из-за округления средних.
+        </p>
+        <ul>
+          <li
+            v-for="metric in group === 'advanced' ? advancedMetrics : per36Metrics"
+            :key="metric.key"
+          >
+            <strong>{{ metric.short }}</strong> —
+            {{ 'description' in metric ? metric.description : metric.label }}
+          </li>
+        </ul>
+        <p>
+          Порог матчей, минут и FGA задаёт пользователь; это не официальный квалификационный
+          минимум.
+        </p>
+      </details>
       <p class="player-meta">
-        Минимум матчей — пользовательский фильтр. Средние в расчёте на игру, GP — всего матчей.
+        Средние за матч; GP — матчи сезона. Пороги GP, минут и FGA — пользовательские, по умолчанию
+        выключены.
       </p>
       <div class="players-table-panel">
         <header class="players-panel-heading">
@@ -231,14 +308,16 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
                   </button>
                 </th>
                 <th
-                  v-for="[key, short, label] in metrics"
+                  v-for="{ key, short, label } in metrics"
                   :key="key"
                   scope="col"
                   :aria-sort="sort === key ? (ascending ? 'ascending' : 'descending') : undefined"
                 >
-                  <button :aria-label="'Сортировать: ' + label" :title="label" @click="sortBy(key)">
-                    {{ short }} <span v-if="sort === key">{{ ascending ? '↑' : '↓' }}</span>
-                  </button>
+                  <AppTooltip :text="label">
+                    <button :aria-label="'Сортировать: ' + label" @click="sortBy(key)">
+                      {{ short }} <span v-if="sort === key">{{ ascending ? '↑' : '↓' }}</span>
+                    </button>
+                  </AppTooltip>
                 </th>
               </tr>
             </thead>
@@ -280,8 +359,8 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
                     </div>
                   </div>
                 </th>
-                <td v-for="[key] in metrics" :key="key">
-                  {{ formatPlayerStat(key, player.stats?.[key]) }}
+                <td v-for="{ key } in metrics" :key="key">
+                  {{ metricValue(player, key) }}
                 </td>
               </tr>
             </tbody>
