@@ -172,13 +172,7 @@ const gameRows = computed(() =>
         <AppIcon :name="item.icon" :size="23" />
         <div>
           <h2>{{ item.label }}</h2>
-          <p>
-            {{
-              item.id === 'players'
-                ? 'Люди, которые делают игру'
-                : 'Больше контекста за каждой цифрой'
-            }}
-          </p>
+          <p>Больше контекста за каждой цифрой</p>
         </div>
         <AppBadge>Скоро</AppBadge>
       </article>

@@ -65,7 +65,11 @@ const unavailableDetails = computed(() =>
           class="gc-control ui-button ui-button--secondary game-detail-back"
           :to="returnTo"
           ><AppIcon name="arrow" :size="16" />{{
-            returnTo.startsWith('/teams/') ? 'К профилю команды' : 'К игровому дню'
+            returnTo.startsWith('/teams/')
+              ? 'К профилю команды'
+              : returnTo.startsWith('/players/')
+                ? 'К профилю игрока'
+                : 'К игровому дню'
           }}</RouterLink
         ></template
       >

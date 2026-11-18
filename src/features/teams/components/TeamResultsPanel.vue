@@ -7,6 +7,8 @@ import type { Team, TeamId } from '@/entities/nba/model'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
+import VerifiedPlayerLink from '@/features/players/VerifiedPlayerLink.vue'
+import { bbsPlayerId } from '@/entities/nba/players'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 const props = defineProps<{ profile: TeamSeasonProfile }>()
 const dateLabel = (value: string) =>
@@ -129,7 +131,13 @@ function opponentTeam(code: string): Team {
       <div class="teams-leader-grid">
         <article v-for="leader in profile.leaders" :key="leader.playerId">
           <span>{{ leader.statLabel }}</span><strong>{{ leaderValue(leader.statValue) }}</strong
-          ><small>{{ leader.displayName }}</small>
+          ><small
+            ><VerifiedPlayerLink
+              v-if="bbsPlayerId.test(leader.playerId)"
+              :id="leader.playerId"
+              :name="leader.displayName"
+            /><template v-else>{{ leader.displayName }}</template></small
+          >
         </article>
       </div>
     </div>

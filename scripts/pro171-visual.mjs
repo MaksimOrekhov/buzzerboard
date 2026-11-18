@@ -171,6 +171,57 @@ const error = {
   },
   requestId: null,
 }
+const syntheticPlayers = Array.from({ length: 520 }, (_, index) => ({
+  id: 'bbs:player:00000000-0000-0000-0000-' + String(index).padStart(12, '0'),
+  name:
+    index === 0
+      ? 'Synthetic long player name with multiple family names'
+      : 'Synthetic Prospect ' + index,
+  team: index % 2 ? 'BOS' : 'SAS',
+  position: 'Guard',
+  number: null,
+  height: null,
+  weight: null,
+  stats:
+    index % 5
+      ? {
+          gp: 12,
+          pts: index / 20,
+          reb: 4,
+          ast: 3,
+          min: 20,
+          fgm: null,
+          fga: null,
+          fg: null,
+          threeM: null,
+          threeA: null,
+          three: null,
+          ftm: null,
+          fta: null,
+          ft: null,
+          stl: null,
+          blk: null,
+          oreb: null,
+          dreb: null,
+          tov: null,
+          pf: null,
+        }
+      : null,
+}))
+const playerMeta = {
+  source: 'bbs',
+  seasonEndYear: 2027,
+  fetchedAt: meta.fetchedAt,
+  isStale: false,
+  coverage: {
+    total: 520,
+    providerRows: 520,
+    checked: 520,
+    averages: 416,
+    enriched: 1,
+    boxLinks: 1,
+  },
+}
 await mkdir(output, { recursive: true })
 const server = await createServer({
   cacheDir: path.join(root, 'node_modules/.vite-pro171'),
@@ -205,6 +256,38 @@ try {
       calls.push({ path: url.pathname, method: request.method() })
       if (mode === 'loading') await new Promise((resolve) => setTimeout(resolve, 1200))
       if (mode === 'error') return route.fulfill({ status: 503, json: error })
+      if (url.pathname === '/api/players')
+        return route.fulfill({ json: { ...playerMeta, players: syntheticPlayers } })
+      if (url.pathname.startsWith('/api/players/')) {
+        const id = decodeURIComponent(url.pathname.split('/').at(-1))
+        const player = syntheticPlayers.find((item) => item.id === id)
+        if (!player) return route.fulfill({ status: 404, json: error })
+        return route.fulfill({
+          json: {
+            ...playerMeta,
+            player,
+            detail: {
+              birthDate: null,
+              currentTeam: player.team,
+              profileAt: meta.fetchedAt,
+              logAt: meta.fetchedAt,
+              games: [
+                { date: today, opponent: 'BOS', gameId: null, pts: 22, reb: 5, ast: 4, min: 35 },
+                {
+                  date: shift(-1),
+                  opponent: 'PHI',
+                  gameId: null,
+                  pts: null,
+                  reb: 4,
+                  ast: 8,
+                  min: 21,
+                },
+                { date: shift(-2), opponent: 'CLE', gameId: null, pts: 1, reb: 3, ast: 0, min: 12 },
+              ],
+            },
+          },
+        })
+      }
       if (url.pathname === '/api/standings')
         return route.fulfill({
           json: {
@@ -493,6 +576,32 @@ try {
       true,
     )
     await capture('standings-tied-pct')
+    await page.goto('http://127.0.0.1:4186/players')
+    const playerRows = page.locator('.players-table tbody tr')
+    await playerRows.first().waitFor()
+    assert.equal(await playerRows.count(), 25)
+    await page.getByRole('button', { name: 'Далее', exact: true }).click()
+    await page.waitForURL((url) => url.searchParams.get('page') === '2')
+    await page.getByRole('searchbox', { name: 'Поиск игрока' }).fill('multiple family names')
+    await page.getByRole('link', { name: syntheticPlayers[0].name }).waitFor()
+    assert.equal(await playerRows.count(), 1)
+    await page.getByRole('button', { name: 'Избранное: ' + syntheticPlayers[0].name }).click()
+    await page.getByRole('link', { name: syntheticPlayers[0].name }).click()
+    await page.locator('.player-chart').waitFor()
+    assert.equal(await page.locator('.chart-line').count(), 0)
+    await page.getByRole('button', { name: 'Подборы', exact: true }).first().click()
+    assert.equal(await page.locator('.chart-line').count(), 2)
+    await capture('player-profile')
+    await page.getByRole('link', { name: 'К списку игроков', exact: false }).click()
+    await page.getByRole('link', { name: syntheticPlayers[0].name }).waitFor()
+    assert.equal(
+      await page.getByRole('searchbox', { name: 'Поиск игрока' }).inputValue(),
+      'multiple family names',
+    )
+    await page.goto('http://127.0.0.1:4186/favorites?tab=players')
+    await page.getByRole('link', { name: syntheticPlayers[0].name }).waitFor()
+    assert.equal(await playerRows.count(), 1)
+    await capture('favorite-players')
     await page.keyboard.press('Tab')
     // All network data in public screenshots are generated above.
     assert.ok(
@@ -501,6 +610,7 @@ try {
           call.method === 'GET' &&
           (call.path === '/api/games' ||
             call.path === '/api/standings' ||
+            /^\/api\/players(?:\/[^/]+)?$/.test(call.path) ||
             /^\/api\/games\/[^/]+$/.test(call.path)),
       ),
     )
