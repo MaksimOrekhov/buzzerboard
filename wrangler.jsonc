@@ -15,7 +15,7 @@
     {
       "binding": "NBA_DB",
       "database_name": "buzzerboard-nba-cache",
-      "database_id": "00000000000000000000000000000000",
+      "database_id": "ab82a06b-3311-41cc-b93c-9af5e92208e4",
       "migrations_dir": "migrations",
     },
   ],

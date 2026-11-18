@@ -13,10 +13,10 @@ Big Balls Sports Data's current [Terms of Service](https://bigballsdata.com/lega
 ## Owner setup (one time)
 
 1. Authenticate Wrangler in a terminal from this repository with `pnpm exec wrangler login`. Finish Cloudflare's browser login/OTP as the account owner. Never paste an API token into chat or commit it.
-2. Create the free D1 database with `pnpm exec wrangler d1 create buzzerboard-nba-cache`. Put the returned database ID into `wrangler.jsonc`'s `NBA_DB` binding and push that change. The ID identifies the database; it is not an API credential.
-3. Deploy the first revision with `pnpm db:migrate:remote && pnpm worker:deploy`. With `workers_dev: false`, this creates the Worker without a public route.
+2. The free D1 database has been created in WEUR (`ab82a06b-3311-41cc-b93c-9af5e92208e4`) and its ID is set in `wrangler.jsonc`. Migrations 0001–0006 are applied. The remote cache and player snapshot tables were verified empty.
+3. The bootstrap Worker has been deployed with `workers_dev: false` and preview URLs disabled. It has no public hostname or deployment route.
 4. In Cloudflare Dashboard → Workers & Pages → `buzzerboard` → **Access**, enable Access for **all traffic** (production and previews). Allow only the owner's verified email with a one-time PIN. Confirm the rule is Worker-level; do not choose the account-wide option.
-5. Change `workers_dev` to `true`, commit and push the change. The resulting permanent URL is `https://buzzerboard.<account-subdomain>.workers.dev`. Re-deploy, then verify the unauthenticated URL redirects to Access and authenticated pages and `/api/health` work. Preview URLs remain disabled in Wrangler; Worker-level Access also covers them if later enabled.
+5. After Access is active, change `workers_dev` to `true`, commit and push the change. The resulting permanent URL is `https://buzzerboard.<account-subdomain>.workers.dev`. Re-deploy, then verify the unauthenticated URL redirects to Access and authenticated pages and `/api/health` work. Preview URLs remain disabled in Wrangler; Worker-level Access also covers them if later enabled.
 6. Only after that check, export and upload the private BBS seed as described below. Verify directory, profiles, teams, games and box-score pages; cache misses (including standings if no permitted BBS snapshot exists) stay visible as cache misses.
 
 If Wrangler is not authenticated, the exact owner action is steps 1–4 above. The repository cannot log into Cloudflare on the owner's behalf. The rest of the code and CI setup can be reviewed before that login.
