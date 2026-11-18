@@ -105,8 +105,10 @@ class SqliteD1 implements D1Database {
     return new SqlitePreparedStatement(this, query)
   }
 
-  async batch(): Promise<D1Result[]> {
-    throw new Error('batch is not used by credit reservation tests')
+  async batch(statements: D1PreparedStatement[]): Promise<D1Result[]> {
+    const results: D1Result[] = []
+    for (const statement of statements) results.push(await statement.run())
+    return results
   }
 
   close() {
@@ -394,6 +396,7 @@ describe('D1 scheduled BBS progress', () => {
       tasks: [{ task: { type: 'enrichStandings', seasonEndYear }, attempts: 0, retryAt: null }],
     })
     database.operations = 0
+    await repository.cleanupExpired(now)
     const neverFetch = (async () => {
       throw new Error('synthetic cache-only tick must not fetch')
     }) as typeof fetch
@@ -404,7 +407,7 @@ describe('D1 scheduled BBS progress', () => {
       now,
     )
     expect(result[0]?.state).toBe('refreshed')
-    expect(database.operations).toBe(43)
+    expect(database.operations).toBe(47)
     expect(database.operations).toBeLessThanOrEqual(50)
     vi.restoreAllMocks()
   })

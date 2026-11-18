@@ -45,6 +45,7 @@ class MemoryRepository implements NbaRepository {
   providerCooldowns = new Map<string, ProviderCooldown>()
   providerRemaining = new Map<string, { remaining: number; resetAt: number }>()
   bbsRequests: number[] = []
+  cleanupCalls = 0
   scheduledBbsProgress: ScheduledBbsProgress | null = null
   async getScheduledBbsProgress() {
     return this.scheduledBbsProgress
@@ -150,7 +151,9 @@ class MemoryRepository implements NbaRepository {
       resetAt,
     })
   }
-  async cleanupExpired() {}
+  async cleanupExpired() {
+    this.cleanupCalls += 1
+  }
 }
 
 function fakeBbsFetch(options: { status?: number; total?: number } = {}) {
@@ -370,6 +373,19 @@ function busyDayFetch(options: { teamStatus?: number; boxStatusForFirst?: number
 }
 
 describe('BBS cached refresh flow', () => {
+  it('leaves scheduled provider refresh off when production flags are disabled', async () => {
+    const repository = new MemoryRepository()
+    const fetcher = vi.fn<typeof fetch>()
+    const worker = createNbaWorker({ repository, fetcher, now: () => now })
+    await worker.scheduled(
+      { scheduledTime: now, cron: '*/10 * * * *' } as Parameters<typeof worker.scheduled>[0],
+      { ...environment, BBS_REFRESH_ENABLED: 'false', DUNKAPI_REFRESH_ENABLED: 'false' },
+      { waitUntil: vi.fn() } as never,
+    )
+    expect(repository.cleanupCalls).toBe(1)
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
   it('loads a complete date and its final box score once, then serves public GETs from D1 only', async () => {
     const repository = new MemoryRepository()
     const { fetcher, paths } = fakeBbsFetch()
