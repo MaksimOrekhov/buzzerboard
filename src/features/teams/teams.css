@@ -320,6 +320,10 @@
   display: flex;
   gap: 8px;
 }
+.teams-profile-city-media {
+  max-width: 360px;
+  margin: 0 0 16px auto;
+}
 .teams-profile-overview {
   display: grid;
   grid-template-columns: 1.25fr repeat(3, 1fr);

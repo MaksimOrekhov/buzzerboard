@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "assetId": "commons:file:full-chicago-skyline",
+      "subject": {
+        "kind": "city",
+        "id": "nba:city:chicago-illinois-united-states"
+      },
+      "category": "cityscape",
+      "title": "Full chicago skyline",
+      "description": "Панорамный вид на центр Чикаго с озера Мичиган.",
+      "alt": "Панорама центра Чикаго на берегу озера Мичиган.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/73/Full_chicago_skyline.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Full_chicago_skyline.jpg/1280px-Full_chicago_skyline.jpg",
+      "author": "Payton Chung",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Full_chicago_skyline.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "checkedAt": "2026-11-19",
+      "modifications": "Миниатюра Wikimedia Commons, уменьшена с оригинала до 1280 × 877; других изменений нет.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Commons file page offers CC BY-SA 4.0 and imageinfo reports no additional restrictions. The delivered cityscape shows no identifiable people or readable third-party marks. Commons cautions that rights outside the photograph license may still apply; none are asserted here."
+      },
+      "publicPath": "/media/encyclopedia/cities/chicago-skyline.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 877,
+      "bytes": 400569,
+      "fileName": "Full chicago skyline.jpg",
+      "capturedAt": "2009-08-03"
+    },
+    {
+      "assetId": "commons:file:losangeles-skyline",
+      "subject": {
+        "kind": "city",
+        "id": "nba:city:los-angeles-california-united-states"
+      },
+      "category": "cityscape",
+      "title": "LosAngeles skyline",
+      "description": "Вид на центр Лос-Анджелеса с холма.",
+      "alt": "Центр Лос-Анджелеса на горизонте, вид с холма.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9f/LosAngeles_skyline.jpg",
+      "deliverySourceUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9f/LosAngeles_skyline.jpg",
+      "author": "Mindtravelfitness",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:LosAngeles_skyline.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "checkedAt": "2026-11-19",
+      "modifications": "Оригинальный JPEG 960 × 720, без изменений.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Commons file page identifies the uploader as author, grants CC BY-SA 4.0, and imageinfo reports no additional restrictions. The delivered cityscape shows no identifiable people or readable third-party marks. Commons cautions that rights outside the photograph license may still apply; none are asserted here."
+      },
+      "publicPath": "/media/encyclopedia/cities/los-angeles-skyline.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 960,
+      "height": 720,
+      "bytes": 113446,
+      "fileName": "LosAngeles skyline.jpg",
+      "capturedAt": "2017-05-04"
+    },
+    {
+      "assetId": "commons:file:minneapolis-skyline-looking-south",
+      "subject": {
+        "kind": "city",
+        "id": "nba:city:minneapolis-minnesota-united-states"
+      },
+      "category": "cityscape",
+      "title": "Minneapolis Skyline looking south",
+      "description": "Горизонт Миннеаполиса и река Миссисипи, вид с севера.",
+      "alt": "Центр Миннеаполиса и мост через Миссисипи на переднем плане.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/31/Minneapolis_Skyline_looking_south.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Minneapolis_Skyline_looking_south.jpg/1280px-Minneapolis_Skyline_looking_south.jpg",
+      "author": "BpA9543",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Minneapolis_Skyline_looking_south.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "checkedAt": "2026-11-19",
+      "modifications": "Миниатюра Wikimedia Commons, уменьшена с оригинала до 1280 × 708; других изменений нет.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Commons file page grants CC BY-SA 4.0 and imageinfo reports no additional restrictions. The delivered cityscape shows no identifiable people or readable third-party marks. Commons cautions that rights outside the photograph license may still apply; none are asserted here."
+      },
+      "publicPath": "/media/encyclopedia/cities/minneapolis-skyline.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 708,
+      "bytes": 228870,
+      "fileName": "Minneapolis Skyline looking south.jpg",
+      "capturedAt": "2018-03-27"
+    }
+  ]
+}

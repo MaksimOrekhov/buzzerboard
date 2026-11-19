@@ -4,6 +4,7 @@ import '../teams.css'
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { findNbaTeam } from '@/entities/nba/teamCatalog'
+import { getCityMediaForTeam } from '@/entities/nba/teamMediaManifest'
 import { WorkerApiError } from '@/shared/api/nba/workerClient'
 import { useTeamSeason } from '../composables/useTeamSeason'
 import { TEAM_SEASON_END_YEAR } from '../season'
@@ -18,12 +19,14 @@ import TeamSeasonPanel from './TeamSeasonPanel.vue'
 import TeamResultsPanel from './TeamResultsPanel.vue'
 import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
 import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
+import MediaAttribution from '@/shared/components/MediaAttribution.vue'
 const { hideAggregate } = useSpoilerMode()
 const route = useRoute()
 const code = computed(() =>
   typeof route.params.teamCode === 'string' ? route.params.teamCode.toUpperCase() : '',
 )
 const team = computed(() => findNbaTeam(code.value))
+const cityMedia = computed(() => getCityMediaForTeam(code.value))
 const query = useTeamSeason(code, TEAM_SEASON_END_YEAR)
 const { data, isPending, isFetching, isRefetchError } = query
 const statsScope = computed(() => `team:${code.value}`)
@@ -80,6 +83,7 @@ const errorTitle = computed(() =>
         /></RouterLink>
       </div>
     </section>
+    <MediaAttribution v-if="cityMedia" :asset="cityMedia" class="teams-profile-city-media" />
     <p v-if="isRefetchError" class="gc-notice gc-notice--warning" role="status">
       Последнее обновление не удалось. Доступный снимок остаётся виден.
     </p>
