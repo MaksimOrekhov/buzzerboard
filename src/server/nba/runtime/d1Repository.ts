@@ -7,9 +7,11 @@ import type {
   NbaCacheRecord,
   NbaRepository,
   ProviderCooldown,
+  ScheduledBbsDiagnosticPhase,
   ScheduledBbsFailure,
   ScheduledBbsProgress,
   ScheduledBbsTask,
+  ScheduledBbsTaskDiagnostic,
   ScheduledBbsWorkItem,
 } from '@/server/nba/runtime/types'
 import type { NbaProviderId } from '@/entities/nba/model'
@@ -155,6 +157,40 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
   )
 }
 
+const scheduledDiagnosticPhases = new Set<ScheduledBbsDiagnosticPhase>([
+  'provider_fetch',
+  'games_pagination',
+  'games_normalization',
+  'games_date_validation',
+  'games_archive_references',
+  'games_cache_write',
+  'box_score_archive_references',
+  'box_score',
+  'standings',
+  'team_directory',
+  'team_season',
+  'standings_enrichment',
+  'scheduled_task',
+])
+
+function isScheduledBbsTaskDiagnostic(value: unknown): value is ScheduledBbsTaskDiagnostic {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const diagnostic = value as Record<string, unknown>
+  const countFields = ['expectedCount', 'actualCount', 'rejectedRecords']
+  return (
+    typeof diagnostic.phase === 'string' &&
+    scheduledDiagnosticPhases.has(diagnostic.phase as ScheduledBbsDiagnosticPhase) &&
+    (diagnostic.errorCode === null || typeof diagnostic.errorCode === 'string') &&
+    Number.isSafeInteger(diagnostic.observedAt) &&
+    Number(diagnostic.observedAt) >= 0 &&
+    countFields.every(
+      (field) =>
+        diagnostic[field] === undefined ||
+        (Number.isSafeInteger(diagnostic[field]) && Number(diagnostic[field]) >= 0),
+    )
+  )
+}
+
 function isScheduledFailureList(value: unknown): value is readonly ScheduledBbsFailure[] {
   if (!Array.isArray(value) || value.length > SCHEDULED_BBS_TASK_LIMIT) return false
   const keys = new Set<string>()
@@ -165,7 +201,8 @@ function isScheduledFailureList(value: unknown): value is readonly ScheduledBbsF
       !isScheduledBbsTask(failure.task) ||
       (failure.errorCode !== null && typeof failure.errorCode !== 'string') ||
       !Number.isSafeInteger(failure.failedAt) ||
-      Number(failure.failedAt) < 0
+      Number(failure.failedAt) < 0 ||
+      (failure.diagnostic !== undefined && !isScheduledBbsTaskDiagnostic(failure.diagnostic))
     )
       return false
     const key = scheduledBbsTaskKey(failure.task)
@@ -194,7 +231,8 @@ function serializeScheduledProgress(progress: ScheduledBbsProgress): string {
         !Number.isSafeInteger(item.attempts) ||
         item.attempts < 0 ||
         item.attempts > SCHEDULED_BBS_MAX_ATTEMPTS ||
-        (item.retryAt !== null && (!Number.isSafeInteger(item.retryAt) || item.retryAt < 0)),
+        (item.retryAt !== null && (!Number.isSafeInteger(item.retryAt) || item.retryAt < 0)) ||
+        (item.lastError !== undefined && !isScheduledBbsTaskDiagnostic(item.lastError)),
     )
   )
     throw new Error('Refusing to write duplicate or invalid scheduled BBS tasks')
@@ -259,13 +297,17 @@ export class D1NbaRepository implements NbaRepository {
           !(
             record.retryAt === null ||
             (Number.isSafeInteger(record.retryAt) && Number(record.retryAt) >= 0)
-          )
+          ) ||
+          (record.lastError !== undefined && !isScheduledBbsTaskDiagnostic(record.lastError))
         )
           throw new Error('Invalid scheduled BBS item')
         return {
           task: record.task,
           attempts: Number(record.attempts),
           retryAt: record.retryAt as number | null,
+          ...(record.lastError === undefined
+            ? {}
+            : { lastError: record.lastError as ScheduledBbsTaskDiagnostic }),
         }
       })
       if (

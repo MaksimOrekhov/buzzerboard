@@ -478,6 +478,318 @@ describe('BBS cached refresh flow', () => {
     expect(result.state).toBe('deferred')
     expect(repository.cache.get(gamesCacheKey('bbs', date))?.fetchedAt).toBe(previous.fetchedAt)
     expect(incomplete.paths).toHaveLength(1)
+
+    const partialSource = fakeBbsFetch()
+    const partialFetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await partialSource.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      payload.data = [payload.data[1]!]
+      payload.pagination.total = payload.data.length
+      return Response.json(payload)
+    }) as typeof fetch
+    const omittedFinal = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      partialFetcher,
+      now,
+      false,
+    )
+    expect(omittedFinal).toMatchObject({ state: 'deferred', error: { code: 'invalid_response' } })
+    const afterPartial = repository.cache.get(gamesCacheKey('bbs', date))
+    expect(afterPartial?.capability === 'games' && afterPartial.data).toEqual(previous.data)
+  })
+
+  it('publishes valid final games when the BBS archive crosswalk is explicitly nullable', async () => {
+    const repository = new MemoryRepository()
+    const source = fakeBbsFetch()
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await source.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      const final = payload.data.find((match) => match.status === 'finished')!
+      delete final.archive_game_id
+      for (const side of ['home', 'away']) {
+        const team = final[side] as Record<string, unknown>
+        delete team.archive_team_id
+      }
+      return Response.json(payload)
+    }) as typeof fetch
+
+    const result = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fetcher,
+      now,
+      false,
+    )
+
+    expect(result).toMatchObject({
+      state: 'refreshed',
+      error: null,
+      diagnostic: {
+        phase: 'games_archive_references',
+        expectedCount: 3,
+        actualCount: 0,
+      },
+    })
+    expect(repository.cache.get(gamesCacheKey('bbs', date))).toMatchObject({
+      capability: 'games',
+      data: expect.arrayContaining([expect.objectContaining({ status: 'final' })]),
+    })
+    expect(source.paths).toHaveLength(1)
+  })
+
+  it('does not persist unsafe numeric archive references as lossy identifiers', async () => {
+    const repository = new MemoryRepository()
+    const source = fakeBbsFetch()
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await source.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      const final = payload.data.find((match) => match.status === 'finished')!
+      final.archive_game_id = Number.MAX_SAFE_INTEGER + 1
+      return Response.json(payload)
+    }) as typeof fetch
+
+    const result = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fetcher,
+      now,
+      false,
+    )
+
+    expect(result).toMatchObject({
+      state: 'refreshed',
+      diagnostic: { phase: 'games_archive_references', expectedCount: 3, actualCount: 2 },
+    })
+    const snapshot = repository.cache.get(gamesCacheKey('bbs', date))
+    expect(
+      snapshot?.capability === 'games' && snapshot.providerReferences?.[snapshot.data[0]!.id],
+    ).toBeUndefined()
+  })
+
+  it('keeps a verified final result and crosswalk when a later response regresses to scheduled', async () => {
+    const repository = new MemoryRepository()
+    const initial = fakeBbsFetch()
+    await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      initial.fetcher,
+      now,
+      false,
+    )
+    const previous = repository.cache.get(gamesCacheKey('bbs', date))
+    if (previous?.capability !== 'games') throw new Error('Expected verified game snapshot')
+    await repository.putCache({ ...previous, expiresAt: now - 1 })
+
+    const source = fakeBbsFetch()
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await source.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      const final = payload.data.find((match) => match.status === 'finished')!
+      final.status = 'scheduled'
+      ;(final.home as Record<string, unknown>).score = null
+      ;(final.away as Record<string, unknown>).score = null
+      return Response.json(payload)
+    }) as typeof fetch
+
+    const result = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fetcher,
+      now,
+      false,
+    )
+    const current = repository.cache.get(gamesCacheKey('bbs', date))
+    expect(result).toMatchObject({ state: 'deferred', error: { code: 'invalid_response' } })
+    expect(current?.capability === 'games' && current.data[0]).toEqual(previous.data[0])
+    expect(current?.capability === 'games' && current.providerReferences).toEqual(
+      previous.providerReferences,
+    )
+    expect(current?.fetchedAt).toBe(previous.fetchedAt)
+
+    const incompleteSource = fakeBbsFetch()
+    const incompleteFetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await incompleteSource.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      ;(payload.data[0]!.home as Record<string, unknown>).score = null
+      return Response.json(payload)
+    }) as typeof fetch
+    const incomplete = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      incompleteFetcher,
+      now + 16 * 60_000,
+      false,
+      true,
+    )
+    const afterIncomplete = repository.cache.get(gamesCacheKey('bbs', date))
+    expect(incomplete).toMatchObject({ state: 'deferred', error: { code: 'invalid_response' } })
+    expect(afterIncomplete?.capability === 'games' && afterIncomplete.data[0]).toEqual(
+      previous.data[0],
+    )
+    expect(afterIncomplete?.fetchedAt).toBe(previous.fetchedAt)
+  })
+
+  it('inherits missing archive references only for the same game and team identities', async () => {
+    const repository = new MemoryRepository()
+    const initial = fakeBbsFetch()
+    await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      initial.fetcher,
+      now,
+      false,
+    )
+    const previous = repository.cache.get(gamesCacheKey('bbs', date))
+    if (previous?.capability !== 'games') throw new Error('Expected verified game snapshot')
+    await repository.putCache({ ...previous, expiresAt: now - 1 })
+
+    const source = fakeBbsFetch()
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await source.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      const final = payload.data.find((match) => match.status === 'finished')!
+      delete final.archive_game_id
+      delete (final.home as Record<string, unknown>).archive_team_id
+      delete (final.away as Record<string, unknown>).archive_team_id
+      return Response.json(payload)
+    }) as typeof fetch
+
+    const result = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fetcher,
+      now,
+      false,
+    )
+    const current = repository.cache.get(gamesCacheKey('bbs', date))
+    expect(result.state).toBe('refreshed')
+    expect(current?.capability === 'games' && current.providerReferences).toEqual(
+      previous.providerReferences,
+    )
+  })
+
+  it('rejects conflicting archive references and keeps the previous verified snapshot', async () => {
+    const repository = new MemoryRepository()
+    const initial = fakeBbsFetch()
+    await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      initial.fetcher,
+      now,
+      false,
+    )
+    const previous = repository.cache.get(gamesCacheKey('bbs', date))
+    if (previous?.capability !== 'games') throw new Error('Expected verified game snapshot')
+    await repository.putCache({ ...previous, expiresAt: now - 1 })
+
+    const source = fakeBbsFetch()
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await source.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      payload.data.find((match) => match.status === 'finished')!.archive_game_id = 99999999
+      return Response.json(payload)
+    }) as typeof fetch
+
+    const result = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      fetcher,
+      now,
+      false,
+    )
+    const current = repository.cache.get(gamesCacheKey('bbs', date))
+    expect(result).toMatchObject({ state: 'deferred', error: { code: 'invalid_response' } })
+    expect(current?.capability === 'games' && current.data).toEqual(previous.data)
+    expect(current?.capability === 'games' && current.providerReferences).toEqual(
+      previous.providerReferences,
+    )
+    expect(current?.fetchedAt).toBe(previous.fetchedAt)
+  })
+
+  it('does not publish a final game with incomplete scores or an ET date mismatch as fresh', async () => {
+    const repository = new MemoryRepository()
+    const incompleteSource = fakeBbsFetch()
+    const incompleteFetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await incompleteSource.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      ;(payload.data[0]!.home as Record<string, unknown>).score = null
+      return Response.json(payload)
+    }) as typeof fetch
+    const incomplete = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      incompleteFetcher,
+      now,
+      false,
+    )
+    expect(incomplete).toMatchObject({ state: 'deferred', error: { code: 'invalid_response' } })
+    expect(repository.cache.get(gamesCacheKey('bbs', date))).toBeUndefined()
+
+    const etSource = fakeBbsFetch()
+    const etFetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await etSource.fetcher(input, init)
+      if (new URL(String(input)).pathname !== '/v1/matches') return response
+      const payload = (await response.json()) as {
+        data: Array<Record<string, unknown>>
+        pagination: { total: number }
+      }
+      payload.data[0]!.game_date = '2026-11-16'
+      return Response.json(payload)
+    }) as typeof fetch
+    const etMismatch = await refreshBbsGames(
+      { type: 'games', date },
+      environment,
+      repository,
+      etFetcher,
+      now,
+      false,
+    )
+    expect(etMismatch).toMatchObject({ state: 'deferred', error: { code: 'invalid_response' } })
+    expect(repository.cache.get(gamesCacheKey('bbs', date))).toBeUndefined()
   })
 
   it('keeps manual date refresh bounded to the games list instead of fanning out boxes', async () => {
