@@ -1,0 +1,787 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-11-19",
+  "identityScope": "active-franchise",
+  "teams": [
+    {
+      "code": "ATL",
+      "canonicalTeamId": "nba:team:ATL",
+      "city": {
+        "value": "Atlanta, Georgia, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "State Farm Arena",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q159893",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q159893",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "BKN",
+      "canonicalTeamId": "nba:team:BKN",
+      "city": {
+        "value": "Brooklyn, New York, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Barclays Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q572134",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q572134",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "BOS",
+      "canonicalTeamId": "nba:team:BOS",
+      "city": {
+        "value": "Boston, Massachusetts, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "TD Garden",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q131371",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q131371",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "CHA",
+      "canonicalTeamId": "nba:team:CHA",
+      "city": {
+        "value": "Charlotte, North Carolina, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Spectrum Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q163480",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q163480",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "CHI",
+      "canonicalTeamId": "nba:team:CHI",
+      "city": {
+        "value": "Chicago, Illinois, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "United Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": true,
+      "wikidata": {
+        "value": "Q128109",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q128109",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "CLE",
+      "canonicalTeamId": "nba:team:CLE",
+      "city": {
+        "value": "Cleveland, Ohio, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Rocket Arena",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q162990",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q162990",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "DAL",
+      "canonicalTeamId": "nba:team:DAL",
+      "city": {
+        "value": "Dallas, Texas, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "American Airlines Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q132893",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q132893",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "DEN",
+      "canonicalTeamId": "nba:team:DEN",
+      "city": {
+        "value": "Denver, Colorado, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Ball Arena",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q162954",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q162954",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "DET",
+      "canonicalTeamId": "nba:team:DET",
+      "city": {
+        "value": "Detroit, Michigan, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Little Caesars Arena",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q169661",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q169661",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "GSW",
+      "canonicalTeamId": "nba:team:GSW",
+      "city": {
+        "value": "San Francisco, California, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Chase Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q157376",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q157376",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "HOU",
+      "canonicalTeamId": "nba:team:HOU",
+      "city": {
+        "value": "Houston, Texas, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Toyota Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q161345",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q161345",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "IND",
+      "canonicalTeamId": "nba:team:IND",
+      "city": {
+        "value": "Indianapolis, Indiana, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Gainbridge Fieldhouse",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q170329",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q170329",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "LAC",
+      "canonicalTeamId": "nba:team:LAC",
+      "city": {
+        "value": "Inglewood, California, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Intuit Dome",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q976396",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q976396",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "LAL",
+      "canonicalTeamId": "nba:team:LAL",
+      "city": {
+        "value": "Los Angeles, California, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Crypto.com Arena",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": true,
+      "wikidata": {
+        "value": "Q121783",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q121783",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "MEM",
+      "canonicalTeamId": "nba:team:MEM",
+      "city": {
+        "value": "Memphis, Tennessee, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "FedExForum",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q165529",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q165529",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "MIA",
+      "canonicalTeamId": "nba:team:MIA",
+      "city": {
+        "value": "Miami, Florida, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Kaseya Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q169138",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q169138",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "MIL",
+      "canonicalTeamId": "nba:team:MIL",
+      "city": {
+        "value": "Milwaukee, Wisconsin, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Fiserv Forum",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q169637",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q169637",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "MIN",
+      "canonicalTeamId": "nba:team:MIN",
+      "city": {
+        "value": "Minneapolis, Minnesota, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Target Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": true,
+      "wikidata": {
+        "value": "Q170558",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q170558",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "NOP",
+      "canonicalTeamId": "nba:team:NOP",
+      "city": {
+        "value": "New Orleans, Louisiana, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Smoothie King Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q172339",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q172339",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "NYK",
+      "canonicalTeamId": "nba:team:NYK",
+      "city": {
+        "value": "New York, New York, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Madison Square Garden",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q131364",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q131364",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "OKC",
+      "canonicalTeamId": "nba:team:OKC",
+      "city": {
+        "value": "Oklahoma City, Oklahoma, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Paycom Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q180950",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q180950",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "ORL",
+      "canonicalTeamId": "nba:team:ORL",
+      "city": {
+        "value": "Orlando, Florida, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Kia Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q161337",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q161337",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "PHI",
+      "canonicalTeamId": "nba:team:PHI",
+      "city": {
+        "value": "Philadelphia, Pennsylvania, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Xfinity Mobile Arena",
+        "sourceUrl": "https://www.xfinitymobilearena.com/news/detail/todays-home-of-the-flyers-and-76ers-to-have-new-name-xfinity-mobile-arena",
+        "asOf": "2025-09-01",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q138089",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q138089",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "PHX",
+      "canonicalTeamId": "nba:team:PHX",
+      "city": {
+        "value": "Phoenix, Arizona, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Mortgage Matchup Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q164177",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q164177",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "POR",
+      "canonicalTeamId": "nba:team:POR",
+      "city": {
+        "value": "Portland, Oregon, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Moda Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q167253",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q167253",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "SAC",
+      "canonicalTeamId": "nba:team:SAC",
+      "city": {
+        "value": "Sacramento, California, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Golden 1 Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q166105",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q166105",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "SAS",
+      "canonicalTeamId": "nba:team:SAS",
+      "city": {
+        "value": "San Antonio, Texas, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Frost Bank Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q159729",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q159729",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "TOR",
+      "canonicalTeamId": "nba:team:TOR",
+      "city": {
+        "value": "Toronto, Ontario, Canada",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Scotiabank Arena",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q132880",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q132880",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "UTA",
+      "canonicalTeamId": "nba:team:UTA",
+      "city": {
+        "value": "Salt Lake City, Utah, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Delta Center",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q170649",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q170649",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    },
+    {
+      "code": "WAS",
+      "canonicalTeamId": "nba:team:WAS",
+      "city": {
+        "value": "Washington, District of Columbia, United States",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "arena": {
+        "value": "Capital One Arena",
+        "sourceUrl": "https://www.nba.com/news/all-30-nba-arenas-by-team",
+        "asOf": "2026-10-28",
+        "unit": null,
+        "nullable": false
+      },
+      "pilot": false,
+      "wikidata": {
+        "value": "Q169165",
+        "sourceUrl": "https://www.wikidata.org/wiki/Q169165",
+        "asOf": "2026-11-19",
+        "unit": null,
+        "nullable": false
+      }
+    }
+  ]
+}
