@@ -6,6 +6,7 @@ import type {
   ProviderRecordId,
   SeasonEndYear,
   TeamRecordSplit,
+  TeamId,
   TeamProviderReference,
   StandingsRow,
   TeamSeasonLeader,
@@ -161,7 +162,7 @@ function rowsFrom(value: unknown, keys: readonly string[]): unknown[] {
   return []
 }
 
-function identityIds(value: Record<string, unknown>): string[] {
+function identityIds(value: Record<string, unknown>): ProviderRecordId[] {
   const team = isRecord(value.team) ? value.team : {}
   return [value.team_id, value.team_uuid, value.id, team.id, team.team_id]
     .map((candidate) => sourceId(candidate))
@@ -174,21 +175,49 @@ function directoryIds(value: Record<string, unknown>): string[] {
     .filter((candidate): candidate is ProviderRecordId => candidate !== null)
 }
 
+function standingsRows(payload: unknown, seasonEndYear: SeasonEndYear) {
+  const root = rootOf(payload)
+  const groups = rowsFrom(root.standings, ['rows', 'standings'])
+  const startYear = Number(seasonEndYear) - 1
+  const expectedSeason = `${startYear}-${String(seasonEndYear).slice(-2)}`
+  for (const source of [root, ...groups]) {
+    if (!isRecord(source)) continue
+    const season = source.season
+    if (
+      season != null &&
+      season !== startYear &&
+      season !== String(startYear) &&
+      season !== expectedSeason
+    )
+      throw new NbaAdapterError(invalidResponseError(provider))
+  }
+  const rows = groups.length
+    ? groups.flatMap((group) =>
+        rowsFrom(group, ['rows', 'standings']).map((row) => ({ row, group })),
+      )
+    : rowsFrom(root, ['rows', 'standings']).map((row) => ({ row, group: null }))
+  if (rows.length !== NBA_TEAMS.length) throw new NbaAdapterError(invalidResponseError(provider))
+  return rows
+}
+
+function matchesTeamAbbreviation(value: Record<string, unknown>, teamId: TeamId): boolean {
+  return [value.abbreviation, value.abbr].every(
+    (abbreviation) =>
+      abbreviation == null || createTeam(provider, null, abbreviation, null)?.id === teamId,
+  )
+}
+
 export function normalizeBbsTeamDirectory(
   standingsPayload: unknown,
   directoryPayload: unknown,
   seasonEndYear: SeasonEndYear,
 ): readonly TeamProviderReference[] {
-  const standingsRoot = rootOf(standingsPayload)
+  const standingRows = standingsRows(standingsPayload, seasonEndYear)
   const directoryRoot = rootOf(directoryPayload)
-  const groups = rowsFrom(standingsRoot.standings, ['rows', 'standings'])
-  const standingRows = groups.length
-    ? groups.flatMap((group) => rowsFrom(group, ['rows', 'standings']))
-    : rowsFrom(standingsRoot, ['rows', 'standings'])
   const directoryRows = Array.isArray(directoryRoot.data)
     ? directoryRoot.data
     : rowsFrom(directoryRoot, ['teams'])
-  if (standingRows.length !== 30 || directoryRows.length < 30)
+  if (directoryRows.length < NBA_TEAMS.length)
     throw new NbaAdapterError(invalidResponseError(provider))
 
   const directoryById = new Map<string, Record<string, unknown>>()
@@ -196,8 +225,7 @@ export function normalizeBbsTeamDirectory(
     if (!isRecord(row)) continue
     for (const id of directoryIds(row)) {
       const existing = directoryById.get(id)
-      if (existing && existing.id !== row.id)
-        throw new NbaAdapterError(invalidResponseError(provider))
+      if (existing && existing !== row) throw new NbaAdapterError(invalidResponseError(provider))
       directoryById.set(id, row)
     }
   }
@@ -206,13 +234,14 @@ export function normalizeBbsTeamDirectory(
   const standingIds = new Set<string>()
   const providerIds = new Set<string>()
   const canonicalTeams = new Set<string>()
-  const expectedSeason = `${Number(seasonEndYear) - 1}-${String(seasonEndYear).slice(-2)}`
-  for (const value of standingRows) {
+  for (const { row: value } of standingRows) {
     if (!isRecord(value)) throw new NbaAdapterError(invalidResponseError(provider))
     const ids = identityIds(value)
     const primaryId = ids[0]
-    const directory = ids.map((id) => directoryById.get(id)).find(Boolean)
-    if (!primaryId || !directory) throw new NbaAdapterError(invalidResponseError(provider))
+    const candidates = new Set(ids.map((id) => directoryById.get(id)).filter(Boolean))
+    const [directory] = candidates
+    if (!primaryId || !directory || candidates.size !== 1)
+      throw new NbaAdapterError(invalidResponseError(provider))
     const providerTeamId = sourceId(directory.id ?? directory.team_uuid ?? directory.uuid)
     const abbreviation = readString(
       directory.abbreviation ?? directory.abbr ?? directory.short_name,
@@ -223,15 +252,10 @@ export function normalizeBbsTeamDirectory(
       abbreviation,
       directory.name ?? directory.display_name ?? directory.team_name,
     )
-    const reportedAbbreviation = readString(value.abbreviation ?? value.abbr)
-    const standingTeam = reportedAbbreviation
-      ? createTeam(provider, primaryId, reportedAbbreviation, value.team_name ?? value.name)
-      : team
     if (
       !providerTeamId ||
       !team ||
-      !standingTeam ||
-      standingTeam.id !== team.id ||
+      !matchesTeamAbbreviation(value, team.id) ||
       canonicalTeams.has(team.id) ||
       providerIds.has(providerTeamId) ||
       standingIds.has(primaryId)
@@ -241,7 +265,11 @@ export function normalizeBbsTeamDirectory(
     standingIds.add(primaryId)
     providerIds.add(providerTeamId)
     canonicalTeams.add(team.id)
-    references.push({ teamId: team.id, providerTeamId })
+    references.push({
+      teamId: team.id,
+      providerTeamId,
+      ...(primaryId !== providerTeamId ? { standingsTeamId: primaryId } : {}),
+    })
   }
 
   const expectedCodes = new Set(NBA_TEAMS.map((team) => team.code))
@@ -255,13 +283,6 @@ export function normalizeBbsTeamDirectory(
     throw new NbaAdapterError(invalidResponseError(provider))
   }
 
-  const reportedSeason = readString(standingsRoot.season)
-  if (
-    reportedSeason &&
-    reportedSeason !== expectedSeason &&
-    reportedSeason !== String(Number(seasonEndYear) - 1)
-  )
-    throw new NbaAdapterError(invalidResponseError(provider))
   return references
 }
 
@@ -269,20 +290,32 @@ export function normalizeBbsTeamDirectory(
 export function normalizeBbsStandings(
   payload: unknown,
   seasonEndYear: SeasonEndYear,
+  references?: readonly TeamProviderReference[],
 ): readonly StandingsRow[] {
-  const root = rootOf(payload)
-  const reportedSeason = readString(root.season)
-  const startYear = Number(seasonEndYear) - 1
-  const expectedSeason = `${startYear}-${String(seasonEndYear).slice(-2)}`
-  if (reportedSeason && reportedSeason !== expectedSeason && reportedSeason !== String(startYear))
-    throw new NbaAdapterError(invalidResponseError(provider))
-  const groups = rowsFrom(root.standings, ['rows', 'standings'])
-  const groupedRows = groups.length
-    ? groups.flatMap((group) =>
-        rowsFrom(group, ['rows', 'standings']).map((row) => ({ row, group })),
+  const groupedRows = standingsRows(payload, seasonEndYear)
+  const byStandingsId = new Map<string, NbaTeamReference>()
+  if (references) {
+    const canonicalIds = new Set<TeamId>()
+    const directoryIds = new Set<string>()
+    for (const reference of references) {
+      const canonical = findNbaTeam(reference.teamId.slice('nba:team:'.length))
+      const standingsId = reference.standingsTeamId ?? reference.providerTeamId
+      if (
+        canonical?.team.id !== reference.teamId ||
+        !sourceId(standingsId) ||
+        !sourceId(reference.providerTeamId) ||
+        byStandingsId.has(standingsId) ||
+        directoryIds.has(reference.providerTeamId) ||
+        canonicalIds.has(reference.teamId)
       )
-    : rowsFrom(root, ['rows', 'standings']).map((row) => ({ row, group: null }))
-  if (groupedRows.length !== 30) throw new NbaAdapterError(invalidResponseError(provider))
+        throw new NbaAdapterError(invalidResponseError(provider))
+      byStandingsId.set(standingsId, canonical)
+      directoryIds.add(reference.providerTeamId)
+      canonicalIds.add(reference.teamId)
+    }
+    if (byStandingsId.size !== NBA_TEAMS.length)
+      throw new NbaAdapterError(invalidResponseError(provider))
+  }
 
   const seen = new Set<string>()
   const seenProviderIds = new Set<string>()
@@ -292,9 +325,18 @@ export function normalizeBbsStandings(
   const rows: StandingsRow[] = groupedRows.map(({ row: candidate, group }, index) => {
     if (!isRecord(candidate)) throw new NbaAdapterError(invalidResponseError(provider))
     const abbreviation = readString(candidate.abbreviation ?? candidate.abbr)
-    const canonical = abbreviation ? findNbaTeam(abbreviation) : null
-    const providerId = sourceId(candidate.team_id ?? candidate.team_uuid ?? candidate.id)
-    if (!canonical || !providerId || seen.has(canonical.code) || seenProviderIds.has(providerId))
+    const providerId = identityIds(candidate)[0]
+    const reportedTeam = abbreviation ? createTeam(provider, null, abbreviation, null) : null
+    const canonical = references
+      ? byStandingsId.get(providerId ?? '')
+      : reportedTeam?.abbreviation && findNbaTeam(reportedTeam.abbreviation)
+    if (
+      !canonical ||
+      !providerId ||
+      !matchesTeamAbbreviation(candidate, canonical.team.id) ||
+      seen.has(canonical.code) ||
+      seenProviderIds.has(providerId)
+    )
       throw new NbaAdapterError(invalidResponseError(provider))
     seen.add(canonical.code)
     seenProviderIds.add(providerId)
@@ -319,13 +361,12 @@ export function normalizeBbsStandings(
       losses === null ||
       !Number.isInteger(wins) ||
       !Number.isInteger(losses) ||
-      wins > 82 ||
-      losses > 82
+      wins + losses > 82
     )
       throw new NbaAdapterError(invalidResponseError(provider))
     totalWins += wins
     totalLosses += losses
-    const total = wins === null || losses === null ? null : wins + losses
+    const total = wins + losses
     const rawRank = readNonNegativeNumber(candidate.conference_rank)
     const playoffSeed = readNonNegativeNumber(candidate.playoff_seed)
     if (

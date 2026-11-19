@@ -1,8 +1,13 @@
-import { SCHEDULED_BBS_TASK_LIMIT, scheduledBbsTaskKey } from '@/server/nba/runtime/types'
+import {
+  SCHEDULED_BBS_MAX_ATTEMPTS,
+  SCHEDULED_BBS_TASK_LIMIT,
+  scheduledBbsTaskKey,
+} from '@/server/nba/runtime/types'
 import type {
   NbaCacheRecord,
   NbaRepository,
   ProviderCooldown,
+  ScheduledBbsFailure,
   ScheduledBbsProgress,
   ScheduledBbsTask,
   ScheduledBbsWorkItem,
@@ -10,9 +15,11 @@ import type {
 import type { NbaProviderId } from '@/entities/nba/model'
 import type { D1Database } from '@/server/nba/runtime/types'
 import type { Game } from '@/entities/nba/model'
-import { findNbaTeam } from '@/entities/nba/teamCatalog'
+import { findNbaTeam, NBA_TEAMS } from '@/entities/nba/teamCatalog'
 import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
 import { isGameBoxScoreForGame, isGameRecord } from '@/shared/api/nba/gameDetailsGuards'
+
+const canonicalTeamIds = new Set<string>(NBA_TEAMS.map(({ team }) => team.id))
 
 function isGameDateCoverage(value: unknown): value is { from: string; through: string } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
@@ -80,19 +87,27 @@ function isTeamDirectoryData(value: unknown): boolean {
   if (!Array.isArray(value) || value.length !== 30) return false
   const teamIds = new Set<string>()
   const providerIds = new Set<string>()
+  const standingsIds = new Set<string>()
   return value.every((entry) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false
     const row = entry as Record<string, unknown>
+    const standingsTeamId =
+      row.standingsTeamId === undefined ? row.providerTeamId : row.standingsTeamId
     if (
       typeof row.teamId !== 'string' ||
-      !row.teamId.startsWith('nba:team:') ||
+      !canonicalTeamIds.has(row.teamId) ||
       typeof row.providerTeamId !== 'string' ||
+      !row.providerTeamId.trim() ||
+      typeof standingsTeamId !== 'string' ||
+      !standingsTeamId.trim() ||
       teamIds.has(row.teamId) ||
-      providerIds.has(row.providerTeamId)
+      providerIds.has(row.providerTeamId) ||
+      standingsIds.has(standingsTeamId)
     )
       return false
     teamIds.add(row.teamId)
     providerIds.add(row.providerTeamId)
+    standingsIds.add(standingsTeamId)
     return true
   })
 }
@@ -140,11 +155,32 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
   )
 }
 
+function isScheduledFailureList(value: unknown): value is readonly ScheduledBbsFailure[] {
+  if (!Array.isArray(value) || value.length > SCHEDULED_BBS_TASK_LIMIT) return false
+  const keys = new Set<string>()
+  return value.every((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false
+    const failure = item as Record<string, unknown>
+    if (
+      !isScheduledBbsTask(failure.task) ||
+      (failure.errorCode !== null && typeof failure.errorCode !== 'string') ||
+      !Number.isSafeInteger(failure.failedAt) ||
+      Number(failure.failedAt) < 0
+    )
+      return false
+    const key = scheduledBbsTaskKey(failure.task)
+    if (keys.has(key)) return false
+    keys.add(key)
+    return true
+  })
+}
+
 function serializeScheduledProgress(progress: ScheduledBbsProgress): string {
   if (
     !parseNbaGameDate(progress.cycleDate) ||
     progress.cursor !== 0 ||
     progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+    (progress.failedTasks !== undefined && !isScheduledFailureList(progress.failedTasks)) ||
     (progress.pauseUntil !== null &&
       (!Number.isSafeInteger(progress.pauseUntil) || progress.pauseUntil < 0))
   )
@@ -157,7 +193,7 @@ function serializeScheduledProgress(progress: ScheduledBbsProgress): string {
         !isScheduledBbsTask(item.task) ||
         !Number.isSafeInteger(item.attempts) ||
         item.attempts < 0 ||
-        item.attempts > 5 ||
+        item.attempts > SCHEDULED_BBS_MAX_ATTEMPTS ||
         (item.retryAt !== null && (!Number.isSafeInteger(item.retryAt) || item.retryAt < 0)),
     )
   )
@@ -204,6 +240,7 @@ export class D1NbaRepository implements NbaRepository {
         Number(progress.cursor) < 0 ||
         !Array.isArray(progress.tasks) ||
         progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+        (progress.failedTasks !== undefined && !isScheduledFailureList(progress.failedTasks)) ||
         !(
           progress.pauseUntil === null ||
           (Number.isSafeInteger(progress.pauseUntil) && Number(progress.pauseUntil) >= 0)
@@ -218,7 +255,7 @@ export class D1NbaRepository implements NbaRepository {
           !isScheduledBbsTask(record.task) ||
           !Number.isSafeInteger(record.attempts) ||
           Number(record.attempts) < 0 ||
-          Number(record.attempts) > 5 ||
+          Number(record.attempts) > SCHEDULED_BBS_MAX_ATTEMPTS ||
           !(
             record.retryAt === null ||
             (Number.isSafeInteger(record.retryAt) && Number(record.retryAt) >= 0)
@@ -241,6 +278,7 @@ export class D1NbaRepository implements NbaRepository {
         cursor: Number(progress.cursor),
         tasks,
         pauseUntil: progress.pauseUntil as number | null,
+        ...(progress.failedTasks === undefined ? {} : { failedTasks: progress.failedTasks }),
       }
     } catch (error) {
       if (error instanceof Error && error.message.startsWith('Corrupt')) throw error

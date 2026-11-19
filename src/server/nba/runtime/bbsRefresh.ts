@@ -1,10 +1,11 @@
-import { SCHEDULED_BBS_TASK_LIMIT, scheduledBbsTaskKey } from './types'
+import { SCHEDULED_BBS_MAX_ATTEMPTS, SCHEDULED_BBS_TASK_LIMIT, scheduledBbsTaskKey } from './types'
 import type {
   Game,
   GameId,
   NbaApiError,
   NbaGameDate,
   SeasonEndYear,
+  TeamProviderReference,
   UtcTimestamp,
 } from '@/entities/nba/model'
 import { findNbaTeam, NBA_TEAMS } from '@/entities/nba/teamCatalog'
@@ -25,6 +26,7 @@ import type {
   BoxScoreCacheRecord,
   NbaCacheRecord,
   NbaRepository,
+  StandingsCacheRecord,
   TeamDirectoryCacheRecord,
   TeamSeasonCacheRecord,
   ScheduledBbsProgress,
@@ -289,21 +291,33 @@ export async function getBbsJson(
     }
     throw error
   }
-  try {
-    const payload: unknown = await response.json()
-    if (
-      payload &&
-      typeof payload === 'object' &&
-      'error' in payload &&
-      (payload as Record<string, unknown>).error !== null &&
-      (payload as Record<string, unknown>).error !== undefined
-    ) {
-      throw createNbaApiError('invalid_response', 'bbs')
-    }
-    return payload
-  } catch (cause) {
-    if (cause && typeof cause === 'object' && 'code' in cause) throw cause
+  const payload: unknown = await response.json().catch(() => {
     throw createNbaApiError('invalid_response', 'bbs')
+  })
+  if (payload && typeof payload === 'object' && 'error' in payload && payload.error != null)
+    throw createNbaApiError('invalid_response', 'bbs')
+  return payload
+}
+
+function bbsFailure(cause: unknown) {
+  if (cause instanceof NbaAdapterError)
+    return { error: cause.details, retryAt: Date.now() + COOLDOWN_MS }
+  if (
+    !cause ||
+    typeof cause !== 'object' ||
+    !('code' in cause) ||
+    typeof cause.code !== 'string' ||
+    !('provider' in cause) ||
+    cause.provider !== 'bbs' ||
+    !('upstreamStatus' in cause)
+  )
+    throw cause
+  return {
+    error: cause as NbaApiError,
+    retryAt:
+      'retryAt' in cause && typeof cause.retryAt === 'number'
+        ? cause.retryAt
+        : Date.now() + COOLDOWN_MS,
   }
 }
 
@@ -447,14 +461,9 @@ async function refreshBox(
       }
     return { state: 'refreshed', error: null, retryAt: null }
   } catch (cause) {
-    const error =
-      cause && typeof cause === 'object' && 'code' in cause
-        ? (cause as NbaApiError)
-        : createNbaApiError('invalid_response', 'bbs')
+    const { error, retryAt } = bbsFailure(cause)
     const failedAt = Date.now()
-    const retryAt =
-      Number((cause as { retryAt?: number } | null)?.retryAt) || failedAt + COOLDOWN_MS
-    if (BATCH_STOP_ERRORS.has(error.code))
+    if (PROVIDER_PAUSE_CODES.has(error.code))
       await repository.setProviderCooldown('bbs', { retryAt, errorCode: error.code }, failedAt)
     const failure: BoxScoreCacheRecord = {
       cacheKey: key,
@@ -470,8 +479,15 @@ async function refreshBox(
       retryAt,
       refreshError: error,
     }
-    if (error.code !== 'refresh_in_progress')
-      await repository.putCacheIfLockOwned(failure, lockKey, token, failedAt)
+    if (
+      error.code !== 'refresh_in_progress' &&
+      !(await repository.putCacheIfLockOwned(failure, lockKey, token, failedAt))
+    )
+      return {
+        state: 'in_progress',
+        error: createNbaApiError('refresh_in_progress', 'bbs', true),
+        retryAt: failedAt + LOCK_MS,
+      }
     return { state: 'deferred', error, retryAt }
   } finally {
     try {
@@ -482,14 +498,13 @@ async function refreshBox(
   }
 }
 
-const BATCH_STOP_ERRORS = new Set<NbaApiError['code']>([
+const PROVIDER_PAUSE_CODES = new Set<NbaApiError['code']>([
   'authentication',
   'forbidden',
   'rate_limited',
   'quota_exceeded',
   'upstream_unavailable',
   'timeout',
-  'storage_unavailable',
 ])
 
 async function saveBoxFailure(
@@ -571,7 +586,7 @@ async function refreshCachedBoxes(
     if (result.error) {
       firstError ??= result.error
       retryAt ??= result.retryAt
-      if (BATCH_STOP_ERRORS.has(result.error.code)) {
+      if (PROVIDER_PAUSE_CODES.has(result.error.code)) {
         for (const pending of finals.slice(index + 1))
           await saveBoxFailure(
             pending,
@@ -717,14 +732,15 @@ export async function refreshBbsGames(
       listRefreshed = true
     }
   } catch (cause) {
-    refreshError =
-      cause && typeof cause === 'object' && 'code' in cause
-        ? (cause as NbaApiError)
-        : createNbaApiError('invalid_response', 'bbs')
-    refreshRetryAt =
-      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
-    const failed = cacheFailure(previous, refreshError, Date.now(), refreshRetryAt)
-    if (failed) await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())
+    const { error, retryAt } = bbsFailure(cause)
+    refreshError = error
+    refreshRetryAt = retryAt
+    const failed =
+      error.code === 'refresh_in_progress'
+        ? null
+        : cacheFailure(previous, error, Date.now(), retryAt)
+    if (failed && !(await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())))
+      return outcome(target, 'in_progress', previous, now, null, now + LOCK_MS)
   } finally {
     try {
       await repository.releaseLock(lockKey, token)
@@ -833,13 +849,29 @@ export async function refreshBbsGameBoxScore(
       error: boxResult.error ?? latestBox?.refreshError ?? null,
     }
   } catch (cause) {
-    const error =
-      cause && typeof cause === 'object' && 'code' in cause
-        ? (cause as NbaApiError)
-        : createNbaApiError('invalid_response', 'bbs')
-    const retryAt =
-      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
+    const { error, retryAt } = bbsFailure(cause)
     return result('deferred', error, retryAt)
+  }
+}
+
+function makeStandingsRecord(
+  payload: unknown,
+  seasonEndYear: SeasonEndYear,
+  references: readonly TeamProviderReference[],
+  fetchedAt: number,
+): StandingsCacheRecord {
+  return {
+    cacheKey: standingsCacheKey('bbs', seasonEndYear),
+    capability: 'standings',
+    provider: 'bbs',
+    data: normalizeBbsStandings(payload, seasonEndYear, references),
+    fetchedAt: timestamp(fetchedAt),
+    providerUpdatedAt: null,
+    rejectedRecords: 0,
+    expiresAt: fetchedAt + STANDINGS_TTL_MS,
+    staleUntil: fetchedAt + STANDINGS_STALE_MS,
+    retryAt: null,
+    refreshError: null,
   }
 }
 
@@ -861,6 +893,14 @@ export async function refreshBbsStandings(
   if (env.BBS_REFRESH_ENABLED !== 'true' || !env.BBS_API_KEY)
     return outcome(target, 'deferred', previous, now, createNbaApiError('not_configured', 'bbs'))
 
+  const directory = await repository.getCache(teamDirectoryCacheKey('bbs', seasonEndYear))
+  if (
+    directory?.capability !== 'teamDirectory' ||
+    directory.seasonEndYear !== seasonEndYear ||
+    directory.expiresAt <= now
+  )
+    return outcome(target, 'deferred', previous, now, createNbaApiError('cache_miss', 'bbs', true))
+
   const lockKey = `bbs:standings:season=${seasonEndYear}`
   const token = crypto.randomUUID()
   if (!(await repository.tryAcquireLock(lockKey, token, now, now + LOCK_MS)))
@@ -875,54 +915,58 @@ export async function refreshBbsStandings(
       now,
       { key: lockKey, token },
     )
-    const rows = normalizeBbsStandings(payload, seasonEndYear)
     const fetchedAt = Date.now()
-    const record: import('./types').StandingsCacheRecord = {
-      cacheKey,
-      capability: 'standings',
-      provider: 'bbs',
-      data: rows,
-      fetchedAt: timestamp(fetchedAt),
-      providerUpdatedAt: null,
-      rejectedRecords: 0,
-      expiresAt: fetchedAt + STANDINGS_TTL_MS,
-      staleUntil: fetchedAt + STANDINGS_STALE_MS,
-      retryAt: null,
-      refreshError: null,
-    }
+    const record = makeStandingsRecord(payload, seasonEndYear, directory.data, fetchedAt)
     if (!(await repository.putCacheIfLockOwned(record, lockKey, token, Date.now())))
       throw Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
         retryAt: Date.now() + LOCK_MS,
       })
     return outcome(target, 'refreshed', record, fetchedAt, null, null)
   } catch (cause) {
-    const error =
-      cause && typeof cause === 'object' && 'code' in cause
-        ? (cause as NbaApiError)
-        : createNbaApiError('upstream_unavailable', 'bbs', true)
-    const retryAt =
-      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
-    const failed = cacheFailure(previous, error, Date.now(), retryAt)
-    if (failed) {
-      try {
-        await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())
-      } catch {
-        // Keep the prior valid standings snapshot authoritative.
-      }
-    }
-    return outcome(
-      target,
-      'deferred',
-      failed?.capability === 'standings' ? failed : previous,
-      now,
-      error,
-      retryAt,
-    )
+    const { error, retryAt } = bbsFailure(cause)
+    const failed =
+      error.code === 'refresh_in_progress'
+        ? null
+        : cacheFailure(previous, error, Date.now(), retryAt)
+    if (failed && !(await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())))
+      return outcome(target, 'in_progress', previous, now, null, now + LOCK_MS)
+    return outcome(target, 'deferred', failed ?? previous, now, error, retryAt)
   } finally {
     try {
       await repository.releaseLock(lockKey, token)
     } catch {
       // The lease expires safely.
+    }
+  }
+}
+
+async function publishBootstrapStandings(
+  payload: unknown,
+  directory: TeamDirectoryCacheRecord,
+  repository: NbaRepository,
+  fetchedAt: number,
+): Promise<void> {
+  let record: StandingsCacheRecord
+  try {
+    record = makeStandingsRecord(payload, directory.seasonEndYear, directory.data, fetchedAt)
+  } catch (error) {
+    // Team identity can be valid even if the standings records cannot be published.
+    if (error instanceof NbaAdapterError) return
+    throw error
+  }
+  const lockKey = `bbs:standings:season=${directory.seasonEndYear}`
+  const token = crypto.randomUUID()
+  const now = Date.now()
+  if (!(await repository.tryAcquireLock(lockKey, token, now, now + LOCK_MS))) return
+  try {
+    const latest = await repository.getCache(record.cacheKey)
+    if (latest && Date.parse(latest.fetchedAt) >= fetchedAt) return
+    await repository.putCacheIfLockOwned(record, lockKey, token, Date.now())
+  } finally {
+    try {
+      await repository.releaseLock(lockKey, token)
+    } catch {
+      /* The lease expires safely. */
     }
   }
 }
@@ -934,10 +978,15 @@ export async function refreshBbsTeamDirectory(
   repository: NbaRepository,
   fetcher: typeof fetch,
   now: number,
+  bootstrapStandings = false,
 ): Promise<BbsRefreshOutcome> {
   const cacheKey = teamDirectoryCacheKey('bbs', target.seasonEndYear)
   const previousCache = await repository.getCache(cacheKey)
-  let previous = previousCache?.capability === 'teamDirectory' ? previousCache : null
+  let previous =
+    previousCache?.capability === 'teamDirectory' &&
+    previousCache.seasonEndYear === target.seasonEndYear
+      ? previousCache
+      : null
   const result = (
     state: BbsRefreshOutcome['state'],
     error: NbaApiError | null,
@@ -968,31 +1017,43 @@ export async function refreshBbsTeamDirectory(
   try {
     const startYear = Number(target.seasonEndYear) - 1
     const standingsCache = await repository.getCache(standingsCacheKey('bbs', target.seasonEndYear))
-    const standings =
+    const priorReferences = new Map(
+      previous?.data.map((reference) => [reference.teamId, reference]),
+    )
+    const hasCachedStandings =
       standingsCache?.capability === 'standings' &&
       standingsCache.staleUntil > now &&
-      standingsCache.data.length === 30 &&
-      standingsCache.data.every((row) => row.team.providerId)
-        ? {
-            season: String(startYear),
-            standings: [
-              {
-                rows: standingsCache.data.map((row) => ({
-                  team_id: row.team.providerId,
-                  abbreviation: row.team.abbreviation,
-                  team_name: row.team.displayName,
-                })),
-              },
-            ],
-          }
-        : await getBbsJson(
-            `/v1/standings?league=nba&season=${startYear}`,
-            env,
-            repository,
-            fetcher,
-            now,
-            { key: lockKey, token },
-          )
+      standingsCache.data.length === NBA_TEAMS.length &&
+      standingsCache.data.every((row) => {
+        const reference = priorReferences.get(row.team.id)
+        return (
+          row.seasonEndYear === target.seasonEndYear &&
+          reference &&
+          (reference.standingsTeamId ?? reference.providerTeamId) === row.team.providerId
+        )
+      })
+    const standings = hasCachedStandings
+      ? {
+          season: String(startYear),
+          standings: [
+            {
+              rows: standingsCache.data.map((row) => ({
+                team_id: row.team.providerId,
+                team_uuid: priorReferences.get(row.team.id)?.providerTeamId,
+                abbreviation: row.team.abbreviation,
+              })),
+            },
+          ],
+        }
+      : await getBbsJson(
+          `/v1/standings?league=nba&season=${startYear}`,
+          env,
+          repository,
+          fetcher,
+          now,
+          { key: lockKey, token },
+        )
+    const standingsFetchedAt = Date.now()
     const directory = await getBbsJson(
       '/v1/teams?sport=basketball&league=nba&limit=100',
       env,
@@ -1021,24 +1082,22 @@ export async function refreshBbsTeamDirectory(
       throw Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
         retryAt: Date.now() + LOCK_MS,
       })
+    if (bootstrapStandings && !hasCachedStandings)
+      await publishBootstrapStandings(standings, fresh, repository, standingsFetchedAt)
     return result('refreshed', null, fresh, null)
   } catch (cause) {
-    const error =
-      cause instanceof NbaAdapterError
-        ? cause.details
-        : cause && typeof cause === 'object' && 'code' in cause
-          ? (cause as NbaApiError)
-          : createNbaApiError('upstream_unavailable', 'bbs', true)
-    const retryAt =
-      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
-    const failed = cacheFailure(previous, error, Date.now(), retryAt)
-    if (failed) {
-      try {
-        await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())
-      } catch {
-        /* The previous valid crosswalk remains authoritative. */
-      }
-    }
+    const { error, retryAt } = bbsFailure(cause)
+    const failed =
+      error.code === 'refresh_in_progress'
+        ? null
+        : cacheFailure(previous, error, Date.now(), retryAt)
+    if (failed && !(await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())))
+      return result(
+        'in_progress',
+        createNbaApiError('refresh_in_progress', 'bbs', true),
+        previous,
+        now + LOCK_MS,
+      )
     return result(
       'deferred',
       error,
@@ -1143,22 +1202,18 @@ export async function refreshBbsTeamSeason(
       })
     return result('refreshed', null, refreshed, null)
   } catch (cause) {
-    const error =
-      cause instanceof NbaAdapterError
-        ? cause.details
-        : cause && typeof cause === 'object' && 'code' in cause
-          ? (cause as NbaApiError)
-          : createNbaApiError('upstream_unavailable', 'bbs', true)
-    const retryAt =
-      Number((cause as { retryAt?: number } | null)?.retryAt) || Date.now() + COOLDOWN_MS
-    const failed = cacheFailure(previous, error, Date.now(), retryAt)
-    if (failed) {
-      try {
-        await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())
-      } catch {
-        /* The previous valid snapshot remains authoritative. */
-      }
-    }
+    const { error, retryAt } = bbsFailure(cause)
+    const failed =
+      error.code === 'refresh_in_progress'
+        ? null
+        : cacheFailure(previous, error, Date.now(), retryAt)
+    if (failed && !(await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())))
+      return result(
+        'in_progress',
+        createNbaApiError('refresh_in_progress', 'bbs', true),
+        previous,
+        now + LOCK_MS,
+      )
     return result(
       'deferred',
       error,
@@ -1239,18 +1294,8 @@ function taskWithinRolloverHorizon(task: ScheduledBbsTask, today: NbaGameDate): 
 
 const QUEUE_LOCK_KEY = 'bbs:scheduled-queue'
 const QUEUE_LOCK_MS = 90_000
-const MAX_LOCAL_ATTEMPTS = 5
 const LOCAL_RETRY_MS = 15 * MINUTE_MS
 const MAX_LOCAL_RETRY_MS = 6 * 60 * MINUTE_MS
-const GLOBAL_PAUSE_CODES = new Set<NbaApiError['code']>([
-  'authentication',
-  'forbidden',
-  'rate_limited',
-  'quota_exceeded',
-  'upstream_unavailable',
-  'timeout',
-])
-
 function workItem(task: ScheduledBbsTask, retryAt: number | null = null) {
   return { task, attempts: 0, retryAt }
 }
@@ -1338,7 +1383,7 @@ export async function runScheduledBbsRefresh(
         cycleDate: today,
         tasks: mergePendingTasks(daily, retained),
         cursor: 0,
-        pauseUntil: null,
+        pauseUntil: progress.pauseUntil,
       }
     }
     if (progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT)
@@ -1375,7 +1420,7 @@ export async function runScheduledBbsRefresh(
     } else if (task.type === 'enrichStandings') {
       result = await enrichBbsStandings(task.seasonEndYear, repository, now)
     } else if (task.type === 'teamDirectory') {
-      result = await refreshBbsTeamDirectory(task, env, repository, fetcher, now)
+      result = await refreshBbsTeamDirectory(task, env, repository, fetcher, now, true)
     } else if (task.type === 'games' || task.type === 'lateGames') {
       result = await refreshBbsGames(
         { type: 'games', date: task.date },
@@ -1419,9 +1464,10 @@ export async function runScheduledBbsRefresh(
     }
 
     const tasks = [...progress.tasks]
-    const [finished] = tasks.splice(taskIndex, 1)
+    tasks.splice(taskIndex, 1)
     const completed = result.state === 'refreshed' || result.state === 'up_to_date'
     let pauseUntil: number | null = null
+    let failedTasks = progress.failedTasks
     if (completed) {
       if ((task.type === 'games' || task.type === 'lateGames') && task.date < today) {
         const games = await repository.getCache(gamesCacheKey('bbs', task.date))
@@ -1451,31 +1497,67 @@ export async function runScheduledBbsRefresh(
           tasks.splice(taskIndex, 0, ...uniqueBoxes.map((box) => workItem(box)))
         }
       }
-    } else if (result.error && GLOBAL_PAUSE_CODES.has(result.error.code)) {
-      tasks.splice(taskIndex, 0, finished!)
+    } else if (result.error && PROVIDER_PAUSE_CODES.has(result.error.code)) {
+      tasks.splice(taskIndex, 0, item)
       pauseUntil = result.retryAfter ? Date.parse(result.retryAfter) : now + COOLDOWN_MS
     } else {
-      if (result.error?.code === 'cache_miss' && task.type === 'boxScore') {
-        const repairTask: ScheduledBbsTask = { type: 'games', date: task.date }
-        if (
-          !tasks.some(
-            (queued) => scheduledBbsTaskKey(queued.task) === scheduledBbsTaskKey(repairTask),
-          )
-        )
-          tasks.splice(taskIndex, 0, workItem(repairTask))
-      }
-      const attempts = finished!.attempts + 1
-      if (attempts < MAX_LOCAL_ATTEMPTS) {
-        const retryAt = now + Math.min(LOCAL_RETRY_MS * 2 ** (attempts - 1), MAX_LOCAL_RETRY_MS)
-        tasks.push({ ...finished!, attempts, retryAt })
+      const waitingForLease =
+        result.state === 'in_progress' || result.error?.code === 'refresh_in_progress'
+      const attempts = waitingForLease ? item.attempts : item.attempts + 1
+      if (attempts < SCHEDULED_BBS_MAX_ATTEMPTS) {
+        let retryIndex = tasks.length
+        const directoryNeeded = result.error?.code === 'cache_miss' && task.type === 'standings'
+        if (directoryNeeded) {
+          const repair: ScheduledBbsTask = {
+            type: 'teamDirectory',
+            seasonEndYear: task.seasonEndYear,
+          }
+          const key = scheduledBbsTaskKey(repair)
+          const directoryIndex = tasks.findIndex((entry) => scheduledBbsTaskKey(entry.task) === key)
+          if (directoryIndex >= 0) {
+            retryIndex = Math.max(taskIndex, directoryIndex + 1)
+          } else if (
+            !failedTasks?.some((entry) => scheduledBbsTaskKey(entry.task) === key) &&
+            tasks.length + 1 < SCHEDULED_BBS_TASK_LIMIT
+          ) {
+            tasks.splice(taskIndex, 0, workItem(repair))
+            retryIndex = taskIndex + 1
+          }
+        } else if (result.error?.code === 'cache_miss' && task.type === 'boxScore') {
+          const repair: ScheduledBbsTask = { type: 'games', date: task.date }
+          const key = scheduledBbsTaskKey(repair)
+          if (
+            !tasks.some((entry) => scheduledBbsTaskKey(entry.task) === key) &&
+            tasks.length + 1 < SCHEDULED_BBS_TASK_LIMIT
+          ) {
+            tasks.splice(taskIndex, 0, workItem(repair))
+            retryIndex += 1
+          }
+        }
+        const retryAt = waitingForLease
+          ? Math.max(now + LOCK_MS, Date.parse(result.retryAfter ?? '') || 0)
+          : now + Math.min(LOCAL_RETRY_MS * 2 ** (attempts - 1), MAX_LOCAL_RETRY_MS)
+        tasks.splice(retryIndex, 0, { ...item, attempts, retryAt })
+      } else {
+        const key = scheduledBbsTaskKey(task)
+        const errorCode = result.error?.code ?? null
+        failedTasks = [
+          ...(failedTasks ?? []).filter((entry) => scheduledBbsTaskKey(entry.task) !== key),
+          { task, errorCode, failedAt: now },
+        ].slice(-SCHEDULED_BBS_TASK_LIMIT)
       }
     }
-    await saveOwnedProgress({
+    const saved = await saveOwnedProgress({
       ...progress,
       tasks,
       cursor: 0,
       pauseUntil,
+      ...(failedTasks === undefined ? {} : { failedTasks }),
     })
+    if (saved && failedTasks !== progress.failedTasks)
+      console.warn(
+        `Scheduled BBS refresh exhausted: ${progress.cycleDate}:${task.type}:${result.error?.code ?? 'unknown'}`,
+      )
     return [result]
   } finally {
     try {
@@ -1539,7 +1621,7 @@ async function enrichBbsStandings(
       teamRecord.providerTeamId === reference.providerTeamId &&
       teamRecord.seasonEndYear === seasonEndYear &&
       teamRecord.data.team.providerId === reference.providerTeamId &&
-      row.team.providerId === reference.providerTeamId &&
+      row.team.providerId === (reference.standingsTeamId ?? reference.providerTeamId) &&
       teamRecord.staleUntil > now &&
       Date.parse(teamRecord.fetchedAt) <= now &&
       Math.abs(Date.parse(teamRecord.fetchedAt) - Date.parse(cached.fetchedAt)) <= DAY_MS &&

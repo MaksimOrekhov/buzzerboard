@@ -39,6 +39,13 @@ export interface ScheduledBbsWorkItem {
 }
 
 export const SCHEDULED_BBS_TASK_LIMIT = 200
+export const SCHEDULED_BBS_MAX_ATTEMPTS = 5
+
+export interface ScheduledBbsFailure {
+  task: ScheduledBbsTask
+  errorCode: NbaApiError['code'] | null
+  failedAt: number
+}
 
 export function scheduledBbsTaskKey(task: ScheduledBbsTask): string {
   if (task.type === 'games' || task.type === 'lateGames') return `${task.type}:${task.date}`
@@ -52,6 +59,7 @@ export interface ScheduledBbsProgress {
   tasks: readonly ScheduledBbsWorkItem[]
   cursor: number
   pauseUntil: number | null
+  failedTasks?: readonly ScheduledBbsFailure[]
 }
 
 export interface GameDateCoverage {

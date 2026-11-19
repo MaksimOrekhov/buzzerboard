@@ -26,6 +26,8 @@ export interface Team {
 export interface TeamProviderReference {
   teamId: TeamId
   providerTeamId: ProviderRecordId
+  /** The standings identity when it differs from the team-directory provider ID. */
+  standingsTeamId?: ProviderRecordId
 }
 
 export interface NbaTeamReference {
