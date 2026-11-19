@@ -30,6 +30,9 @@ import type {
   TeamDirectoryCacheRecord,
   TeamSeasonCacheRecord,
   ScheduledBbsProgress,
+  ScheduledBbsDiagnosticPhase,
+  ScheduledBbsFailure,
+  ScheduledBbsTaskDiagnostic,
   ScheduledBbsTask,
   WorkerEnvironment,
 } from './types'
@@ -69,6 +72,50 @@ function archiveTeamReferenceKey(gameId: string, side: 'home' | 'away') {
   return `${gameId}:team:${side}`
 }
 
+function readBbsReference(value: unknown): string | null {
+  if (typeof value === 'string') return value.trim() || null
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value)
+  return null
+}
+
+function gamesMissingArchiveReferences(
+  games: readonly Game[],
+  providerReferences: Readonly<Record<string, string>> | undefined,
+) {
+  return games.filter(
+    (game) =>
+      game.status === 'final' &&
+      (!providerReferences?.[game.id] ||
+        !providerReferences[archiveTeamReferenceKey(game.id, 'home')] ||
+        !providerReferences[archiveTeamReferenceKey(game.id, 'away')]),
+  )
+}
+
+function archiveReferenceCount(
+  game: Game,
+  providerReferences: Readonly<Record<string, string>> | undefined,
+) {
+  return [
+    providerReferences?.[game.id],
+    providerReferences?.[archiveTeamReferenceKey(game.id, 'home')],
+    providerReferences?.[archiveTeamReferenceKey(game.id, 'away')],
+  ].filter(Boolean).length
+}
+
+function archiveReferenceSummary(
+  games: readonly Game[],
+  providerReferences: Readonly<Record<string, string>> | undefined,
+) {
+  const finals = games.filter((game) => game.status === 'final')
+  return {
+    expectedCount: finals.length * 3,
+    actualCount: finals.reduce(
+      (total, game) => total + archiveReferenceCount(game, providerReferences),
+      0,
+    ),
+  }
+}
+
 export interface BbsRefreshOutcome {
   target: NbaRefreshTarget
   state: 'refreshed' | 'up_to_date' | 'deferred' | 'in_progress'
@@ -76,6 +123,7 @@ export interface BbsRefreshOutcome {
   fetchedAt: UtcTimestamp | null
   retryAfter: UtcTimestamp | null
   error: NbaApiError | null
+  diagnostic?: Omit<ScheduledBbsTaskDiagnostic, 'observedAt' | 'errorCode'>
 }
 
 export interface BbsBoxTarget {
@@ -106,6 +154,7 @@ function outcome(
   now: number,
   error: NbaApiError | null = record?.refreshError ?? null,
   retryAt: number | null = record?.retryAt ?? null,
+  diagnostic?: BbsRefreshOutcome['diagnostic'],
 ): BbsRefreshOutcome {
   return {
     target,
@@ -114,6 +163,7 @@ function outcome(
     fetchedAt: record?.fetchedAt ?? null,
     retryAfter: retryAt === null ? null : timestamp(retryAt),
     error,
+    ...(diagnostic ? { diagnostic } : {}),
   }
 }
 
@@ -554,34 +604,35 @@ async function refreshCachedBoxes(
   repository: NbaRepository,
   fetcher: typeof fetch,
   now: number,
-): Promise<{ error: NbaApiError | null; retryAt: number | null; refreshed: boolean }> {
+): Promise<{
+  error: NbaApiError | null
+  retryAt: number | null
+  refreshed: boolean
+  missingReferences: number
+}> {
   let firstError: NbaApiError | null = null
   let retryAt: number | null = null
   let refreshed = false
+  let missingReferences = 0
   const finals = games.filter((game) => game.provider === 'bbs' && game.status === 'final')
   for (let index = 0; index < finals.length; index += 1) {
     const game = finals[index]!
     const archiveId = providerReferences?.[game.id]
     const archiveHomeTeamId = providerReferences?.[archiveTeamReferenceKey(game.id, 'home')]
     const archiveAwayTeamId = providerReferences?.[archiveTeamReferenceKey(game.id, 'away')]
-    const result =
-      archiveId && archiveHomeTeamId && archiveAwayTeamId
-        ? await refreshBox(
-            game,
-            archiveId,
-            { home: archiveHomeTeamId, away: archiveAwayTeamId },
-            env,
-            repository,
-            fetcher,
-            Math.max(now, Date.now()),
-          )
-        : {
-            state: 'deferred' as const,
-            error: createNbaApiError('invalid_response', 'bbs'),
-            retryAt: Date.now() + COOLDOWN_MS,
-          }
-    if (!archiveId || !archiveHomeTeamId || !archiveAwayTeamId)
-      await saveBoxFailure(game, repository, result.error!, result.retryAt!)
+    if (!archiveId || !archiveHomeTeamId || !archiveAwayTeamId) {
+      missingReferences += 1
+      continue
+    }
+    const result = await refreshBox(
+      game,
+      archiveId,
+      { home: archiveHomeTeamId, away: archiveAwayTeamId },
+      env,
+      repository,
+      fetcher,
+      Math.max(now, Date.now()),
+    )
     if (result.state === 'refreshed') refreshed = true
     if (result.error) {
       firstError ??= result.error
@@ -598,7 +649,7 @@ async function refreshCachedBoxes(
       }
     }
   }
-  return { error: firstError, retryAt, refreshed }
+  return { error: firstError, retryAt, refreshed, missingReferences }
 }
 
 export async function refreshBbsGames(
@@ -625,7 +676,9 @@ export async function refreshBbsGames(
         now,
       )
       if (boxes.error)
-        return outcome(target, 'deferred', previous, Date.now(), boxes.error, boxes.retryAt)
+        return outcome(target, 'deferred', previous, Date.now(), boxes.error, boxes.retryAt, {
+          phase: 'box_score',
+        })
       return outcome(
         target,
         boxes.refreshed ? 'refreshed' : 'up_to_date',
@@ -633,6 +686,12 @@ export async function refreshBbsGames(
         Date.now(),
         null,
         null,
+        boxes.missingReferences > 0
+          ? {
+              phase: 'box_score_archive_references',
+              ...archiveReferenceSummary(previous.data, previous.providerReferences),
+            }
+          : undefined,
       )
     }
     return outcome(target, 'up_to_date', previous, Date.now())
@@ -651,6 +710,8 @@ export async function refreshBbsGames(
   let listRefreshed = false
   let refreshError: NbaApiError | null = null
   let refreshRetryAt: number | null = null
+  let diagnosticPhase: ScheduledBbsDiagnosticPhase = 'games_pagination'
+  let diagnosticCounts: Omit<ScheduledBbsTaskDiagnostic, 'observedAt' | 'errorCode' | 'phase'> = {}
   try {
     const latest = await repository.getCache(key)
     const latestGames = latest?.capability === 'games' ? latest : null
@@ -658,57 +719,57 @@ export async function refreshBbsGames(
       if (latestGames) record = latestGames
       else throw createNbaApiError('invalid_response', 'bbs')
     } else {
+      diagnosticPhase = 'provider_fetch'
       const path = `/v1/matches?league=nba&date=${encodeURIComponent(target.date)}&tz=America%2FNew_York&limit=100`
       const payload = await getBbsJson(path, env, repository, fetcher, Date.now(), {
         key: lockKey,
         token,
       })
+      diagnosticPhase = 'games_pagination'
       const { root, matches } = matchesPayload(payload)
       const fetchedAt = Date.now()
+      diagnosticPhase = 'games_normalization'
       const snapshot = normalizeBbsGames(
         { data: { ...root, matches } },
         { fetchedAt: timestamp(fetchedAt), stale: false },
       )
+      diagnosticCounts = {
+        expectedCount: matches.length,
+        actualCount: snapshot.data.length,
+        rejectedRecords: snapshot.meta.rejectedRecords,
+      }
       if (snapshot.meta.rejectedRecords > 0) throw createNbaApiError('invalid_response', 'bbs')
+      diagnosticPhase = 'games_date_validation'
       const data = snapshot.data.filter((game) => game.nbaGameDate === target.date)
-      if (data.length !== snapshot.data.length) throw createNbaApiError('invalid_response', 'bbs')
+      if (data.length !== snapshot.data.length) {
+        diagnosticCounts = { expectedCount: snapshot.data.length, actualCount: data.length }
+        throw createNbaApiError('invalid_response', 'bbs')
+      }
+      diagnosticPhase = 'games_archive_references'
       const providerReferences: Record<string, string> = {}
       for (const raw of matches) {
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue
         const rawRecord = raw as Record<string, unknown>
-        const rawId = rawRecord.id ?? rawRecord.match_id ?? rawRecord.match_uuid
-        const archiveId = rawRecord.archive_game_id
-        if (
-          (typeof rawId === 'string' || typeof rawId === 'number') &&
-          (typeof archiveId === 'string' || typeof archiveId === 'number')
-        ) {
-          const normalizedGameId = `bbs:game:${String(rawId)}`
-          providerReferences[normalizedGameId] = String(archiveId)
+        const rawId = readBbsReference(rawRecord.id ?? rawRecord.match_id ?? rawRecord.match_uuid)
+        const archiveId = readBbsReference(rawRecord.archive_game_id)
+        if (rawId) {
+          const normalizedGameId = `bbs:game:${rawId}`
+          if (archiveId) providerReferences[normalizedGameId] = archiveId
           for (const side of ['home', 'away'] as const) {
             const sideValue = rawRecord[side]
-            if (
-              sideValue &&
-              typeof sideValue === 'object' &&
-              !Array.isArray(sideValue) &&
-              typeof (sideValue as Record<string, unknown>).archive_team_id === 'string'
-            ) {
-              providerReferences[archiveTeamReferenceKey(normalizedGameId, side)] = (
-                sideValue as Record<string, string>
-              ).archive_team_id!
-            }
+            if (!sideValue || typeof sideValue !== 'object' || Array.isArray(sideValue)) continue
+            const archiveTeamId = readBbsReference(
+              (sideValue as Record<string, unknown>).archive_team_id,
+            )
+            if (archiveTeamId)
+              providerReferences[archiveTeamReferenceKey(normalizedGameId, side)] = archiveTeamId
           }
         }
       }
-      if (
-        data.some(
-          (game) =>
-            game.status === 'final' &&
-            (!providerReferences[game.id] ||
-              !providerReferences[archiveTeamReferenceKey(game.id, 'home')] ||
-              !providerReferences[archiveTeamReferenceKey(game.id, 'away')]),
-        )
-      ) {
-        throw createNbaApiError('invalid_response', 'bbs')
+      const missingArchiveReferences = gamesMissingArchiveReferences(data, providerReferences)
+      const referenceSummary = archiveReferenceSummary(data, providerReferences)
+      diagnosticCounts = {
+        ...referenceSummary,
       }
       const freshRecord: Extract<NbaCacheRecord, { capability: 'games' }> = {
         cacheKey: key,
@@ -724,12 +785,14 @@ export async function refreshBbsGames(
         retryAt: null,
         refreshError: null,
       }
+      diagnosticPhase = 'games_cache_write'
       if (!(await repository.putCacheIfLockOwned(freshRecord, lockKey, token, Date.now())))
         throw Object.assign(createNbaApiError('refresh_in_progress', 'bbs', true), {
           retryAt: Date.now() + LOCK_MS,
         })
       record = freshRecord
       listRefreshed = true
+      if (missingArchiveReferences.length > 0) diagnosticPhase = 'games_archive_references'
     }
   } catch (cause) {
     const { error, retryAt } = bbsFailure(cause)
@@ -749,7 +812,10 @@ export async function refreshBbsGames(
     }
   }
   if (refreshError)
-    return outcome(target, 'deferred', previous, Date.now(), refreshError, refreshRetryAt)
+    return outcome(target, 'deferred', previous, Date.now(), refreshError, refreshRetryAt, {
+      phase: diagnosticPhase,
+      ...diagnosticCounts,
+    })
   if (!record)
     return outcome(
       target,
@@ -767,9 +833,15 @@ export async function refreshBbsGames(
         fetcher,
         Date.now(),
       )
-    : { error: null, retryAt: null, refreshed: false }
+    : { error: null, retryAt: null, refreshed: false, missingReferences: 0 }
   if (boxes.error)
-    return outcome(target, 'deferred', record, Date.now(), boxes.error, boxes.retryAt)
+    return outcome(target, 'deferred', record, Date.now(), boxes.error, boxes.retryAt, {
+      phase: 'box_score',
+    })
+  const missingReferences = Math.max(
+    boxes.missingReferences,
+    gamesMissingArchiveReferences(record.data, record.providerReferences).length,
+  )
   return outcome(
     target,
     listRefreshed || boxes.refreshed ? 'refreshed' : 'up_to_date',
@@ -777,6 +849,12 @@ export async function refreshBbsGames(
     Date.now(),
     null,
     null,
+    missingReferences > 0
+      ? {
+          phase: 'games_archive_references',
+          ...archiveReferenceSummary(record.data, record.providerReferences),
+        }
+      : undefined,
   )
 }
 
@@ -1300,6 +1378,47 @@ function workItem(task: ScheduledBbsTask, retryAt: number | null = null) {
   return { task, attempts: 0, retryAt }
 }
 
+function scheduledTaskPhase(task: ScheduledBbsTask): ScheduledBbsDiagnosticPhase {
+  if (task.type === 'games' || task.type === 'lateGames') return 'provider_fetch'
+  if (task.type === 'boxScore') return 'box_score'
+  if (task.type === 'enrichStandings') return 'standings_enrichment'
+  if (task.type === 'teamDirectory') return 'team_directory'
+  if (task.type === 'teamSeason') return 'team_season'
+  return task.type
+}
+
+function taskDiagnostic(
+  result: BbsRefreshOutcome,
+  task: ScheduledBbsTask,
+  now: number,
+): ScheduledBbsTaskDiagnostic {
+  return {
+    phase: result.diagnostic?.phase ?? scheduledTaskPhase(task),
+    errorCode: result.error?.code ?? null,
+    observedAt: now,
+    ...(result.diagnostic?.expectedCount === undefined
+      ? {}
+      : { expectedCount: result.diagnostic.expectedCount }),
+    ...(result.diagnostic?.actualCount === undefined
+      ? {}
+      : { actualCount: result.diagnostic.actualCount }),
+    ...(result.diagnostic?.rejectedRecords === undefined
+      ? {}
+      : { rejectedRecords: result.diagnostic.rejectedRecords }),
+  }
+}
+
+function setScheduledFailure(
+  failures: readonly ScheduledBbsFailure[] | undefined,
+  failure: ScheduledBbsFailure,
+) {
+  const key = scheduledBbsTaskKey(failure.task)
+  return [
+    ...(failures ?? []).filter((entry) => scheduledBbsTaskKey(entry.task) !== key),
+    failure,
+  ].slice(-SCHEDULED_BBS_TASK_LIMIT)
+}
+
 function firstDueTask(progress: ScheduledBbsProgress, now: number): number {
   if (progress.pauseUntil && progress.pauseUntil > now) return -1
   return progress.tasks.findIndex((item) => item.retryAt === null || item.retryAt <= now)
@@ -1384,6 +1503,13 @@ export async function runScheduledBbsRefresh(
         tasks: mergePendingTasks(daily, retained),
         cursor: 0,
         pauseUntil: progress.pauseUntil,
+        ...(progress.failedTasks === undefined
+          ? {}
+          : {
+              failedTasks: progress.failedTasks.filter((failure) =>
+                taskWithinRolloverHorizon(failure.task, today),
+              ),
+            }),
       }
     }
     if (progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT)
@@ -1469,6 +1595,11 @@ export async function runScheduledBbsRefresh(
     let pauseUntil: number | null = null
     let failedTasks = progress.failedTasks
     if (completed) {
+      const completedKey = scheduledBbsTaskKey(task)
+      const remainingFailures = failedTasks?.filter(
+        (failure) => scheduledBbsTaskKey(failure.task) !== completedKey,
+      )
+      failedTasks = remainingFailures?.length ? remainingFailures : undefined
       if ((task.type === 'games' || task.type === 'lateGames') && task.date < today) {
         const games = await repository.getCache(gamesCacheKey('bbs', task.date))
         if (games?.capability === 'games') {
@@ -1478,15 +1609,49 @@ export async function runScheduledBbsRefresh(
           const cachedBoxes = await repository.getCaches(
             finalGames.map((game) => gameDetailsCacheKey('bbs', game.id)),
           )
-          const boxes = finalGames.flatMap((game, index) => {
+          const boxes: ScheduledBbsTask[] = []
+          finalGames.forEach((game, index) => {
             const cachedBox = cachedBoxes[index]
             if (
               cachedBox?.capability === 'boxScore' &&
               cachedBox.data !== null &&
               isSameFinalGameSnapshot(cachedBox.data.game, game)
             )
-              return []
-            return [{ type: 'boxScore' as const, date: task.date, gameId: game.id }]
+              return
+            const boxTask: ScheduledBbsTask = {
+              type: 'boxScore',
+              date: task.date,
+              gameId: game.id,
+            }
+            const availableReferences = archiveReferenceCount(game, games.providerReferences)
+            if (availableReferences < 3) {
+              failedTasks = setScheduledFailure(failedTasks, {
+                task: boxTask,
+                errorCode: 'cache_miss',
+                failedAt: now,
+                diagnostic: {
+                  phase: 'box_score_archive_references',
+                  errorCode: 'cache_miss',
+                  observedAt: now,
+                  expectedCount: 3,
+                  actualCount: availableReferences,
+                },
+              })
+              console.warn(
+                JSON.stringify({
+                  event: 'scheduled_bbs_task_deferred',
+                  cycleDate: progress.cycleDate,
+                  taskType: boxTask.type,
+                  targetDate: boxTask.date,
+                  phase: 'box_score_archive_references',
+                  errorCode: 'cache_miss',
+                  expectedCount: 3,
+                  actualCount: availableReferences,
+                }),
+              )
+              return
+            }
+            boxes.push(boxTask)
           })
           const uniqueBoxes = boxes.filter(
             (box) =>
@@ -1498,12 +1663,14 @@ export async function runScheduledBbsRefresh(
         }
       }
     } else if (result.error && PROVIDER_PAUSE_CODES.has(result.error.code)) {
-      tasks.splice(taskIndex, 0, item)
+      const lastError = taskDiagnostic(result, task, now)
+      tasks.splice(taskIndex, 0, { ...item, lastError })
       pauseUntil = result.retryAfter ? Date.parse(result.retryAfter) : now + COOLDOWN_MS
     } else {
       const waitingForLease =
         result.state === 'in_progress' || result.error?.code === 'refresh_in_progress'
       const attempts = waitingForLease ? item.attempts : item.attempts + 1
+      const lastError = result.error ? taskDiagnostic(result, task, now) : item.lastError
       if (attempts < SCHEDULED_BBS_MAX_ATTEMPTS) {
         let retryIndex = tasks.length
         const directoryNeeded = result.error?.code === 'cache_miss' && task.type === 'standings'
@@ -1537,14 +1704,20 @@ export async function runScheduledBbsRefresh(
         const retryAt = waitingForLease
           ? Math.max(now + LOCK_MS, Date.parse(result.retryAfter ?? '') || 0)
           : now + Math.min(LOCAL_RETRY_MS * 2 ** (attempts - 1), MAX_LOCAL_RETRY_MS)
-        tasks.splice(retryIndex, 0, { ...item, attempts, retryAt })
+        tasks.splice(retryIndex, 0, {
+          ...item,
+          attempts,
+          retryAt,
+          ...(lastError ? { lastError } : {}),
+        })
       } else {
-        const key = scheduledBbsTaskKey(task)
         const errorCode = result.error?.code ?? null
-        failedTasks = [
-          ...(failedTasks ?? []).filter((entry) => scheduledBbsTaskKey(entry.task) !== key),
-          { task, errorCode, failedAt: now },
-        ].slice(-SCHEDULED_BBS_TASK_LIMIT)
+        failedTasks = setScheduledFailure(failedTasks, {
+          task,
+          errorCode,
+          failedAt: now,
+          ...(lastError ? { diagnostic: lastError } : {}),
+        })
       }
     }
     const saved = await saveOwnedProgress({
@@ -1554,10 +1727,38 @@ export async function runScheduledBbsRefresh(
       pauseUntil,
       ...(failedTasks === undefined ? {} : { failedTasks }),
     })
-    if (saved && failedTasks !== progress.failedTasks)
-      console.warn(
-        `Scheduled BBS refresh exhausted: ${progress.cycleDate}:${task.type}:${result.error?.code ?? 'unknown'}`,
+    if (saved && result.error) {
+      const diagnostic = taskDiagnostic(result, task, now)
+      const event = (failedTasks ?? []).some(
+        (failure) => scheduledBbsTaskKey(failure.task) === scheduledBbsTaskKey(task),
       )
+        ? 'scheduled_bbs_task_exhausted'
+        : 'scheduled_bbs_task_retry'
+      console.warn(
+        JSON.stringify({
+          event,
+          cycleDate: progress.cycleDate,
+          taskType: task.type,
+          targetDate: 'date' in task ? task.date : undefined,
+          phase: diagnostic.phase,
+          errorCode: diagnostic.errorCode,
+          upstreamStatus: result.error.upstreamStatus,
+          attempts:
+            event === 'scheduled_bbs_task_exhausted'
+              ? SCHEDULED_BBS_MAX_ATTEMPTS
+              : item.attempts + 1,
+          retryAt:
+            event === 'scheduled_bbs_task_exhausted'
+              ? null
+              : (tasks.find(
+                  (queued) => scheduledBbsTaskKey(queued.task) === scheduledBbsTaskKey(task),
+                )?.retryAt ?? result.retryAfter),
+          expectedCount: diagnostic.expectedCount,
+          actualCount: diagnostic.actualCount,
+          rejectedRecords: diagnostic.rejectedRecords,
+        }),
+      )
+    }
     return [result]
   } finally {
     try {

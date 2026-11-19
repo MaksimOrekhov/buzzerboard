@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { NbaGameDate, SeasonEndYear, UtcTimestamp } from '@/entities/nba/model'
+import type { GameId, NbaGameDate, SeasonEndYear, UtcTimestamp } from '@/entities/nba/model'
 import { NBA_TEAMS } from '@/entities/nba/teamCatalog'
 import type { D1Database, D1PreparedStatement, D1Result, ScheduledBbsProgress } from './types'
 import { D1NbaRepository } from './d1Repository'
@@ -432,11 +432,36 @@ describe('D1 scheduled BBS progress', () => {
           task: { type: 'standings', seasonEndYear: 2027 as SeasonEndYear },
           attempts: 0,
           retryAt: null,
+          lastError: {
+            phase: 'games_pagination',
+            errorCode: 'invalid_response',
+            observedAt: 1795017600000,
+            expectedCount: 12,
+            actualCount: 0,
+          },
         },
         {
           task: { type: 'teamSeason', teamCode: 'BOS', seasonEndYear: 2027 as SeasonEndYear },
           attempts: 0,
           retryAt: null,
+        },
+      ],
+      failedTasks: [
+        {
+          task: {
+            type: 'boxScore',
+            date: '2026-11-17' as NbaGameDate,
+            gameId: 'bbs:game:1' as GameId,
+          },
+          errorCode: 'cache_miss',
+          failedAt: 1795017600000,
+          diagnostic: {
+            phase: 'box_score_archive_references',
+            errorCode: 'cache_miss',
+            observedAt: 1795017600000,
+            expectedCount: 3,
+            actualCount: 1,
+          },
         },
       ],
     }

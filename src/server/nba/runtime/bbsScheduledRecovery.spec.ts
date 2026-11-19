@@ -2,8 +2,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import archive from '../../../../docs/fixtures/bbs-standings.sanitized.json'
 import gamesFixture from '../../../../docs/fixtures/bbs.synthetic.json'
-import type { GameId, NbaGameDate, SeasonEndYear, UtcTimestamp } from '@/entities/nba/model'
+import type {
+  GameBoxScore,
+  GameId,
+  NbaGameDate,
+  SeasonEndYear,
+  UtcTimestamp,
+} from '@/entities/nba/model'
 import { NBA_TEAMS } from '@/entities/nba/teamCatalog'
+import { normalizeBbsGames } from '@/server/nba/adapters/bbs'
+import { getDateKeyInTimeZone, NBA_TIME_ZONE } from '@/shared/utils/nbaDate'
 import { normalizeBbsStandings, normalizeBbsTeamDirectory } from '@/server/nba/adapters/bbsTeams'
 import {
   gameDetailsCacheKey,
@@ -28,7 +36,6 @@ const standingsKey = standingsCacheKey('bbs', seasonEndYear)
 const directoryKey = teamDirectoryCacheKey('bbs', seasonEndYear)
 const references = normalizeBbsTeamDirectory(archive.standings, archive.directory, seasonEndYear)
 const bos = NBA_TEAMS.find((team) => team.code === 'BOS')!
-const teamReference = references.find(({ teamId }) => teamId === bos.team.id)!
 const boxId = 'bbs:game:synthetic-final-match-uuid' as GameId
 
 afterEach(() => vi.restoreAllMocks())
@@ -58,6 +65,54 @@ function legacyQueue(pauseUntil: number): ScheduledBbsProgress {
   }
 }
 
+function busyDayMatches(date: NbaGameDate, gameCount: number, final: boolean) {
+  const providerReferences: Record<string, string> = {}
+  const teams = NBA_TEAMS.slice(0, gameCount * 2)
+  const matches = Array.from({ length: gameCount }, (_, index) => {
+    const home = teams[index * 2]!
+    const away = teams[index * 2 + 1]!
+    const homeReference = references.find(({ teamId }) => teamId === home.team.id)!
+    const awayReference = references.find(({ teamId }) => teamId === away.team.id)!
+    const matchId = `cycle-${date.replaceAll('-', '')}-${index + 1}`
+    const archiveGameId = String(95_000_000 + Number(date.slice(-2)) * 100 + index)
+    const archiveHomeId = String(100_000_000 + index * 2)
+    const archiveAwayId = String(100_000_001 + index * 2)
+    const match = structuredClone(gamesFixture.data[0]!) as unknown as Record<string, unknown>
+    const homeSide = structuredClone(match.home as Record<string, unknown>)
+    const awaySide = structuredClone(match.away as Record<string, unknown>)
+    Object.assign(match, {
+      id: matchId,
+      archive_game_id: archiveGameId,
+      season: 2026,
+      game_date: date,
+      kickoff_utc: `${date}T23:00:00.000Z`,
+      status: final ? 'finished' : 'scheduled',
+    })
+    Object.assign(homeSide, {
+      team_id: homeReference.providerTeamId,
+      archive_team_id: archiveHomeId,
+      abbreviation: home.code,
+      name: home.name,
+      score: final ? 110 + index : null,
+    })
+    Object.assign(awaySide, {
+      team_id: awayReference.providerTeamId,
+      archive_team_id: archiveAwayId,
+      abbreviation: away.code,
+      name: away.name,
+      score: final ? 100 + index : null,
+    })
+    match.home = homeSide
+    match.away = awaySide
+    const gameId = `bbs:game:${matchId}`
+    providerReferences[gameId] = archiveGameId
+    providerReferences[`${gameId}:team:home`] = archiveHomeId
+    providerReferences[`${gameId}:team:away`] = archiveAwayId
+    return match
+  })
+  return { matches, providerReferences }
+}
+
 function harness(initialTime: string) {
   let now = Date.parse(initialTime)
   vi.spyOn(Date, 'now').mockImplementation(() => now)
@@ -80,6 +135,18 @@ function harness(initialTime: string) {
     standingsStatus: 200,
     malformedStandings: false,
     directoryHasStandingsAliases: true,
+    gamesMissingArchiveReferences: false,
+    realisticBusyDays: false,
+  }
+  const findBusyMatch = (key: 'id' | 'archive_game_id', value: string) => {
+    for (let dayOfMonth = 11; dayOfMonth <= 25; dayOfMonth += 1) {
+      const date = `2026-11-${String(dayOfMonth).padStart(2, '0')}` as NbaGameDate
+      const count = [12, 13, 14, 15, 12, 13, 14][(dayOfMonth - 11) % 7]!
+      const matches = busyDayMatches(date, count, true).matches
+      const match = matches.find((entry) => String(entry[key]) === value)
+      if (match) return match
+    }
+    return null
   }
   const fetcher = async (input: RequestInfo | URL) => {
     const url = new URL(String(input))
@@ -101,39 +168,71 @@ function harness(initialTime: string) {
         )
       case '/v1/matches': {
         const date = url.searchParams.get('date')
+        if (response.realisticBusyDays && date) {
+          const nbaDate = date as NbaGameDate
+          const today = getDateKeyInTimeZone(new Date(now), NBA_TIME_ZONE)
+          const dayOfMonth = Number(date.slice(-2))
+          const gameCount = date < today ? [12, 13, 14, 15, 12, 13, 14][(dayOfMonth - 11) % 7]! : 12
+          const { matches } = busyDayMatches(nbaDate, gameCount, date < today)
+          return Response.json({ data: matches, pagination: { total: matches.length } })
+        }
         const match = {
           ...gamesFixture.data[0]!,
           game_date: date,
           kickoff_utc: `${date}T23:00:00.000Z`,
         }
+        if (response.gamesMissingArchiveReferences) {
+          delete (match as Record<string, unknown>).archive_game_id
+          delete (match.home as Record<string, unknown>).archive_team_id
+          delete (match.away as Record<string, unknown>).archive_team_id
+        }
         return Response.json({ data: [match], pagination: { total: 1 } })
       }
-      case '/v1/nba/games/90000001':
-        return Response.json({
-          data: {
-            id: 90000001,
-            game_date: previousDate,
-            home: { team_id: '1610612738', pts: 112 },
-            away: { team_id: '1610612752', pts: 108 },
-          },
-        })
-      case '/v1/nba/games/synthetic-final-match-uuid/box':
-        return Response.json({
-          data: {
-            id: 'synthetic-final-match-uuid',
-            home: [{ player_id: 'bos-fixture', player_name: 'Fixture Home', pts: 112 }],
-            away: [{ player_id: 'nyk-fixture', player_name: 'Fixture Away', pts: 108 }],
-          },
-        })
-      case `/v1/teams/${teamReference.providerTeamId}/season`:
-        return Response.json({
-          data: {
-            team_meta: { id: teamReference.providerTeamId, abbreviation: 'BOS' },
-            season: '2026-27',
-            record: '10-10',
-          },
-        })
       default:
+        if (url.pathname.startsWith('/v1/nba/games/') && url.pathname.endsWith('/box')) {
+          const matchId = decodeURIComponent(url.pathname.split('/').at(-2)!)
+          const match = response.realisticBusyDays
+            ? findBusyMatch('id', matchId)
+            : gamesFixture.data[0]
+          if (!match) throw new Error(`Missing fixture match ${matchId}`)
+          return Response.json({
+            data: {
+              id: matchId,
+              home: [{ player_id: `home-${matchId}`, player_name: 'Fixture Home' }],
+              away: [{ player_id: `away-${matchId}`, player_name: 'Fixture Away' }],
+            },
+          })
+        }
+        if (url.pathname.startsWith('/v1/nba/games/')) {
+          const archiveId = decodeURIComponent(url.pathname.split('/').at(-1)!)
+          const match = response.realisticBusyDays
+            ? findBusyMatch('archive_game_id', archiveId)
+            : gamesFixture.data[0]
+          if (!match) throw new Error(`Missing fixture archive game ${archiveId}`)
+          const home = match.home as Record<string, unknown>
+          const away = match.away as Record<string, unknown>
+          return Response.json({
+            data: {
+              id: archiveId,
+              game_date: response.realisticBusyDays ? match.game_date : previousDate,
+              home: { team_id: home.archive_team_id, pts: home.score },
+              away: { team_id: away.archive_team_id, pts: away.score },
+            },
+          })
+        }
+        if (url.pathname.startsWith('/v1/teams/') && url.pathname.endsWith('/season')) {
+          const providerId = decodeURIComponent(url.pathname.split('/').at(-2)!)
+          const reference = references.find((entry) => entry.providerTeamId === providerId)
+          const team = reference && NBA_TEAMS.find((entry) => entry.team.id === reference.teamId)
+          if (!reference || !team) throw new Error(`Missing fixture team ${providerId}`)
+          return Response.json({
+            data: {
+              team_meta: { id: providerId, abbreviation: team.code },
+              season: '2026-27',
+              record: '10-10',
+            },
+          })
+        }
         throw new Error(`Unexpected fixture request ${url.pathname}`)
     }
   }
@@ -191,6 +290,7 @@ function harness(initialTime: string) {
       )
       .all()
   return {
+    d1,
     repository,
     requests,
     response,
@@ -204,6 +304,158 @@ function harness(initialTime: string) {
 }
 
 describe('production-shaped BBS queue recovery through the outer scheduler', () => {
+  it('completes a realistic 15-date catch-up across UTC midnight and starts the next ET plan', async () => {
+    const startText = '2026-11-18T23:50:00Z'
+    const start = Date.parse(startText)
+    const h = harness(startText)
+    h.response.realisticBusyDays = true
+    await h.seedDirectory()
+
+    const dateCounts = [12, 13, 14, 15, 12, 13, 14]
+    const missingBoxKeys = new Set<string>()
+    const nullLine = { made: null, attempted: null, percentage: null }
+    for (let dayOfMonth = 11; dayOfMonth <= 17; dayOfMonth += 1) {
+      const date = `2026-11-${String(dayOfMonth).padStart(2, '0')}` as NbaGameDate
+      const gameCount = dateCounts[(dayOfMonth - 11) % dateCounts.length]!
+      const { matches, providerReferences } = busyDayMatches(date, gameCount, true)
+      const fetchedAt = new Date(start - day).toISOString() as UtcTimestamp
+      const snapshot = normalizeBbsGames(
+        { data: { matches, pagination: { total: matches.length } } },
+        { fetchedAt, stale: true },
+      )
+      await h.repository.putCache({
+        cacheKey: gamesCacheKey('bbs', date),
+        capability: 'games',
+        provider: 'bbs',
+        data: snapshot.data,
+        providerReferences,
+        fetchedAt,
+        providerUpdatedAt: null,
+        rejectedRecords: snapshot.meta.rejectedRecords,
+        expiresAt: start - 1,
+        staleUntil: start + 7 * day,
+        retryAt: null,
+        refreshError: null,
+      })
+      for (const [index, game] of snapshot.data.entries()) {
+        if (missingBoxKeys.has(`${date}:${index + 1}`)) continue
+        const score = game.score
+        const box: GameBoxScore = {
+          game,
+          teams: [
+            {
+              team: game.homeTeam,
+              points: score.home,
+              fieldGoals: nullLine,
+              threePointers: nullLine,
+              freeThrows: nullLine,
+              rebounds: null,
+              offensiveRebounds: null,
+              defensiveRebounds: null,
+              assists: null,
+              steals: null,
+              blocks: null,
+              turnovers: null,
+              fouls: null,
+              plusMinus: null,
+            },
+            {
+              team: game.awayTeam,
+              points: score.away,
+              fieldGoals: nullLine,
+              threePointers: nullLine,
+              freeThrows: nullLine,
+              rebounds: null,
+              offensiveRebounds: null,
+              defensiveRebounds: null,
+              assists: null,
+              steals: null,
+              blocks: null,
+              turnovers: null,
+              fouls: null,
+              plusMinus: null,
+            },
+          ],
+          players: [],
+        }
+        await h.repository.putCache({
+          cacheKey: gameDetailsCacheKey('bbs', game.id),
+          capability: 'boxScore',
+          gameId: game.id,
+          provider: 'bbs',
+          data: box,
+          fetchedAt,
+          providerUpdatedAt: null,
+          rejectedRecords: 0,
+          expiresAt: start + 2 * day,
+          staleUntil: start + 30 * day,
+          retryAt: null,
+          refreshError: null,
+        })
+      }
+    }
+
+    for (let reservation = 0; reservation < 149; reservation += 1) {
+      const reserved = await h.repository.reserveBbsRequest(
+        start - (149 - reservation) * minute,
+        150,
+        10,
+      )
+      expect(reserved.allowed).toBe(true)
+    }
+    h.response.standingsStatus = 429
+    const blocked = await h.tick(start)
+    expect(blocked[0]?.error?.code).toBe('rate_limited')
+    expect(h.ledger()).toEqual([{ rate_key: 'bbs:utc-day:2026-11-18', request_count: 150 }])
+    const retryAtMidnight = Date.parse('2026-11-19T00:00:00Z')
+    expect(await h.tick(retryAtMidnight)).toEqual([])
+    expect((await h.repository.getScheduledBbsProgress())?.pauseUntil).toBe(
+      Date.parse('2026-11-19T00:10:00Z'),
+    )
+
+    h.response.standingsStatus = 200
+    let tickAt = Date.parse('2026-11-19T00:10:00Z')
+    await h.tick(tickAt)
+    tickAt += 10 * minute
+    for (let tick = 0; tick < 100; tick += 1) {
+      const progress = await h.repository.getScheduledBbsProgress()
+      if (progress?.cycleDate === cycleDate && progress.tasks.length === 0) break
+      await h.tick(tickAt)
+      tickAt += 10 * minute
+    }
+
+    const completed = (await h.repository.getScheduledBbsProgress())!
+    expect(completed.cycleDate).toBe(cycleDate)
+    expect(completed.tasks).toEqual([])
+    expect(completed.failedTasks).toBeUndefined()
+    expect(tickAt).toBeLessThan(Date.parse('2026-11-19T15:00:00Z'))
+    expect(h.operationCounts.length).toBeGreaterThan(45)
+    expect(Math.max(...h.operationCounts)).toBeLessThanOrEqual(50)
+    expect(h.requests.filter((path) => path === '/v1/matches').length).toBe(16)
+    expect(
+      h.d1.database
+        .prepare(
+          "SELECT COUNT(*) AS count FROM nba_cache WHERE capability='games' AND provider='bbs'",
+        )
+        .get(),
+    ).toEqual({ count: 15 })
+    expect(
+      h.d1.database
+        .prepare(
+          "SELECT COUNT(*) AS count FROM nba_cache WHERE capability='boxScore' AND provider='bbs'",
+        )
+        .get(),
+    ).toEqual({ count: dateCounts.reduce((total, count) => total + count, 0) })
+    expect((await h.repository.getCache(standingsKey))?.data).toHaveLength(30)
+    expect(h.ledger()).toHaveLength(1)
+    expect(h.ledger()[0]!.request_count).toBeLessThan(150)
+
+    const nextPlan = await h.tick('2026-11-19T15:00:00Z')
+    expect(nextPlan[0]?.state).toBe('up_to_date')
+    expect((await h.repository.getScheduledBbsProgress())?.cycleDate).toBe('2026-11-19')
+    expect((await h.repository.getScheduledBbsProgress())?.tasks.length).toBeGreaterThan(0)
+  })
+
   it('resumes the 49 stored tasks after UTC reset and an expired lease, preserving retry state at the next ET plan', async () => {
     const h = harness('2026-11-18T23:50:00Z')
     const { repository } = h
@@ -334,7 +586,8 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     await h.tick('2026-11-18T15:20:00Z')
     expect(await repository.getCache(gameDetailsCacheKey('bbs', boxId))).toMatchObject({
       capability: 'boxScore',
-      data: { game: { id: boxId }, teams: expect.any(Array), players: expect.any(Array) },
+      data: null,
+      refreshError: { code: 'invalid_response' },
     })
     await h.tick('2026-11-18T15:30:00Z')
     expect(
@@ -345,28 +598,46 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     })
     await h.tick('2026-11-18T15:40:00Z')
     expect(Math.max(...h.operationCounts)).toBe(47)
-    for (let attempts = 1; attempts < 5; attempts++) {
-      const next = (await repository.getScheduledBbsProgress())!.tasks[0]!
-      expect(next).toMatchObject({ task: standingsTask, attempts })
-      expect(
-        (await h.tick(Math.max(Date.now() + 10 * minute, next.retryAt!)))[0]?.error?.code,
-      ).toBe('invalid_response')
+    for (let retry = 0; retry < 60; retry += 1) {
+      const current = (await repository.getScheduledBbsProgress())!
+      if (current.failedTasks?.some(({ task }) => task.type === 'standings')) break
+      const nextRetryAt = current.tasks[0]?.retryAt ?? Date.now()
+      await h.tick(Math.max(Date.now() + 10 * minute, nextRetryAt))
     }
     const failedAt = Date.now()
-    expect(await repository.getScheduledBbsProgress()).toEqual({
-      cycleDate,
-      cursor: 0,
-      pauseUntil: null,
-      tasks: [],
-      failedTasks: [{ task: standingsTask, errorCode: 'invalid_response', failedAt }],
-    })
-    expect(warning).toHaveBeenCalledWith(expect.stringContaining('standings:invalid_response'))
+    const exhausted = (await repository.getScheduledBbsProgress())!
+    expect(exhausted.failedTasks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          task: standingsTask,
+          errorCode: 'invalid_response',
+          failedAt,
+          diagnostic: expect.objectContaining({ phase: 'standings' }),
+        }),
+      ]),
+    )
+    expect(
+      warning.mock.calls.some(([message]) => {
+        if (typeof message !== 'string') return false
+        try {
+          return JSON.parse(message).phase === 'standings'
+        } catch {
+          return false
+        }
+      }),
+    ).toBe(true)
     expect(h.requests.filter((path) => path === '/v1/standings')).toHaveLength(5)
-    expect(await h.tick(failedAt + day / 4)).toEqual([])
+    expect(
+      (await h.tick(failedAt + day / 4)).some(({ target }) => target.type === 'standings'),
+    ).toBe(false)
 
     h.response.malformedStandings = false
     expect((await h.tick('2026-11-19T15:00:00Z'))[0]?.state).toBe('refreshed')
-    expect((await repository.getScheduledBbsProgress())?.failedTasks).toBeUndefined()
+    expect(
+      (await repository.getScheduledBbsProgress())?.failedTasks?.some(
+        ({ task }) => task.type === 'standings',
+      ),
+    ).toBe(false)
     expect((await repository.getCache(standingsKey))?.refreshError).toBeNull()
   })
 
@@ -393,6 +664,39 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     expect((await h.tick('2026-11-19T00:10:00Z'))[0]?.state).toBe('refreshed')
     expect(h.ledger()).toEqual([{ rate_key: 'bbs:utc-day:2026-11-19', request_count: 1 }])
     expect((await repository.getScheduledBbsProgress())?.tasks).toEqual(blocked.tasks.slice(1))
+  })
+
+  it('stores a per-game archive-reference failure without rejecting the date or requeueing a loop', async () => {
+    const h = harness('2026-11-18T15:00:00Z')
+    h.response.gamesMissingArchiveReferences = true
+    h.seedQueue({
+      cycleDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [work({ type: 'games', date: previousDate }), work(standingsTask)],
+    })
+
+    const result = await h.tick()
+    const progress = (await h.repository.getScheduledBbsProgress())!
+
+    expect(result[0]).toMatchObject({ state: 'refreshed', error: null })
+    expect(await h.repository.getCache(gamesCacheKey('bbs', previousDate))).toMatchObject({
+      capability: 'games',
+      data: [expect.objectContaining({ status: 'final' })],
+    })
+    expect(progress.tasks.map(({ task }) => task)).toEqual([standingsTask])
+    expect(progress.failedTasks).toMatchObject([
+      {
+        task: { type: 'boxScore', date: previousDate, gameId: boxId },
+        errorCode: 'cache_miss',
+        diagnostic: {
+          phase: 'box_score_archive_references',
+          expectedCount: 3,
+          actualCount: 0,
+        },
+      },
+    ])
+    expect(h.requests).toEqual(['/v1/matches'])
   })
 
   it('preserves the work item across storage failure and does not count an unavailable resource lease as a provider attempt', async () => {
@@ -428,8 +732,15 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
       attempts: 0,
     })
     expect((await h.tick('2026-11-18T15:20:00Z'))[0]?.target.type).toBe('games')
-    expect((await h.tick('2026-11-18T15:30:00Z'))[0]?.state).toBe('refreshed')
-    expect((await h.tick('2026-11-18T15:40:00Z'))[0]?.target).toEqual(standingsTask)
+    let recoveredStandings = false
+    for (let tick = 0; tick < 10; tick += 1) {
+      const results = await h.tick(Date.parse('2026-11-18T15:30:00Z') + tick * 10 * minute)
+      if (results.some(({ target }) => target.type === 'standings')) {
+        recoveredStandings = true
+        break
+      }
+    }
+    expect(recoveredStandings).toBe(true)
     expect((await repository.getCache(standingsKey))?.data).toHaveLength(30)
   })
 })

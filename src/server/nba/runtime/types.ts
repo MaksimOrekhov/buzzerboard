@@ -36,6 +36,31 @@ export interface ScheduledBbsWorkItem {
   task: ScheduledBbsTask
   attempts: number
   retryAt: number | null
+  lastError?: ScheduledBbsTaskDiagnostic
+}
+
+export type ScheduledBbsDiagnosticPhase =
+  | 'provider_fetch'
+  | 'games_pagination'
+  | 'games_normalization'
+  | 'games_date_validation'
+  | 'games_archive_references'
+  | 'games_cache_write'
+  | 'box_score_archive_references'
+  | 'box_score'
+  | 'standings'
+  | 'team_directory'
+  | 'team_season'
+  | 'standings_enrichment'
+  | 'scheduled_task'
+
+export interface ScheduledBbsTaskDiagnostic {
+  phase: ScheduledBbsDiagnosticPhase
+  errorCode: NbaApiError['code'] | null
+  observedAt: number
+  expectedCount?: number
+  actualCount?: number
+  rejectedRecords?: number
 }
 
 export const SCHEDULED_BBS_TASK_LIMIT = 200
@@ -45,6 +70,7 @@ export interface ScheduledBbsFailure {
   task: ScheduledBbsTask
   errorCode: NbaApiError['code'] | null
   failedAt: number
+  diagnostic?: ScheduledBbsTaskDiagnostic
 }
 
 export function scheduledBbsTaskKey(task: ScheduledBbsTask): string {
