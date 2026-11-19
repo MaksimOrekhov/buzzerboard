@@ -27,7 +27,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:atlanta-georgia-united-states",
+      "arenaId": "nba:arena:state-farm-arena"
     },
     {
       "code": "BKN",
@@ -53,7 +55,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:brooklyn-new-york-united-states",
+      "arenaId": "nba:arena:barclays-center"
     },
     {
       "code": "BOS",
@@ -79,7 +83,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:boston-massachusetts-united-states",
+      "arenaId": "nba:arena:td-garden"
     },
     {
       "code": "CHA",
@@ -105,7 +111,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:charlotte-north-carolina-united-states",
+      "arenaId": "nba:arena:spectrum-center"
     },
     {
       "code": "CHI",
@@ -131,7 +139,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:chicago-illinois-united-states",
+      "arenaId": "nba:arena:united-center"
     },
     {
       "code": "CLE",
@@ -157,7 +167,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:cleveland-ohio-united-states",
+      "arenaId": "nba:arena:rocket-arena"
     },
     {
       "code": "DAL",
@@ -183,7 +195,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:dallas-texas-united-states",
+      "arenaId": "nba:arena:american-airlines-center"
     },
     {
       "code": "DEN",
@@ -209,7 +223,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:denver-colorado-united-states",
+      "arenaId": "nba:arena:ball-arena"
     },
     {
       "code": "DET",
@@ -235,7 +251,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:detroit-michigan-united-states",
+      "arenaId": "nba:arena:little-caesars-arena"
     },
     {
       "code": "GSW",
@@ -261,7 +279,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:san-francisco-california-united-states",
+      "arenaId": "nba:arena:chase-center"
     },
     {
       "code": "HOU",
@@ -287,7 +307,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:houston-texas-united-states",
+      "arenaId": "nba:arena:toyota-center"
     },
     {
       "code": "IND",
@@ -313,7 +335,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:indianapolis-indiana-united-states",
+      "arenaId": "nba:arena:gainbridge-fieldhouse"
     },
     {
       "code": "LAC",
@@ -339,7 +363,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:inglewood-california-united-states",
+      "arenaId": "nba:arena:intuit-dome"
     },
     {
       "code": "LAL",
@@ -365,7 +391,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:los-angeles-california-united-states",
+      "arenaId": "nba:arena:crypto-com-arena"
     },
     {
       "code": "MEM",
@@ -391,7 +419,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:memphis-tennessee-united-states",
+      "arenaId": "nba:arena:fedexforum"
     },
     {
       "code": "MIA",
@@ -417,7 +447,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:miami-florida-united-states",
+      "arenaId": "nba:arena:kaseya-center"
     },
     {
       "code": "MIL",
@@ -443,7 +475,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:milwaukee-wisconsin-united-states",
+      "arenaId": "nba:arena:fiserv-forum"
     },
     {
       "code": "MIN",
@@ -469,7 +503,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:minneapolis-minnesota-united-states",
+      "arenaId": "nba:arena:target-center"
     },
     {
       "code": "NOP",
@@ -495,7 +531,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:new-orleans-louisiana-united-states",
+      "arenaId": "nba:arena:smoothie-king-center"
     },
     {
       "code": "NYK",
@@ -521,7 +559,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:new-york-new-york-united-states",
+      "arenaId": "nba:arena:madison-square-garden"
     },
     {
       "code": "OKC",
@@ -547,7 +587,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:oklahoma-city-oklahoma-united-states",
+      "arenaId": "nba:arena:paycom-center"
     },
     {
       "code": "ORL",
@@ -573,7 +615,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:orlando-florida-united-states",
+      "arenaId": "nba:arena:kia-center"
     },
     {
       "code": "PHI",
@@ -599,7 +643,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:philadelphia-pennsylvania-united-states",
+      "arenaId": "nba:arena:xfinity-mobile-arena"
     },
     {
       "code": "PHX",
@@ -625,7 +671,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:phoenix-arizona-united-states",
+      "arenaId": "nba:arena:mortgage-matchup-center"
     },
     {
       "code": "POR",
@@ -651,7 +699,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:portland-oregon-united-states",
+      "arenaId": "nba:arena:moda-center"
     },
     {
       "code": "SAC",
@@ -677,7 +727,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:sacramento-california-united-states",
+      "arenaId": "nba:arena:golden-1-center"
     },
     {
       "code": "SAS",
@@ -703,7 +755,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:san-antonio-texas-united-states",
+      "arenaId": "nba:arena:frost-bank-center"
     },
     {
       "code": "TOR",
@@ -729,7 +783,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:toronto-ontario-canada",
+      "arenaId": "nba:arena:scotiabank-arena"
     },
     {
       "code": "UTA",
@@ -755,7 +811,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:salt-lake-city-utah-united-states",
+      "arenaId": "nba:arena:delta-center"
     },
     {
       "code": "WAS",
@@ -781,7 +839,9 @@
         "asOf": "2026-11-19",
         "unit": null,
         "nullable": false
-      }
+      },
+      "cityId": "nba:city:washington-district-of-columbia-united-states",
+      "arenaId": "nba:arena:capital-one-arena"
     }
   ]
 }

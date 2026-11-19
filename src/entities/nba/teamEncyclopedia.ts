@@ -13,6 +13,8 @@ export interface SourcedFact<T> {
 export interface TeamEncyclopediaEntry {
   code: string
   canonicalTeamId: string
+  cityId: string
+  arenaId: string
   wikidata: SourcedFact<string>
   city: SourcedFact<string>
   arena: SourcedFact<string>
@@ -95,6 +97,8 @@ export function validateTeamEncyclopedia(
   const seenCodes = new Set<string>()
   const seenIds = new Set<string>()
   const seenQids = new Set<string>()
+  const citySubjects = new Map<string, string>()
+  const arenaSubjects = new Map<string, string>()
   const pilotCodes = new Set<string>()
 
   input.teams.forEach((unknownEntry, index) => {
@@ -138,6 +142,8 @@ export function validateTeamEncyclopedia(
     }
     validFact(entry.city, errors, `${path}.city`)
     validFact(entry.arena, errors, `${path}.arena`)
+    validateSubjectIdentity(entry, 'cityId', 'city', citySubjects, errors, path)
+    validateSubjectIdentity(entry, 'arenaId', 'arena', arenaSubjects, errors, path)
     if (typeof entry.pilot !== 'boolean') errors.push(`${path}.pilot must be boolean`)
     else if (entry.pilot && typeof entry.code === 'string') pilotCodes.add(entry.code)
   })
@@ -149,6 +155,30 @@ export function validateTeamEncyclopedia(
     if (!pilotCodes.has(pilot)) errors.push(`pilot team ${pilot} is missing`)
   }
   return errors
+}
+
+function validateSubjectIdentity(
+  entry: Record<string, unknown>,
+  idKey: 'cityId' | 'arenaId',
+  kind: 'city' | 'arena',
+  seen: Map<string, string>,
+  errors: string[],
+  path: string,
+): void {
+  const id = entry[idKey]
+  const fact = entry[kind]
+  if (typeof id !== 'string' || !new RegExp(`^nba:${kind}:[a-z0-9]+(?:-[a-z0-9]+)*$`).test(id)) {
+    errors.push(`${path}.${idKey} must be a stable nba:${kind}: slug`)
+    return
+  }
+  const value = isRecord(fact) ? fact.value : null
+  if (typeof value !== 'string') return
+  const knownValue = seen.get(id)
+  if (knownValue !== undefined && knownValue !== value) {
+    errors.push(`${path}.${idKey} is reused for a different ${kind}`)
+  } else {
+    seen.set(id, value)
+  }
 }
 
 export function assertValidTeamEncyclopedia(

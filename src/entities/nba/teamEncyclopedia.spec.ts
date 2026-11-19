@@ -21,6 +21,8 @@ describe('NBA team encyclopedia directory', () => {
         .sort(),
     ).toEqual(['CHI', 'LAL', 'MIN'])
     expect(getTeamEncyclopediaEntry(' min ')?.wikidata.value).toBe('Q170558')
+    expect(getTeamEncyclopediaEntry('CHI')?.cityId).toBe('nba:city:chicago-illinois-united-states')
+    expect(getTeamEncyclopediaEntry('CHI')?.arenaId).toBe('nba:arena:united-center')
   })
 
   it('rejects missing canonical teams, duplicate IDs, bad QIDs, and absent provenance', () => {
@@ -46,5 +48,15 @@ describe('NBA team encyclopedia directory', () => {
     const errors = validateTeamEncyclopedia(directory)
     expect(errors).toContain('teams[0].arena.sourceUrl must be an HTTPS URL')
     expect(errors).toContain('teams[0].arena.asOf must be an ISO date')
+  })
+
+  it('requires stable city and arena subjects without identity collisions', () => {
+    const directory = copyDirectory()
+    directory.teams[1]!.cityId = directory.teams[0]!.cityId
+    directory.teams[1]!.arenaId = 'missing-prefix'
+
+    const errors = validateTeamEncyclopedia(directory)
+    expect(errors).toContain('teams[1].cityId is reused for a different city')
+    expect(errors).toContain('teams[1].arenaId must be a stable nba:arena: slug')
   })
 })

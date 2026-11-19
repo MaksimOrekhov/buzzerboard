@@ -37,6 +37,9 @@ jobs:
       - name: Run tests
         run: pnpm test
 
+      - name: Validate reviewed local media assets
+        run: pnpm run media:check
+
       - name: Lint
         run: pnpm run lint
 
