@@ -1,3 +1,4 @@
+import archived from '../../../../docs/fixtures/bbs-standings.sanitized.json'
 import { describe, expect, it } from 'vitest'
 import type { SeasonEndYear } from '@/entities/nba/model'
 import { NBA_TEAMS, findNbaTeam } from '@/entities/nba/teamCatalog'
@@ -152,6 +153,93 @@ describe('BBS team-season adapter', () => {
     })
     expect(() =>
       normalizeBbsTeamDirectory(standings, { data: directory.data.slice(1) }, seasonEndYear),
+    ).toThrow(NbaAdapterError)
+  })
+
+  it('normalizes the archived BBS envelope without abbreviations using verified distinct IDs', () => {
+    const references = normalizeBbsTeamDirectory(
+      archived.standings,
+      archived.directory,
+      seasonEndYear,
+    )
+    expect(references).toHaveLength(30)
+    expect(references.every((ref) => ref.standingsTeamId !== ref.providerTeamId)).toBe(true)
+    const rows = normalizeBbsStandings(archived.standings, seasonEndYear, references)
+    expect(rows).toHaveLength(30)
+    expect(new Set(rows.map((row) => row.team.id)).size).toBe(30)
+    expect(rows.filter((row) => row.conference === 'east')).toHaveLength(15)
+    expect(rows.filter((row) => row.conference === 'west')).toHaveLength(15)
+    expect(rows.map((row) => row.team.providerId)).toEqual(
+      archived.standings.data.standings[0]!.rows.map((row) => row.team_id),
+    )
+
+    const legacy = references.map(({ teamId, standingsTeamId }) => ({
+      teamId,
+      providerTeamId: standingsTeamId!,
+    }))
+    expect(normalizeBbsStandings(archived.standings, seasonEndYear, legacy)).toEqual(rows)
+    expect(() => normalizeBbsStandings(archived.standings, seasonEndYear)).toThrow(NbaAdapterError)
+    expect(() => normalizeBbsStandings(archived.standings, seasonEndYear, legacy.slice(1))).toThrow(
+      NbaAdapterError,
+    )
+    expect(() =>
+      normalizeBbsStandings(archived.standings, seasonEndYear, [...legacy.slice(1), legacy[1]!]),
+    ).toThrow(NbaAdapterError)
+    const providerCollision = [
+      { ...references[0]!, providerTeamId: references[1]!.providerTeamId },
+      ...references.slice(1),
+    ]
+    expect(() =>
+      normalizeBbsStandings(archived.standings, seasonEndYear, providerCollision),
+    ).toThrow(NbaAdapterError)
+  })
+
+  it('rejects unverified IDs, conflicting abbreviations, seasons and incomplete records', () => {
+    const references = normalizeBbsTeamDirectory(
+      archived.standings,
+      archived.directory,
+      seasonEndYear,
+    )
+    const group = archived.standings.data.standings[0]!
+    const [first, second, ...rest] = group.rows
+    const normalizeGroup = (next: { season: string; rows: readonly unknown[] }) =>
+      normalizeBbsStandings({ data: { standings: [next] } }, seasonEndYear, references)
+    const replaceFirst = (patch: Record<string, unknown>) => ({
+      ...group,
+      rows: [{ ...first, ...patch }, second, ...rest],
+    })
+
+    for (const invalid of [
+      replaceFirst({
+        team_id: 'unverified',
+        abbreviation: references[0]!.teamId.split(':').at(-1),
+      }),
+      replaceFirst({ team_id: second!.team_id }),
+      replaceFirst({ abbreviation: references[1]!.teamId.split(':').at(-1) }),
+      replaceFirst({
+        conference: normalizeGroup(group)[0]!.conference === 'east' ? 'West' : 'East',
+      }),
+      replaceFirst({ wins: 83 }),
+      replaceFirst({ wins: first!.wins + 1 }),
+      { ...group, season: '2025-26' },
+      { ...group, rows: group.rows.slice(1) },
+    ])
+      expect(() => normalizeGroup(invalid)).toThrow(NbaAdapterError)
+
+    const ambiguous = replaceFirst({ team_uuid: second!.team_id })
+    expect(() =>
+      normalizeBbsTeamDirectory(
+        { data: { standings: [ambiguous] } },
+        archived.directory,
+        seasonEndYear,
+      ),
+    ).toThrow(NbaAdapterError)
+    expect(() =>
+      normalizeBbsTeamDirectory(
+        { data: { standings: [{ ...group, season: '2025-26' }] } },
+        archived.directory,
+        seasonEndYear,
+      ),
     ).toThrow(NbaAdapterError)
   })
 
