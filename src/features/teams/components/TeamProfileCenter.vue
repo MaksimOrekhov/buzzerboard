@@ -1,43 +1,34 @@
 <script setup lang="ts">
 import '../../standings/standings.css'
 import '../teams.css'
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { findNbaTeam } from '@/entities/nba/teamCatalog'
-import { getCityMediaForTeam } from '@/entities/nba/teamMediaManifest'
-import { WorkerApiError } from '@/shared/api/nba/workerClient'
-import { useTeamSeason } from '../composables/useTeamSeason'
-import { TEAM_SEASON_END_YEAR } from '../season'
 import { useTeamFavorites } from '@/features/standings/composables/useTeamFavorites'
 import PageHeading from '@/shared/components/PageHeading.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
-import AppButton from '@/shared/components/AppButton.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
-import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
-import TeamSeasonPanel from './TeamSeasonPanel.vue'
-import TeamResultsPanel from './TeamResultsPanel.vue'
-import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
-import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
-import MediaAttribution from '@/shared/components/MediaAttribution.vue'
-const { hideAggregate } = useSpoilerMode()
+import TeamProfileOverview from './TeamProfileOverview.vue'
+
+const TeamHistoryPanel = defineAsyncComponent(() => import('./TeamHistoryPanel.vue'))
+const sections = [
+  { label: 'Обзор', history: false },
+  { label: 'История', history: true },
+]
 const route = useRoute()
 const code = computed(() =>
   typeof route.params.teamCode === 'string' ? route.params.teamCode.toUpperCase() : '',
 )
 const team = computed(() => findNbaTeam(code.value))
-const cityMedia = computed(() => getCityMediaForTeam(code.value))
-const query = useTeamSeason(code, TEAM_SEASON_END_YEAR)
-const { data, isPending, isFetching, isRefetchError } = query
-const statsScope = computed(() => `team:${code.value}`)
-const statsHidden = computed(() => hideAggregate(statsScope.value, data.value?.meta.fetchedAt))
+const historyActive = computed(() => route.query.tab === 'history')
+const overviewQuery = computed(() => {
+  const query = { ...route.query }
+  delete query.tab
+  return query
+})
 const { isFavorite, toggleFavorite } = useTeamFavorites()
 const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team.id)))
-const errorTitle = computed(() =>
-  query.error.value instanceof WorkerApiError && query.error.value.error.code === 'cache_miss'
-    ? 'Профиль ещё не кэширован'
-    : 'Не удалось загрузить профиль',
-)
 </script>
 
 <template>
@@ -83,67 +74,28 @@ const errorTitle = computed(() =>
         /></RouterLink>
       </div>
     </section>
-    <MediaAttribution v-if="cityMedia" :asset="cityMedia" class="teams-profile-city-media" />
-    <p v-if="isRefetchError" class="gc-notice gc-notice--warning" role="status">
-      Последнее обновление не удалось. Доступный снимок остаётся виден.
-    </p>
-    <ResourceState v-if="isPending" status="loading" /><ResourceState
-      v-else-if="!data"
-      status="error"
-      icon="basketball"
-      :title="errorTitle"
-      description="Профиль читается только из локального BBS cache. Вернитесь позже или откройте другой раздел."
-      ><template #action
-        ><AppButton :loading="isFetching" @click="query.refetch()">Повторить запрос</AppButton
-        ><RouterLink to="/teams" class="gc-control">Все команды</RouterLink></template
-      ></ResourceState
-    >
-    <template v-else>
-      <SpoilerAggregateGate
-        v-if="statsHidden"
-        :scope="statsScope"
-        title="Сезонная статистика скрыта"
-      />
-      <div v-else class="teams-profile-overview">
-        <div>
-          <span class="teams-eyebrow"
-            >Сезон {{ data.data.seasonEndYear - 1 }}/{{
-              String(data.data.seasonEndYear).slice(-2)
-            }}</span
-          ><strong>{{ data.data.wins ?? '—' }}–{{ data.data.losses ?? '—' }}</strong
-          ><small>победы — поражения</small>
-        </div>
-        <div>
-          <span>Место в лиге</span
-          ><strong>{{ data.data.overallRank ? `#${data.data.overallRank}` : '—' }}</strong
-          ><small>из 30 команд</small>
-        </div>
-        <div>
-          <span>Последние 10</span
-          ><strong>{{
-            data.data.lastTen
-              ? `${data.data.lastTen.filter((game) => game.result === 'W').length}–${data.data.lastTen.filter((game) => game.result === 'L').length}`
-              : '—'
-          }}</strong
-          ><small>по сезонному срезу BBS</small>
-        </div>
-        <div>
-          <span>Сезонных лидеров</span><strong>{{ data.data.leaders.length }}</strong
-          ><small>строк от источника</small>
-        </div>
-      </div>
-      <div class="teams-profile-columns" :class="{ 'spoiler-team-columns': statsHidden }">
-        <TeamSeasonPanel v-if="!statsHidden" :profile="data.data" /><TeamResultsPanel
-          :profile="data.data"
-          :leaders-hidden="statsHidden"
-        />
-      </div>
-      <p v-if="!statsHidden && data.data.conferenceRank === null" class="teams-profile-note">
-        <AppIcon name="database" :size="16" />Ранг в конференции не возвращается BBS. Конференция и
-        дивизион показаны по текущему справочнику NBA.
-      </p>
-      <SnapshotStatus :meta="data.meta" />
-    </template>
+    <nav class="teams-profile-nav" aria-label="Разделы профиля">
+      <RouterLink
+        v-for="section in sections"
+        :key="section.label"
+        v-slot="{ href, navigate }"
+        :to="{
+          path: route.path,
+          query: section.history ? { ...overviewQuery, tab: 'history' } : overviewQuery,
+        }"
+        custom
+      >
+        <a
+          :href="href"
+          :aria-current="section.history === historyActive ? 'page' : undefined"
+          @click="navigate"
+        >
+          {{ section.label }}
+        </a>
+      </RouterLink>
+    </nav>
+    <TeamHistoryPanel v-if="historyActive" :key="team.code" :team-code="team.code" />
+    <TeamProfileOverview v-else :code="team.code" />
   </div>
   <ResourceState
     v-else

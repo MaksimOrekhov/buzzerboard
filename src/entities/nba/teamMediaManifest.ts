@@ -1,5 +1,6 @@
 import rawManifest from './teamMediaManifest.json'
-import { NBA_TEAM_ENCYCLOPEDIA } from './teamEncyclopedia'
+import { getTeamHistory, NBA_TEAM_HISTORIES } from './teamHistory'
+import { getTeamEncyclopediaEntry, NBA_TEAM_ENCYCLOPEDIA } from './teamEncyclopedia'
 
 export type TeamMediaSubjectKind = 'team' | 'city' | 'arena'
 
@@ -63,6 +64,10 @@ for (const team of NBA_TEAM_ENCYCLOPEDIA) {
   knownSubjects.add(`team:${team.canonicalTeamId}`)
   knownSubjects.add(`city:${team.cityId}`)
   knownSubjects.add(`arena:${team.arenaId}`)
+}
+
+for (const profile of NBA_TEAM_HISTORIES) {
+  for (const { arenaId } of profile.arenas) knownSubjects.add(`arena:${arenaId}`)
 }
 
 export function isReviewedTeamMediaAsset(value: unknown): value is TeamMediaAsset {
@@ -146,6 +151,19 @@ export function getCityMediaForTeam(teamCode: string): TeamMediaAsset | null {
     TEAM_MEDIA_ASSETS.find(
       (asset) => asset.subject.kind === 'city' && asset.subject.id === team.cityId,
     ) ?? null
+  )
+}
+
+export function getTeamMedia(teamCode: string): TeamMediaAsset[] {
+  const team = getTeamEncyclopediaEntry(teamCode)
+  if (!team) return []
+  const arenas = new Set(getTeamHistory(teamCode)?.arenas.map(({ arenaId }) => arenaId))
+  arenas.add(team.arenaId)
+  return TEAM_MEDIA_ASSETS.filter(
+    ({ subject }) =>
+      (subject.kind === 'team' && subject.id === team.canonicalTeamId) ||
+      (subject.kind === 'city' && subject.id === team.cityId) ||
+      (subject.kind === 'arena' && arenas.has(subject.id)),
   )
 }
 

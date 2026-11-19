@@ -320,10 +320,6 @@
   display: flex;
   gap: 8px;
 }
-.teams-profile-city-media {
-  max-width: 360px;
-  margin: 0 0 16px auto;
-}
 .teams-profile-overview {
   display: grid;
   grid-template-columns: 1.25fr repeat(3, 1fr);
@@ -779,4 +775,32 @@
     grid-column: -2;
     grid-row: 1;
   }
+}
+
+.teams-profile-nav {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--gc-line);
+}
+
+.teams-profile-nav a {
+  display: grid;
+  min-height: 44px;
+  align-items: center;
+  padding-inline: 20px;
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  color: var(--gc-secondary);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.teams-profile-nav a:hover,
+.teams-profile-nav a[aria-current='page'] {
+  background: var(--gc-panel-hover);
+  color: var(--gc-text);
+}
+
+.teams-profile-nav a[aria-current='page'] {
+  border-bottom-color: var(--gc-accent);
 }

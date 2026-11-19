@@ -5,7 +5,7 @@ import MediaAttribution from './MediaAttribution.vue'
 
 describe('MediaAttribution', () => {
   it('renders each real pilot asset with full Russian attribution and intrinsic dimensions', () => {
-    expect(TEAM_MEDIA_ASSETS).toHaveLength(3)
+    expect(TEAM_MEDIA_ASSETS).toHaveLength(6)
 
     for (const asset of TEAM_MEDIA_ASSETS) {
       const wrapper = mount(MediaAttribution, { props: { asset } })
@@ -26,8 +26,26 @@ describe('MediaAttribution', () => {
       expect(wrapper.text()).toContain(`Изменения: ${asset.modifications}`)
       expect(wrapper.get(`a[href="${asset.sourceUrl}"]`).text()).toBe('Файл на Wikimedia Commons')
       expect(wrapper.get(`a[href="${asset.licenseUrl}"]`).text()).toBe(asset.license)
-      expect(asset.subject.kind).toBe('city')
     }
+  })
+
+  it('displays the exact credit required by the photographer of United Center', () => {
+    const asset = TEAM_MEDIA_ASSETS.find(
+      ({ assetId }) => assetId === 'commons:file:united-center-exterior',
+    )!
+    const wrapper = mount(MediaAttribution, { props: { asset } })
+
+    expect(wrapper.get('figcaption .media-attribution__links span').text()).toBe(
+      'Автор: © Jeremy Atherton, 2006',
+    )
+    expect(
+      wrapper
+        .get('a[href="https://commons.wikimedia.org/wiki/File:United_Center_060716.jpg"]')
+        .text(),
+    ).toBe('Файл на Wikimedia Commons')
+    expect(wrapper.get('a[href="https://creativecommons.org/licenses/by-sa/2.5/"]').text()).toBe(
+      'CC BY-SA 2.5',
+    )
   })
 
   it('shows a Russian fallback when a local image fails', async () => {

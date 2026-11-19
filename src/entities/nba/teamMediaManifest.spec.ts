@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import rawManifest from './teamMediaManifest.json'
 import {
   getCityMediaForTeam,
+  getTeamMedia,
   isReviewedTeamMediaAsset,
   supportedLicenseUrl,
   validateTeamMediaManifest,
@@ -12,9 +13,9 @@ function copyManifest(): typeof rawManifest {
 }
 
 describe('team media manifest rights and subject checks', () => {
-  it('accepts the three reviewed pilot files and exact Commons license URLs', () => {
+  it('accepts the six reviewed pilot files and exact Commons license URLs', () => {
     expect(validateTeamMediaManifest(rawManifest)).toEqual([])
-    expect(rawManifest.assets).toHaveLength(3)
+    expect(rawManifest.assets).toHaveLength(6)
     for (const asset of rawManifest.assets) {
       expect(isReviewedTeamMediaAsset(asset)).toBe(true)
       expect(supportedLicenseUrl(asset.license)).toBe(asset.licenseUrl)
@@ -29,6 +30,18 @@ describe('team media manifest rights and subject checks', () => {
       'commons:file:minneapolis-skyline-looking-south',
     )
     expect(getCityMediaForTeam('BOS')).toBeNull()
+  })
+
+  it('matches archival arenas to the pilot franchise and leaves other galleries empty', () => {
+    expect(getTeamMedia('CHI').map(({ subject }) => subject.id)).toContain(
+      'nba:arena:united-center',
+    )
+    expect(getTeamMedia('LAL').map(({ subject }) => subject.id)).toContain(
+      'nba:arena:inglewood-forum',
+    )
+    expect(getTeamMedia('MIN').map(({ subject }) => subject.id)).toContain('nba:arena:metrodome')
+    expect(getTeamMedia('LAC')).toEqual([])
+    expect(getTeamMedia('unknown')).toEqual([])
   })
 
   it('allows multiple assets for the same canonical subject', () => {

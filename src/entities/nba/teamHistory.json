@@ -1,0 +1,1287 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-11-19",
+  "sources": {
+    "aba": {"label": "NBA Guide 2026/27 · История ABA", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=193", "asOf": "2026-11-19"},
+    "all-nba": {"label": "NBA · Символические сборные по годам", "url": "https://www.nba.com/news/history-all-nba-teams", "asOf": "2026-11-19"},
+    "atl": {"label": "NBA Guide 2026/27 · ATL, с. 53", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=54", "asOf": "2026-11-19"},
+    "atl-record": {"label": "NBA Guide 2026/27 · Hawks · Переезды", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=55", "asOf": "2026-11-19"},
+    "awards": {"label": "NBA Guide 2026/27 · Награды NBA", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=100", "asOf": "2026-11-19"},
+    "bkn": {"label": "NBA Guide 2026/27 · BKN, с. 57", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=58", "asOf": "2026-11-19"},
+    "bos": {"label": "NBA Guide 2026/27 · BOS, с. 55", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=56", "asOf": "2026-11-19"},
+    "bos-arena": {"label": "TD Garden · История арены", "url": "https://www.tdgarden.com/about-td-garden", "asOf": "2026-11-19"},
+    "bubble": {"label": "NBA · Итоги сезона 2019/20", "url": "https://www.nba.com/news/history-season-review-2019-20", "asOf": "2026-11-19"},
+    "buzz": {"label": "Hornets · Возвращение имени", "url": "https://www.nba.com/hornets/news/buzz-back-nba-approves-bobcats-name-change-hornets", "asOf": "2026-11-19"},
+    "carter": {"label": "NBA · Церемония Винса Картера", "url": "https://www.nba.com/news/raptors-vince-carter-jersey-retirement", "asOf": "2026-11-19"},
+    "cha": {"label": "NBA Guide 2026/27 · CHA, с. 59", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=60", "asOf": "2026-11-19"},
+    "charlotte": {"label": "NBA · Возвращение истории в Шарлотт", "url": "https://www.nba.com/news/jordan-week-mj-impact-charlotte", "asOf": "2026-11-19"},
+    "chi": {"label": "NBA Guide 2026/27 · CHI, с. 60", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=61", "asOf": "2026-11-19"},
+    "chi-arenas": {"label": "United Center · История Chicago Bulls", "url": "https://www.unitedcenter.com/chicago-bulls/", "asOf": "2026-11-19"},
+    "chi-ceremony": {"label": "Bulls · Открытие United Center", "url": "https://www.nba.com/bulls/news/chicago-bulls-unveil-new-running-bulls-video-2014-15-home-opener", "asOf": "2026-11-19"},
+    "chi-stadium": {"label": "Bulls · Первые годы и Benny the Bull", "url": "https://www.nba.com/bulls/history/pat-williams-helped-save-pro-basketball-chicago", "asOf": "2026-11-19"},
+    "chi-start": {"label": "Bulls · Истоки клуба", "url": "https://www.nba.com/bulls/news/get-to-know-the-2026-27-chicago-bulls", "asOf": "2026-11-19"},
+    "cle": {"label": "NBA Guide 2026/27 · CLE, с. 61", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=62", "asOf": "2026-11-19"},
+    "cle-title": {"label": "NBA · Итоги сезона 2015/16", "url": "https://www.nba.com/news/history-season-review-2015-16", "asOf": "2026-11-19"},
+    "clippers-brand": {"label": "Clippers · Обновление символики в 2015 году", "url": "https://www.nba.com/clippers/next-era-clippers-basketball-launches-new-logo-and-brand-identity", "asOf": "2026-11-19"},
+    "clips": {"label": "NBA · История Clippers и лидеры по подборам", "url": "https://www.nba.com/news/top-5-all-time-la-clippers-rebounding-leaders", "asOf": "2026-11-19"},
+    "curry": {"label": "NBA · Сезон 2021/22", "url": "https://www.nba.com/news/history-season-review-2021-22", "asOf": "2026-11-19"},
+    "dal": {"label": "NBA Guide 2026/27 · DAL, с. 62", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=63", "asOf": "2026-11-19"},
+    "dallas": {"label": "Mavericks · Основание клуба", "url": "https://www.nba.com/mavs/mavericks/dallas-mavericks-year-one", "asOf": "2026-11-19"},
+    "den": {"label": "NBA Guide 2026/27 · DEN, с. 63", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=64", "asOf": "2026-11-19"},
+    "den-identity": {"label": "NBA Guide 2026/27 · Неактивная франшиза Denver Nuggets", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=97", "asOf": "2026-11-19"},
+    "den-record": {"label": "NBA Guide 2026/27 · Nuggets · Переход из ABA", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=65", "asOf": "2026-11-19"},
+    "det": {"label": "NBA Guide 2026/27 · DET, с. 65", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=66", "asOf": "2026-11-19"},
+    "det-arena": {"label": "NBA · История Palace of Auburn Hills", "url": "https://www.nba.com/news/pistons-former-arena-palace-torn-down", "asOf": "2026-11-19"},
+    "det-record": {"label": "NBA Guide 2026/27 · Pistons · Переезд", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=67", "asOf": "2026-11-19"},
+    "dirk": {"label": "Naismith Hall of Fame · Дирк Новицки", "url": "https://www.hoophall.com/hall-of-famers/dirk-nowitzki", "asOf": "2026-11-19"},
+    "drexler": {"label": "NBA · Клайд Дрекслер", "url": "https://www.nba.com/news/history-nba-legend-clyde-drexler", "asOf": "2026-11-19"},
+    "duncan": {"label": "Spurs · Тим Данкан", "url": "https://www.nba.com/spurs/tim-duncan", "asOf": "2026-11-19"},
+    "finals": {"label": "NBA · Архив чемпионов", "url": "https://www.nba.com/news/history-nba-champions", "asOf": "2026-11-19"},
+    "finals-mvp": {"label": "NBA Guide 2026/27 · MVP финалов", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=102", "asOf": "2026-11-19"},
+    "gsw": {"label": "NBA Guide 2026/27 · GSW, с. 67", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=68", "asOf": "2026-11-19"},
+    "gsw-record": {"label": "NBA Guide 2026/27 · Warriors · Эпохи и результаты", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=69", "asOf": "2026-11-19"},
+    "hawks": {"label": "NBA · Истоки Hawks и выведенные номера", "url": "https://www.nba.com/news/atlanta-hawks-retired-numbers", "asOf": "2026-11-19"},
+    "hof": {"label": "NBA Guide 2026/27 · Naismith Basketball Hall of Fame", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=189", "asOf": "2026-11-19"},
+    "hof-a": {"label": "NBA Guide 2026/27 · Naismith Hall of Fame, A–D", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=190", "asOf": "2026-11-19"},
+    "hof-e": {"label": "NBA Guide 2026/27 · Naismith Hall of Fame, D–S", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=191", "asOf": "2026-11-19"},
+    "hof-s": {"label": "NBA Guide 2026/27 · Naismith Hall of Fame, S–Z", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=192", "asOf": "2026-11-19"},
+    "hornets-guide": {"label": "Pacers · Медиагид, история Charlotte", "url": "https://cdn.nba.com/teams/uploads/sites/1610612754/2025/10/2025-26-Indiana-Pacers-Media-Guide-web.pdf", "asOf": "2026-11-19"},
+    "hou": {"label": "NBA Guide 2026/27 · HOU, с. 69", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=70", "asOf": "2026-11-19"},
+    "hou-malOne": {"label": "NBA · Итоги сезона 1980/81", "url": "https://www.nba.com/news/history-season-review-1980-81", "asOf": "2026-11-19"},
+    "hou-repeat": {"label": "NBA · Итоги сезона 1994/95", "url": "https://www.nba.com/news/history-season-review-1994-95", "asOf": "2026-11-19"},
+    "hou-title": {"label": "NBA · Итоги сезона 1993/94", "url": "https://www.nba.com/news/history-season-review-1993-94", "asOf": "2026-11-19"},
+    "ind": {"label": "NBA Guide 2026/27 · IND, с. 70", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=71", "asOf": "2026-11-19"},
+    "intuit": {"label": "Clippers · Открытие Intuit Dome", "url": "https://www.nba.com/clippers/intuitdomepress", "asOf": "2026-11-19"},
+    "iverson": {"label": "76ers · Аллен Айверсон", "url": "https://www.nba.com/sixers/76ers-alumni/allen-iverson", "asOf": "2026-11-19"},
+    "jazz": {"label": "Jazz · Хроника клуба", "url": "https://www.nba.com/jazz/history", "asOf": "2026-11-19"},
+    "jordan": {"label": "NBA · Майкл Джордан", "url": "https://www.nba.com/news/history-nba-legend-michael-jordan", "asOf": "2026-11-19"},
+    "katrina": {"label": "NBA · Сезон 2005/06", "url": "https://www.nba.com/news/history-season-review-2005-06", "asOf": "2026-11-19"},
+    "kg": {"label": "Timberwolves · Анонс церемонии Кевина Гарнетта", "url": "https://www.nba.com/timberwolves/kg", "asOf": "2026-11-19"},
+    "kings": {"label": "Kings · Столетие клуба", "url": "https://www.nba.com/kings/news/sacramento-kings-celebrate-916-day-with-exciting-announcements", "asOf": "2026-11-19"},
+    "kings-guide": {"label": "Kings · История переездов", "url": "https://cdn.nba.com/teams/uploads/sites/1610612758/2024/10/2024-25SacramentoKingsMediaGuide.pdf", "asOf": "2026-11-19"},
+    "knicks26": {"label": "NBA · Итоги сезона 2025/26", "url": "https://www.nba.com/news/season-review-2025-26", "asOf": "2026-11-19"},
+    "lakers": {"label": "Lakers · Хроника сезонов", "url": "https://www.nba.com/lakers/history/season-capsule", "asOf": "2026-11-19"},
+    "lakers-numbers": {"label": "Lakers · Выведенные номера", "url": "https://www.nba.com/lakers/history/lakers-retired-numbers", "asOf": "2026-11-19"},
+    "lakers-roots": {"label": "NBA · Сид Хартман, Detroit Gems и Minneapolis Lakers", "url": "https://www.nba.com/news/sid-hartman-minneapolis-lakers-gm-dies", "asOf": "2026-11-19"},
+    "lakers10": {"label": "NBA · Итоги сезона 2009/10", "url": "https://www.nba.com/news/history-season-review-2009-10", "asOf": "2026-11-19"},
+    "lakers85": {"label": "NBA · Итоги сезона 1984/85", "url": "https://www.nba.com/news/history-season-review-1984-85", "asOf": "2026-11-19"},
+    "lal": {"label": "NBA Guide 2026/27 · LAL, с. 72", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=73", "asOf": "2026-11-19"},
+    "lal-arenas": {"label": "Lakers · The Forum и цвета клуба", "url": "https://www.nba.com/lakers/team/uniform-schedule/2223", "asOf": "2026-11-19"},
+    "lob": {"label": "NBA · Эпоха Lob City", "url": "https://www.nba.com/news/top-5-all-time-la-clippers-rebounding-leaders", "asOf": "2026-11-19"},
+    "mcadoo": {"label": "NBA · Боб Макаду", "url": "https://www.nba.com/news/history-nba-legend-bob-mcadoo", "asOf": "2026-11-19"},
+    "mem": {"label": "NBA Guide 2026/27 · MEM, с. 74", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=75", "asOf": "2026-11-19"},
+    "mem13": {"label": "NBA · Итоги сезона 2012/13", "url": "https://www.nba.com/news/history-season-review-2012-13", "asOf": "2026-11-19"},
+    "mia": {"label": "NBA Guide 2026/27 · MIA, с. 75", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=76", "asOf": "2026-11-19"},
+    "mia06": {"label": "NBA · Итоги сезона 2005/06", "url": "https://www.nba.com/news/history-season-review-2005-06", "asOf": "2026-11-19"},
+    "mia23": {"label": "NBA · Итоги сезона 2022/23", "url": "https://www.nba.com/news/history-season-review-2022-23", "asOf": "2026-11-19"},
+    "mikan": {"label": "NBA · Номер Джорджа Майкена", "url": "https://www.nba.com/news/lakers-to-retire-george-mikan-jersey-october-30", "asOf": "2026-11-19"},
+    "mil": {"label": "NBA Guide 2026/27 · MIL, с. 76", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=77", "asOf": "2026-11-19"},
+    "mil21": {"label": "NBA · Итоги сезона 2020/21", "url": "https://www.nba.com/news/history-season-review-2020-21", "asOf": "2026-11-19"},
+    "min": {"label": "NBA Guide 2026/27 · MIN, с. 77", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=78", "asOf": "2026-11-19"},
+    "min04": {"label": "NBA · Финалы Запада Timberwolves", "url": "https://www.nba.com/news/conference-finals-appearances-minnesota-timberwolves", "asOf": "2026-11-19"},
+    "min97": {"label": "NBA · Сезон 1996/97", "url": "https://www.nba.com/news/history-season-review-1996-97", "asOf": "2026-11-19"},
+    "moody": {"label": "Mavericks · Moody Madness", "url": "https://www.nba.com/mavs/city2021", "asOf": "2026-11-19"},
+    "nets-kidd": {"label": "NBA · Номера Nets", "url": "https://www.nba.com/news/nets-to-retire-vince-carters-no-15-jersey-in-january", "asOf": "2026-11-19"},
+    "nets-record": {"label": "NBA Guide 2026/27 · Nets · Переезды", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=59", "asOf": "2026-11-19"},
+    "nola": {"label": "Pelicans · Переход от имени Hornets", "url": "https://www.nba.com/pelicans/blog/new-orleans-charlotte-working-together-transitioning-hornets-nickname-71813", "asOf": "2026-11-19"},
+    "nop": {"label": "NBA Guide 2026/27 · NOP, с. 78", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=79", "asOf": "2026-11-19"},
+    "ny99": {"label": "NBA · Итоги сезона 1998/99", "url": "https://www.nba.com/news/history-season-review-1998-99", "asOf": "2026-11-19"},
+    "nyk": {"label": "NBA Guide 2026/27 · NYK, с. 79", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=80", "asOf": "2026-11-19"},
+    "nyk-arena": {"label": "NBA · История Madison Square Garden", "url": "https://www.nba.com/news/knicks-spurs-set-to-add-a-new-chapter-to-madison-square-garden-lore", "asOf": "2026-11-19"},
+    "okc": {"label": "NBA Guide 2026/27 · OKC, с. 81", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=82", "asOf": "2026-11-19"},
+    "okc25": {"label": "NBA · Итоги сезона 2024/25", "url": "https://www.nba.com/news/season-review-2024-25", "asOf": "2026-11-19"},
+    "old-bullets": {"label": "NBA Guide 2026/27 · Неактивная франшиза Baltimore Bullets", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=96", "asOf": "2026-11-19"},
+    "old-garden": {"label": "Celtics · Последний сезон в Boston Garden", "url": "https://www.nba.com/celtics/news/sidebar/misc-20220401-celtics-decade-night-recapping-1990s", "asOf": "2026-11-19"},
+    "original": {"label": "NBA · Клубы первого сезона BAA", "url": "https://www.nba.com/news/what-were-the-original-nba-teams", "asOf": "2026-11-19"},
+    "orl": {"label": "NBA Guide 2026/27 · ORL, с. 82", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=83", "asOf": "2026-11-19"},
+    "orl09": {"label": "NBA · Итоги сезона 2008/09", "url": "https://www.nba.com/news/history-season-review-2008-09", "asOf": "2026-11-19"},
+    "payton": {"label": "Naismith Hall of Fame · Гэри Пэйтон", "url": "https://www.hoophall.com/hall-of-famers/gary-payton", "asOf": "2026-11-19"},
+    "pelicans-7": {"label": "Pelicans · Медиагид, №7 Пита Маравича", "url": "https://cdn.nba.com/teams/uploads/sites/1610612740/2023/10/Pelicans-2324-Media-Guide.pdf", "asOf": "2026-11-19"},
+    "pelicans-name": {"label": "Pelicans · Новое имя", "url": "https://www.nba.com/pelicans/news/new-orleans-pelicans-officially-adopt-new-namesake", "asOf": "2026-11-19"},
+    "phi": {"label": "NBA Guide 2026/27 · PHI, с. 83", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=84", "asOf": "2026-11-19"},
+    "phi-arena": {"label": "76ers · История Spectrum", "url": "https://www.nba.com/sixers/news/76ers-unveil-2021-22-nike-city-edition", "asOf": "2026-11-19"},
+    "phx": {"label": "NBA Guide 2026/27 · PHX, с. 85", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=86", "asOf": "2026-11-19"},
+    "pippen": {"label": "NBA · Скотти Пиппен", "url": "https://www.nba.com/news/history-nba-legend-scottie-pippen", "asOf": "2026-11-19"},
+    "pistons": {"label": "NBA · Истоки Pistons и выведенные номера", "url": "https://www.nba.com/news/retired-numbers-for-the-detroit-pistons", "asOf": "2026-11-19"},
+    "pistons-move": {"label": "Pistons · Переезд в Детройт", "url": "https://www.nba.com/pistons/news/ftwayne_071023.html", "asOf": "2026-11-19"},
+    "playoffs01": {"label": "NBA · Итоги сезона 2000/01", "url": "https://www.nba.com/news/history-season-review-2000-01", "asOf": "2026-11-19"},
+    "playoffs02": {"label": "NBA · Итоги сезона 2001/02", "url": "https://www.nba.com/news/history-season-review-2001-02", "asOf": "2026-11-19"},
+    "playoffs11": {"label": "NBA · Итоги сезона 2010/11", "url": "https://www.nba.com/news/history-season-review-2010-11", "asOf": "2026-11-19"},
+    "playoffs19": {"label": "NBA · Итоги сезона 2018/19", "url": "https://www.nba.com/news/history-season-review-2018-19", "asOf": "2026-11-19"},
+    "playoffs21": {"label": "NBA · Итоги сезона 2020/21", "url": "https://www.nba.com/news/history-season-review-2020-21", "asOf": "2026-11-19"},
+    "playoffs24": {"label": "NBA · Плей-офф 2024", "url": "https://www.nba.com/news/2024-nba-playoffs-schedule", "asOf": "2026-11-19"},
+    "playoffs25": {"label": "NBA · Плей-офф 2025", "url": "https://www.nba.com/news/2025-nba-playoffs-schedule", "asOf": "2026-11-19"},
+    "playoffs75": {"label": "NBA · Итоги сезона 1974/75", "url": "https://www.nba.com/news/history-season-review-1974-75", "asOf": "2026-11-19"},
+    "playoffs76": {"label": "NBA · Итоги сезона 1975/76", "url": "https://www.nba.com/news/history-season-review-1975-76", "asOf": "2026-11-19"},
+    "playoffs85": {"label": "NBA · Итоги сезона 1984/85", "url": "https://www.nba.com/news/history-season-review-1984-85", "asOf": "2026-11-19"},
+    "playoffs93": {"label": "NBA · Итоги сезона 1992/93", "url": "https://www.nba.com/news/history-season-review-1992-93", "asOf": "2026-11-19"},
+    "playoffs97": {"label": "NBA · Итоги сезона 1996/97", "url": "https://www.nba.com/news/history-season-review-1996-97", "asOf": "2026-11-19"},
+    "por": {"label": "NBA Guide 2026/27 · POR, с. 86", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=87", "asOf": "2026-11-19"},
+    "por77": {"label": "NBA · Итоги сезона 1976/77", "url": "https://www.nba.com/news/history-season-review-1976-77", "asOf": "2026-11-19"},
+    "recaps": {"label": "NBA · Итоги сезонов", "url": "https://www.nba.com/news/history-season-recaps-index", "asOf": "2026-11-19"},
+    "reed": {"label": "NBA · Сезон 1969/70", "url": "https://www.nba.com/news/history-season-review-1969-70", "asOf": "2026-11-19"},
+    "reggie": {"label": "NBA · Реджи Миллер", "url": "https://www.nba.com/news/history-nba-legend-reggie-miller", "asOf": "2026-11-19"},
+    "robinson": {"label": "NBA · Дэвид Робинсон", "url": "https://www.nba.com/news/history-nba-legend-david-robinson", "asOf": "2026-11-19"},
+    "rose": {"label": "NBA · Церемония Деррика Роуза", "url": "https://www.nba.com/news/bulls-to-honor-chicagos-own-derrick-rose-with-jersey-retirement-saturday", "asOf": "2026-11-19"},
+    "sac": {"label": "NBA Guide 2026/27 · SAC, с. 87", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=88", "asOf": "2026-11-19"},
+    "sac-record": {"label": "NBA Guide 2026/27 · Kings · Переезды", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=89", "asOf": "2026-11-19"},
+    "sac23": {"label": "NBA · Итоги сезона 2022/23", "url": "https://www.nba.com/news/history-season-review-2022-23", "asOf": "2026-11-19"},
+    "sas": {"label": "NBA Guide 2026/27 · SAS, с. 89", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=90", "asOf": "2026-11-19"},
+    "sas-record": {"label": "NBA Guide 2026/27 · Spurs · Эпохи и переход из ABA", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=91", "asOf": "2026-11-19"},
+    "sas99": {"label": "NBA · Итоги сезона 1998/99", "url": "https://www.nba.com/news/history-season-review-1998-99", "asOf": "2026-11-19"},
+    "scoring77": {"label": "NBA · Итоги сезона 1976/77", "url": "https://www.nba.com/news/history-season-review-1976-77", "asOf": "2026-11-19"},
+    "sealy": {"label": "Timberwolves · Малик Сили, №2", "url": "https://www.nba.com/timberwolves/history/retired-numbers", "asOf": "2026-11-19"},
+    "seattle": {"label": "NBA · История SuperSonics и переезд", "url": "https://www.nba.com/news/nba-commissioner-adam-silver-on-leagues-plan-to-explore-expansion-in-seattle-and-las-vegas", "asOf": "2026-11-19"},
+    "shaq": {"label": "NBA · Выведенный номер О’Нила в Орландо", "url": "https://www.nba.com/news/shaquille-oneal-first-jersey-retired-magic", "asOf": "2026-11-19"},
+    "sixers": {"label": "76ers · История клуба", "url": "https://www.nba.com/sixers/history/76ers-team-history", "asOf": "2026-11-19"},
+    "sixth": {"label": "NBA Guide 2026/27 · Лучший шестой игрок и лучшая защита", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=101", "asOf": "2026-11-19"},
+    "stockton": {"label": "NBA · Джон Стоктон", "url": "https://www.nba.com/news/history-nba-legend-john-stockton", "asOf": "2026-11-19"},
+    "streak": {"label": "NBA · Сезон 1971/72", "url": "https://www.nba.com/news/history-season-review-1971-72", "asOf": "2026-11-19"},
+    "suns76": {"label": "NBA · Итоги сезона 1975/76", "url": "https://www.nba.com/news/history-season-review-1975-76", "asOf": "2026-11-19"},
+    "title-count": {"label": "NBA · Титулы по франшизам", "url": "https://www.nba.com/news/most-championships-nba-history", "asOf": "2026-11-19"},
+    "tor": {"label": "NBA Guide 2026/27 · TOR, с. 91", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=92", "asOf": "2026-11-19"},
+    "tor19": {"label": "NBA · Итоги сезона 2018/19", "url": "https://www.nba.com/news/history-season-review-2018-19", "asOf": "2026-11-19"},
+    "uta": {"label": "NBA Guide 2026/27 · UTA, с. 92", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=93", "asOf": "2026-11-19"},
+    "uta97": {"label": "NBA · Итоги сезона 1996/97", "url": "https://www.nba.com/news/history-season-review-1996-97", "asOf": "2026-11-19"},
+    "venues": {"label": "NBA · Домашние арены", "url": "https://www.nba.com/news/all-30-nba-arenas-by-team", "asOf": "2026-11-19"},
+    "wade": {"label": "NBA · Дуэйн Уэйд и Miami Heat", "url": "https://www.nba.com/news/miami-heat-dwyane-wade-statue", "asOf": "2026-11-19"},
+    "was": {"label": "NBA Guide 2026/27 · WAS, с. 93", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=94", "asOf": "2026-11-19"},
+    "was-record": {"label": "NBA Guide 2026/27 · Wizards · Названия и переезды", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=95", "asOf": "2026-11-19"},
+    "wilt100": {"label": "NBA · Сезон 1961/62", "url": "https://www.nba.com/news/history-season-review-1961-62", "asOf": "2026-11-19"},
+    "wolves": {"label": "Timberwolves · Название и символика", "url": "https://www.nba.com/timberwolves/history", "asOf": "2026-11-19"},
+    "wolves-asg": {"label": "Timberwolves · Матч всех звёзд 1994", "url": "https://www.nba.com/timberwolves/news/1994-all-star-game-put-spotlight-minnesota", "asOf": "2026-11-19"},
+    "wolves-colors": {"label": "Timberwolves · Цвета и символика", "url": "https://www.nba.com/timberwolves/unveil", "asOf": "2026-11-19"},
+    "wolves-crunch": {"label": "Timberwolves · Талисман Crunch", "url": "https://www.nba.com/timberwolves/news/howler-timberwolves-classic-edition-giveaway", "asOf": "2026-11-19"},
+    "wolves-guide": {"label": "Timberwolves · Хронология клуба", "url": "https://cdn.nba.com/teams/uploads/sites/1610612750/2022/03/2021-22_Timberwolves_Media_Guide.pdf", "asOf": "2026-11-19"}
+  },
+  "profiles": [
+    {
+      "canonicalTeamId": "nba:team:ATL",
+      "franchiseId": "nba:franchise:hawks-lineage",
+      "founded": {"year": 1946, "detail": "Клуб начал играть в NBL под именем Buffalo Bisons и в том же году стал Tri-Cities Blackhawks.", "source": "hawks"},
+      "eras": [
+        {"name": "Tri-Cities Blackhawks", "city": "Молин, Рок-Айленд и Давенпорт", "from": 1946, "until": 1951, "source": "hawks"},
+        {"name": "Milwaukee Hawks", "city": "Милуоки", "from": 1951, "until": 1955, "source": "atl-record"},
+        {"name": "St. Louis Hawks", "city": "Сент-Луис", "from": 1955, "until": 1968, "source": "atl-record"},
+        {"name": "Atlanta Hawks", "city": "Атланта", "from": 1968, "until": null, "source": "hawks"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1957/58", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1949, "category": "history", "title": "Дебют в NBA", "detail": "Blackhawks начали сезон 1949/50 в объединённой лиге.", "source": "atl"},
+        {"year": 1956, "category": "legends", "title": "Первый MVP лиги", "detail": "Первую в NBA награду MVP получил Боб Петтит из St. Louis Hawks.", "source": "awards"},
+        {"year": 1958, "category": "history", "title": "Реванш у Boston", "detail": "После поражения в финале годом ранее Hawks выиграли следующую встречу с Celtics за титул.", "source": "finals"},
+        {"year": 2021, "category": "history", "title": "Финал Востока", "detail": "Атланта в финале конференции уступила будущим чемпионам из Милуоки.", "source": "playoffs21"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Боб Петтит", "detail": "Лидер чемпионской команды Сент-Луиса и первый MVP в истории NBA.", "number": "9", "source": "awards", "hallOfFame": "hof-e"},
+        {"name": "Доминик Уилкинс", "detail": "Звезда атлантской эпохи. Клуб вывел из обращения его №21.", "number": "21", "source": "atl", "hallOfFame": "hof-s"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "9", "name": "Боб Петтит"},
+          {"number": "21", "name": "Доминик Уилкинс"}
+        ],
+        "source": "atl"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:BKN",
+      "franchiseId": "nba:franchise:nets-lineage",
+      "founded": {"year": 1967, "detail": "Франшиза стартовала в ABA под именем New Jersey Americans.", "source": "bkn"},
+      "eras": [
+        {"name": "New Jersey Americans", "city": "Тинек", "from": 1967, "until": 1968, "source": "nets-record"},
+        {"name": "New York Nets", "city": "Лонг-Айленд", "from": 1968, "until": 1977, "source": "nets-record"},
+        {"name": "New Jersey Nets", "city": "Нью-Джерси", "from": 1977, "until": 2012, "source": "nets-record"},
+        {"name": "Brooklyn Nets", "city": "Бруклин", "from": 2012, "until": null, "source": "nets-record"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1973/74", "league": "ABA"},
+          {"season": "1975/76", "league": "ABA"}
+        ],
+        "source": "finals",
+        "otherLeagueSource": "aba"
+      },
+      "events": [
+        {"year": 1976, "category": "history", "title": "Последний финал ABA", "detail": "New York Nets обыграли Denver Nuggets в последней чемпионской серии ABA.", "source": "aba"},
+        {"year": 1976, "category": "identity", "title": "Переход в NBA", "detail": "После последнего сезона ABA Nets продолжили играть в NBA.", "source": "nets-record"},
+        {"year": 2002, "category": "history", "title": "Первый финал NBA", "detail": "В первом финале NBA команда из Нью-Джерси встретилась с Lakers.", "source": "finals"},
+        {"year": 2003, "category": "history", "title": "Второй финал подряд", "detail": "Nets снова выиграли Восток. В финале сильнее оказались Spurs.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Джулиус Ирвинг", "detail": "В эпоху ABA играл за New York Nets. Клуб вывел из обращения его №32.", "number": "32", "source": "bkn", "hallOfFame": "hof-e"},
+        {"name": "Джейсон Кидд", "detail": "Разыгрывающий New Jersey Nets в двух походах в финал NBA.", "number": "5", "source": "nets-kidd", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "32", "name": "Джулиус Ирвинг"},
+          {"number": "5", "name": "Джейсон Кидд"}
+        ],
+        "source": "bkn"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:BOS",
+      "franchiseId": "nba:franchise:celtics",
+      "founded": {"year": 1946, "detail": "Одна из команд, с которых начался первый сезон BAA.", "source": "original"},
+      "eras": [
+        {"name": "Boston Celtics", "city": "Бостон", "from": 1946, "until": null, "source": "original"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1956/57", "league": "NBA"},
+          {"season": "1958/59", "league": "NBA"},
+          {"season": "1959/60", "league": "NBA"},
+          {"season": "1960/61", "league": "NBA"},
+          {"season": "1961/62", "league": "NBA"},
+          {"season": "1962/63", "league": "NBA"},
+          {"season": "1963/64", "league": "NBA"},
+          {"season": "1964/65", "league": "NBA"},
+          {"season": "1965/66", "league": "NBA"},
+          {"season": "1967/68", "league": "NBA"},
+          {"season": "1968/69", "league": "NBA"},
+          {"season": "1973/74", "league": "NBA"},
+          {"season": "1975/76", "league": "NBA"},
+          {"season": "1980/81", "league": "NBA"},
+          {"season": "1983/84", "league": "NBA"},
+          {"season": "1985/86", "league": "NBA"},
+          {"season": "2007/08", "league": "NBA"},
+          {"season": "2023/24", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1957, "category": "history", "title": "Первый титул", "detail": "Celtics выиграли семиматчевый финал у St. Louis Hawks.", "source": "finals"},
+        {"year": 1966, "category": "history", "title": "Восемь подряд", "detail": "Бостон завершил серию из восьми чемпионств подряд, начавшуюся в 1959 году.", "source": "finals"},
+        {"year": 1984, "category": "legends", "title": "Победа над Lakers", "detail": "Бостон взял верх в семи матчах финала. Ларри Бёрд стал MVP регулярного сезона.", "source": "recaps"},
+        {"year": 1995, "category": "arenas", "title": "Прощание с Boston Garden", "detail": "Celtics провели свой последний сезон в старом Garden. Осенью команда переехала в новую арену.", "source": "old-garden"},
+        {"year": 2024, "category": "history", "title": "Восемнадцатое чемпионство", "detail": "Celtics победили Dallas Mavericks и вышли вперёд по числу титулов.", "source": "title-count"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:td-garden", "name": "TD Garden", "city": "Бостон", "from": 1995, "until": null, "source": "bos-arena"}
+      ],
+      "legends": [
+        {"name": "Билл Расселл", "detail": "Центровой бостонской династии пять раз получал MVP регулярного сезона.", "number": "6", "source": "awards", "hallOfFame": "hof-e"},
+        {"name": "Ларри Бёрд", "detail": "Трижды подряд стал MVP NBA в составе Celtics, с 1984 по 1986 год.", "number": "33", "source": "awards", "hallOfFame": "hof-a"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "6", "name": "Билл Расселл"},
+          {"number": "33", "name": "Ларри Бёрд"}
+        ],
+        "source": "bos"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CHA",
+      "franchiseId": "nba:franchise:charlotte-hornets-records",
+      "founded": {"year": 1988, "detail": "Первая команда Charlotte Hornets дебютировала при расширении NBA в сезоне 1988/89.", "source": "buzz"},
+      "eras": [
+        {"name": "Charlotte Hornets", "city": "Шарлотт", "from": 1988, "until": 2002, "source": "hornets-guide"},
+        {"name": "Charlotte Bobcats", "city": "Шарлотт", "from": 2004, "until": 2014, "source": "hornets-guide"},
+        {"name": "Charlotte Hornets", "city": "Шарлотт", "from": 2014, "until": null, "source": "buzz"}
+      ],
+      "identityNote": {"detail": "История Шарлотт за 1988–2002 годы закреплена за нынешними Hornets. Архив команды Нового Орлеана ведётся отдельно с сезона 2002/03.", "source": "charlotte"},
+      "titles": {
+        "seasons": [],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1993, "category": "history", "title": "Первая выигранная серия", "detail": "Hornets вышли в плей-офф и прошли Boston в первом раунде.", "source": "playoffs93"},
+        {"year": 2002, "category": "identity", "title": "Пауза в баскетболе Шарлотт", "detail": "Первоначальные Hornets переехали в Новый Орлеан. Шарлотт вернулся в лигу с Bobcats в сезоне 2004/05.", "source": "charlotte"},
+        {"year": 2014, "category": "identity", "title": "Возвращение наследия", "detail": "Клуб вернул имя Hornets и архив сезонов, сыгранных в Шарлотт до переезда.", "source": "charlotte"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Бобби Филлс", "detail": "Клуб почтил защитника, закрепив за ним №13.", "number": "13", "source": "cha", "hallOfFame": null},
+        {"name": "Делл Карри", "detail": "Снайпер первой эпохи Charlotte Hornets. В 1994 году получил приз лучшему шестому игроку.", "number": "30", "source": "sixth", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "13", "name": "Бобби Филлс"},
+          {"number": "30", "name": "Делл Карри"}
+        ],
+        "source": "cha"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CHI",
+      "franchiseId": "nba:franchise:chicago-bulls",
+      "founded": {"year": 1966, "detail": "Дик Кляйн привёл в Чикаго команду расширения. Первым главным тренером стал Джонни Керр.", "source": "chi-start"},
+      "eras": [
+        {"name": "Chicago Bulls", "city": "Чикаго", "from": 1966, "until": null, "source": "chi-start"}
+      ],
+      "identityNote": {"detail": "Chicago Stags и Chicago Packers/Zephyrs играли в том же городе. Bulls получили собственное место в NBA в 1966 году.", "source": "chi-start"},
+      "titles": {
+        "seasons": [
+          {"season": "1990/91", "league": "NBA"},
+          {"season": "1991/92", "league": "NBA"},
+          {"season": "1992/93", "league": "NBA"},
+          {"season": "1995/96", "league": "NBA"},
+          {"season": "1996/97", "league": "NBA"},
+          {"season": "1997/98", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1966, "category": "history", "title": "Дебют в Сент-Луисе", "detail": "Новая команда Керра открыла сезон победой над St. Louis Hawks.", "source": "chi-start"},
+        {"year": 1967, "category": "history", "title": "Плей-офф в первом сезоне", "detail": "Bulls дошли до плей-офф в дебютном сезоне. Домашний матч серии провели в Chicago Coliseum.", "source": "chi-stadium"},
+        {"year": 1969, "category": "history", "title": "Benny the Bull", "detail": "При Пэте Уильямсе у клуба появился красный бык-талисман. Имя связано с промоутером Беном Бентли.", "source": "chi-stadium"},
+        {"year": 1975, "category": "history", "title": "Первое место в дивизионе", "detail": "Команда Дика Мотты выиграла Midwest Division и в плей-офф уступила будущему чемпиону Golden State.", "source": "playoffs75"},
+        {"year": 1984, "category": "legends", "title": "На драфте выбран Джордан", "detail": "Чикаго получил Майкла Джордана под третьим номером драфта.", "source": "jordan"},
+        {"year": 1991, "category": "history", "title": "Начало первой чемпионской серии", "detail": "Победа над Lakers открыла серию из трёх титулов подряд.", "source": "finals"},
+        {"year": 1996, "category": "history", "title": "72 победы в регулярном сезоне", "detail": "Bulls выиграли 72 матча и победили Seattle в финале.", "source": "chi"},
+        {"year": 1998, "category": "history", "title": "Второй трипит", "detail": "Второй финал подряд против Utah закончился шестым чемпионством Чикаго.", "source": "finals"},
+        {"year": 2011, "category": "legends", "title": "MVP в 22 года", "detail": "Деррик Роуз стал самым молодым MVP регулярного сезона NBA.", "source": "rose"},
+        {"year": 2026, "category": "legends", "title": "Майка Роуза под сводами арены", "detail": "Bulls вывели №1 из обращения на церемонии в United Center.", "source": "chi"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:international-amphitheatre", "name": "International Amphitheatre", "city": "Чикаго", "from": 1966, "until": 1967, "source": "chi-stadium"},
+        {"arenaId": "nba:arena:chicago-stadium", "name": "Chicago Stadium", "city": "Чикаго", "from": 1967, "until": 1994, "source": "chi-arenas"},
+        {"arenaId": "nba:arena:united-center", "name": "United Center", "city": "Чикаго", "from": 1994, "until": null, "source": "chi-ceremony"}
+      ],
+      "legends": [
+        {"name": "Майкл Джордан", "detail": "Шесть чемпионств в составе Bulls и шесть наград MVP финала.", "number": "23", "source": "jordan", "hallOfFame": "hof-e"},
+        {"name": "Скотти Пиппен", "detail": "Партнёр Джордана по всем шести чемпионским командам Bulls.", "number": "33", "source": "pippen", "hallOfFame": "hof-e"},
+        {"name": "Деррик Роуз", "detail": "Уроженец Чикаго, первый выбор драфта 2008 года и MVP сезона 2010/11.", "number": "1", "source": "rose", "hallOfFame": null},
+        {"name": "Джерри Слоун", "detail": "Защитник первого состава Bulls. Его №4 выведен из обращения.", "number": "4", "source": "chi-start", "hallOfFame": "hof"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "1", "name": "Деррик Роуз"},
+          {"number": "4", "name": "Джерри Слоун"},
+          {"number": "10", "name": "Боб Лав"},
+          {"number": "23", "name": "Майкл Джордан"},
+          {"number": "33", "name": "Скотти Пиппен"}
+        ],
+        "source": "chi"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CLE",
+      "franchiseId": "nba:franchise:cavaliers",
+      "founded": {"year": 1970, "detail": "Команда расширения NBA из Кливленда.", "source": "cle"},
+      "eras": [
+        {"name": "Cleveland Cavaliers", "city": "Кливленд", "from": 1970, "until": null, "source": "cle"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "2015/16", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1976, "category": "history", "title": "Miracle of Richfield", "detail": "Кливленд выиграл свою первую серию плей-офф, пройдя Washington Bullets в семи матчах.", "source": "playoffs76"},
+        {"year": 2007, "category": "history", "title": "Дебют в финале NBA", "detail": "Команда Леброна Джеймса выиграла Восток и встретилась в финале с San Antonio.", "source": "finals"},
+        {"year": 2016, "category": "history", "title": "Возвращение с 1–3", "detail": "Cavaliers отыграли отставание в три матча к одному у Golden State и завоевали первый титул.", "source": "cle-title"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Остин Карр", "detail": "Игрок ранней эпохи Cavaliers. Клуб закрепил за ним №34.", "number": "34", "source": "cle", "hallOfFame": null},
+        {"name": "Леброн Джеймс", "detail": "MVP финала 2016 года, когда Кливленд завоевал первый титул.", "number": "23", "source": "cle-title", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "34", "name": "Остин Карр"},
+          {"number": "25", "name": "Марк Прайс"}
+        ],
+        "source": "cle"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DAL",
+      "franchiseId": "nba:franchise:mavericks",
+      "founded": {"year": 1980, "detail": "В мае 1980 года NBA утвердила создание франшизы в Далласе.", "source": "dallas"},
+      "eras": [
+        {"name": "Dallas Mavericks", "city": "Даллас", "from": 1980, "until": null, "source": "dallas"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "2010/11", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1984, "category": "history", "title": "Moody Madness", "detail": "Mavericks выиграли первую серию плей-офф у Seattle в Moody Coliseum, поскольку Reunion Arena была занята.", "source": "moody"},
+        {"year": 2006, "category": "history", "title": "Первый финал", "detail": "Даллас выиграл Запад и встретился с Miami Heat в финале NBA.", "source": "finals"},
+        {"year": 2011, "category": "history", "title": "Реванш у Miami", "detail": "Даллас победил Heat в повторной встрече за чемпионство.", "source": "finals"},
+        {"year": 2024, "category": "history", "title": "Третья поездка в финал", "detail": "Mavericks снова выиграли Запад. В финале титул достался Boston.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Дирк Новицки", "detail": "MVP NBA в сезоне 2006/07 и самый ценный игрок финала 2011 года.", "number": "41", "source": "dirk", "hallOfFame": "hof-e"},
+        {"name": "Роландо Блэкман", "detail": "Звезда первых Mavericks и участник команды, выигравшей первую серию плей-офф.", "number": "22", "source": "moody", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "41", "name": "Дирк Новицки"},
+          {"number": "22", "name": "Роландо Блэкман"}
+        ],
+        "source": "dal"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DEN",
+      "franchiseId": "nba:franchise:denver-rockets-lineage",
+      "founded": {"year": 1967, "detail": "Денвер начал играть в ABA как Denver Rockets.", "source": "den-record"},
+      "eras": [
+        {"name": "Denver Rockets", "city": "Денвер", "from": 1967, "until": 1974, "source": "den-record"},
+        {"name": "Denver Nuggets", "city": "Денвер", "from": 1974, "until": null, "source": "den-record"}
+      ],
+      "identityNote": {"detail": "Нынешние Nuggets имеют отдельную историю от одноимённой команды NBA сезона 1949/50.", "source": "den-identity"},
+      "titles": {
+        "seasons": [
+          {"season": "2022/23", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1976, "category": "history", "title": "Последний финал ABA", "detail": "Nuggets встретились с New York Nets в финале последнего сезона ABA.", "source": "aba"},
+        {"year": 1976, "category": "identity", "title": "Переход в NBA", "detail": "Денвер продолжил выступления в NBA в сезоне 1976/77.", "source": "den-record"},
+        {"year": 1985, "category": "history", "title": "Финал Запада", "detail": "Команда Дага Мо вышла в финал конференции, где уступила Lakers.", "source": "playoffs85"},
+        {"year": 2023, "category": "history", "title": "Кубок в Денвере", "detail": "Nuggets выиграли первый финал NBA в своей истории, победив Miami Heat.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Алекс Инглиш", "detail": "Один из лидеров Денвера эпохи Дага Мо, чей №2 выведен из обращения.", "number": "2", "source": "den", "hallOfFame": "hof-e"},
+        {"name": "Никола Йокич", "detail": "Центровой чемпионского состава 2023 года и MVP финала.", "number": "15", "source": "finals-mvp", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "2", "name": "Алекс Инглиш"},
+          {"number": "55", "name": "Дикембе Мутомбо"}
+        ],
+        "source": "den"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DET",
+      "franchiseId": "nba:franchise:fort-wayne-pistons-lineage",
+      "founded": {"year": 1937, "detail": "Команда Фреда Цоллнера возникла в Форт-Уэйне. В BAA клуб пришёл в 1948 году.", "source": "pistons"},
+      "eras": [
+        {"name": "Fort Wayne Zollner Pistons", "city": "Форт-Уэйн", "from": 1937, "until": 1948, "source": "pistons"},
+        {"name": "Fort Wayne Pistons", "city": "Форт-Уэйн", "from": 1948, "until": 1957, "source": "det-record"},
+        {"name": "Detroit Pistons", "city": "Детройт", "from": 1957, "until": null, "source": "pistons-move"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1988/89", "league": "NBA"},
+          {"season": "1989/90", "league": "NBA"},
+          {"season": "2003/04", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1955, "category": "history", "title": "Финал в эпоху Форт-Уэйна", "detail": "Pistons встретились с Syracuse Nationals. Исход серии решил седьмой матч.", "source": "finals"},
+        {"year": 1957, "category": "arenas", "title": "Первый матч в Детройте", "detail": "Дебют в Olympia состоялся против Boston Celtics.", "source": "pistons-move"},
+        {"year": 1989, "category": "history", "title": "Первый титул Bad Boys", "detail": "Команда Чака Дэйли обыграла Lakers в четырёх матчах и год спустя выиграла второй титул.", "source": "finals"},
+        {"year": 2004, "category": "history", "title": "Третье чемпионство", "detail": "Detroit снова победил Lakers в финале. Чонси Биллапс был признан MVP серии.", "source": "finals-mvp"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:palace-of-auburn-hills", "name": "The Palace of Auburn Hills", "city": "Оберн-Хиллс", "from": 1988, "until": 2017, "source": "det-arena"},
+        {"arenaId": "nba:arena:little-caesars-arena", "name": "Little Caesars Arena", "city": "Детройт", "from": 2017, "until": null, "source": "venues"}
+      ],
+      "legends": [
+        {"name": "Айзея Томас", "detail": "Разыгрывающий чемпионов 1989 и 1990 годов, MVP финала 1990 года.", "number": "11", "source": "finals-mvp", "hallOfFame": "hof-s"},
+        {"name": "Чонси Биллапс", "detail": "Разыгрывающий чемпионской команды 2004 года. Клуб вывел его №1.", "number": "1", "source": "pistons", "hallOfFame": "hof-a"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "11", "name": "Айзея Томас"},
+          {"number": "1", "name": "Чонси Биллапс"}
+        ],
+        "source": "det"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:GSW",
+      "franchiseId": "nba:franchise:philadelphia-warriors-lineage",
+      "founded": {"year": 1946, "detail": "Philadelphia Warriors начали играть в первом сезоне BAA.", "source": "original"},
+      "eras": [
+        {"name": "Philadelphia Warriors", "city": "Филадельфия", "from": 1946, "until": 1962, "source": "original"},
+        {"name": "San Francisco Warriors", "city": "Сан-Франциско", "from": 1962, "until": 1971, "source": "original"},
+        {"name": "Golden State Warriors", "city": "Окленд", "from": 1971, "until": 2019, "source": "gsw-record"},
+        {"name": "Golden State Warriors", "city": "Сан-Франциско", "from": 2019, "until": null, "source": "gsw-record"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1946/47", "league": "BAA"},
+          {"season": "1955/56", "league": "NBA"},
+          {"season": "1974/75", "league": "NBA"},
+          {"season": "2014/15", "league": "NBA"},
+          {"season": "2016/17", "league": "NBA"},
+          {"season": "2017/18", "league": "NBA"},
+          {"season": "2021/22", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1947, "category": "history", "title": "Титул в первом сезоне BAA", "detail": "Warriors из Филадельфии выиграли финальную серию у Chicago Stags.", "source": "finals"},
+        {"year": 1962, "category": "legends", "title": "100 очков Чемберлена", "detail": "Уилт Чемберлен набрал 100 очков за Philadelphia Warriors против New York Knicks.", "source": "wilt100"},
+        {"year": 1975, "category": "history", "title": "Первый титул как Golden State", "detail": "Команда Рика Бэрри выиграла у Washington Bullets четыре матча подряд.", "source": "finals"},
+        {"year": 2016, "category": "history", "title": "73 победы", "detail": "Warriors завершили регулярный сезон с 73 победами и девятью поражениями.", "source": "gsw-record"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:chase-center", "name": "Chase Center", "city": "Сан-Франциско", "from": 2019, "until": null, "source": "venues"}
+      ],
+      "legends": [
+        {"name": "Рик Бэрри", "detail": "MVP финала 1975 года, выигранного Golden State у Washington.", "number": "24", "source": "finals-mvp", "hallOfFame": "hof-a"},
+        {"name": "Стефен Карри", "detail": "Разыгрывающий четырёх чемпионских команд Golden State, MVP финала 2022 года.", "number": "30", "source": "curry", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "24", "name": "Рик Бэрри"},
+          {"number": "13", "name": "Уилт Чемберлен"}
+        ],
+        "source": "gsw"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:HOU",
+      "franchiseId": "nba:franchise:rockets-lineage",
+      "founded": {"year": 1967, "detail": "Франшиза NBA начинала как San Diego Rockets.", "source": "hou"},
+      "eras": [
+        {"name": "San Diego Rockets", "city": "Сан-Диего", "from": 1967, "until": 1971, "source": "hou"},
+        {"name": "Houston Rockets", "city": "Хьюстон", "from": 1971, "until": null, "source": "hou"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1993/94", "league": "NBA"},
+          {"season": "1994/95", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1981, "category": "history", "title": "Первый финал", "detail": "Ведомые Мозесом Мэлоуном Rockets дошли до финала против Boston.", "source": "hou-malOne"},
+        {"year": 1994, "category": "history", "title": "Первый титул", "detail": "Хьюстон обыграл Knicks в семи матчах. Хаким Оладжьювон получил приз MVP финала.", "source": "hou-title"},
+        {"year": 1995, "category": "history", "title": "Титул со второго захода", "detail": "Действующий чемпион прошёл плей-офф с шестого места на Западе и выиграл финал у Orlando.", "source": "hou-repeat"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Хаким Оладжьювон", "detail": "Главный центровой двух чемпионских команд, MVP обоих финалов.", "number": "34", "source": "finals-mvp", "hallOfFame": "hof-e"},
+        {"name": "Яо Мин", "detail": "Центровой Houston Rockets, за которым клуб закрепил №11.", "number": "11", "source": "hou", "hallOfFame": "hof-s"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "34", "name": "Хаким Оладжьювон"},
+          {"number": "11", "name": "Яо Мин"}
+        ],
+        "source": "hou"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:IND",
+      "franchiseId": "nba:franchise:indiana-pacers",
+      "founded": {"year": 1967, "detail": "Indiana Pacers начали играть в первом сезоне ABA.", "source": "ind"},
+      "eras": [
+        {"name": "Indiana Pacers", "city": "Индианаполис", "from": 1967, "until": null, "source": "ind"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1969/70", "league": "ABA"},
+          {"season": "1971/72", "league": "ABA"},
+          {"season": "1972/73", "league": "ABA"}
+        ],
+        "source": "finals",
+        "otherLeagueSource": "aba"
+      },
+      "events": [
+        {"year": 1970, "category": "history", "title": "Первый титул ABA", "detail": "Pacers выиграли финальную серию у Los Angeles Stars.", "source": "aba"},
+        {"year": 1976, "category": "identity", "title": "Переход в NBA", "detail": "Франшиза вступила в NBA после последнего сезона ABA.", "source": "ind"},
+        {"year": 2000, "category": "history", "title": "Первый финал NBA", "detail": "Pacers выиграли Восток, а в первой чемпионской серии NBA уступили Lakers.", "source": "finals"},
+        {"year": 2025, "category": "history", "title": "Возвращение в финал", "detail": "Индиана довела финальную серию против Oklahoma City до седьмого матча.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Мел Дэниелс", "detail": "Центровой трёх чемпионских команд Pacers в ABA.", "number": "34", "source": "aba", "hallOfFame": "hof-a"},
+        {"name": "Реджи Миллер", "detail": "Разыгрывал концовки за Pacers на протяжении всей карьеры NBA. Его №31 выведен из обращения.", "number": "31", "source": "reggie", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "34", "name": "Мел Дэниелс"},
+          {"number": "31", "name": "Реджи Миллер"}
+        ],
+        "source": "ind"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:LAC",
+      "franchiseId": "nba:franchise:buffalo-braves-lineage",
+      "founded": {"year": 1970, "detail": "Клуб вступил в NBA как Buffalo Braves.", "source": "clips"},
+      "eras": [
+        {"name": "Buffalo Braves", "city": "Буффало", "from": 1970, "until": 1978, "source": "clips"},
+        {"name": "San Diego Clippers", "city": "Сан-Диего", "from": 1978, "until": 1984, "source": "clips"},
+        {"name": "Los Angeles Clippers", "city": "Лос-Анджелес", "from": 1984, "until": 2015, "source": "clips"},
+        {"name": "LA Clippers", "city": "Лос-Анджелес", "from": 2015, "until": 2024, "source": "clippers-brand"},
+        {"name": "LA Clippers", "city": "Инглвуд", "from": 2024, "until": null, "source": "intuit"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1975, "category": "legends", "title": "MVP из Буффало", "detail": "Боб Макаду стал самым ценным игроком NBA в составе Braves.", "source": "awards"},
+        {"year": 2011, "category": "history", "title": "Начало Lob City", "detail": "После прихода Криса Пола его передачи на Блэйка Гриффина и Деандре Джордана стали визитной карточкой команды.", "source": "lob"},
+        {"year": 2015, "category": "history", "title": "Монограмма LAC", "detail": "Вместе с обновлением символики команда ввела монограмму LAC на выездной форме.", "source": "clippers-brand"},
+        {"year": 2021, "category": "history", "title": "Первый финал Запада", "detail": "Clippers впервые дошли до финала конференции, где уступили Phoenix.", "source": "playoffs21"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:intuit-dome", "name": "Intuit Dome", "city": "Инглвуд", "from": 2024, "until": null, "source": "intuit"}
+      ],
+      "legends": [
+        {"name": "Боб Макаду", "detail": "Был MVP лиги в эпоху Buffalo Braves.", "number": "11", "source": "mcadoo", "hallOfFame": "hof-e"},
+        {"name": "Деандре Джордан", "detail": "Центровой Lob City, лидер франшизы по подборам.", "number": "6", "source": "clips", "hallOfFame": null}
+      ],
+      "retired": null
+    },
+    {
+      "canonicalTeamId": "nba:team:LAL",
+      "franchiseId": "nba:franchise:minneapolis-lakers-lineage",
+      "founded": {"year": 1947, "detail": "Minneapolis Lakers сыграли первый сезон в NBL. В BAA команда перешла в 1948 году.", "source": "lakers"},
+      "eras": [
+        {"name": "Minneapolis Lakers", "city": "Миннеаполис", "from": 1947, "until": 1960, "source": "lakers"},
+        {"name": "Los Angeles Lakers", "city": "Лос-Анджелес и округ Лос-Анджелес", "from": 1960, "until": null, "source": "lakers"}
+      ],
+      "identityNote": {"detail": "Пять титулов из исторического зачёта NBA были выиграны в Миннеаполисе. Команда Timberwolves появилась в городе спустя десятилетия как отдельная франшиза.", "source": "mikan"},
+      "titles": {
+        "seasons": [
+          {"season": "1947/48", "league": "NBL"},
+          {"season": "1948/49", "league": "BAA"},
+          {"season": "1949/50", "league": "NBA"},
+          {"season": "1951/52", "league": "NBA"},
+          {"season": "1952/53", "league": "NBA"},
+          {"season": "1953/54", "league": "NBA"},
+          {"season": "1971/72", "league": "NBA"},
+          {"season": "1979/80", "league": "NBA"},
+          {"season": "1981/82", "league": "NBA"},
+          {"season": "1984/85", "league": "NBA"},
+          {"season": "1986/87", "league": "NBA"},
+          {"season": "1987/88", "league": "NBA"},
+          {"season": "1999/00", "league": "NBA"},
+          {"season": "2000/01", "league": "NBA"},
+          {"season": "2001/02", "league": "NBA"},
+          {"season": "2008/09", "league": "NBA"},
+          {"season": "2009/10", "league": "NBA"},
+          {"season": "2019/20", "league": "NBA"}
+        ],
+        "source": "finals",
+        "otherLeagueSource": "lakers"
+      },
+      "events": [
+        {"year": 1947, "category": "legends", "title": "Джордж Майкен в Миннеаполисе", "detail": "После распада лиги PBLA центровой присоединился к Lakers, которые начали играть в NBL.", "source": "lakers"},
+        {"year": 1947, "category": "identity", "title": "Из Детройта в Миннеаполис", "detail": "Новую команду собрали после покупки прав на франшизу NBL Detroit Gems.", "source": "lakers-roots"},
+        {"year": 1948, "category": "history", "title": "Чемпион в NBL", "detail": "В дебютном сезоне Lakers с Майкеном выиграли титул NBL, прежде чем перейти в BAA.", "source": "lakers"},
+        {"year": 1954, "category": "history", "title": "Три чемпионства NBA подряд", "detail": "Minneapolis Lakers завершили чемпионскую серию сезонов 1951/52–1953/54.", "source": "finals"},
+        {"year": 1967, "category": "history", "title": "Пурпурный и золотой", "detail": "Переезд в The Forum совпал со сменой цветов Lakers на пурпурный и золотой.", "source": "lal-arenas"},
+        {"year": 1972, "category": "history", "title": "33 победы подряд", "detail": "В чемпионском сезоне Lakers Уилта Чемберлена и Джерри Уэста выиграли 33 матча подряд.", "source": "streak"},
+        {"year": 1979, "category": "legends", "title": "Драфт Мэджика", "detail": "Lakers выбрали Мэджика Джонсона первым, а год спустя он стал MVP финала уже в дебютном сезоне.", "source": "lakers-numbers"},
+        {"year": 1985, "category": "history", "title": "Титул на паркете Boston Garden", "detail": "Lakers впервые обыграли Celtics в серии за чемпионство. Решающую победу одержали в Бостоне.", "source": "lakers85"},
+        {"year": 2002, "category": "history", "title": "Третий титул подряд", "detail": "Победа над New Jersey Nets завершила серию из трёх чемпионств команды Шакила О’Нила и Коби Брайанта.", "source": "finals"},
+        {"year": 2006, "category": "legends", "title": "81 очко Коби", "detail": "Коби Брайант набрал 81 очко в домашней игре против Toronto Raptors.", "source": "lakers-numbers"},
+        {"year": 2010, "category": "history", "title": "Решающая игра против Celtics", "detail": "Lakers выиграли у Boston седьмой матч финала. Брайант второй год подряд стал MVP финала.", "source": "lakers10"},
+        {"year": 2020, "category": "history", "title": "Чемпионство в Орландо", "detail": "В контрольной зоне NBA в Орландо Lakers завершили финал победой над Miami Heat.", "source": "bubble"},
+        {"year": 2022, "category": "legends", "title": "№99 Джорджа Майкена", "detail": "Lakers закрепили номер за центровым миннеаполисской эпохи.", "source": "lal"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:los-angeles-memorial-sports-arena", "name": "Los Angeles Memorial Sports Arena", "city": "Лос-Анджелес", "from": 1960, "until": 1967, "source": "lal-arenas"},
+        {"arenaId": "nba:arena:inglewood-forum", "name": "The Forum", "city": "Инглвуд", "from": 1967, "until": 1999, "source": "lal-arenas"},
+        {"arenaId": "nba:arena:crypto-com-arena", "name": "Staples Center / Crypto.com Arena", "city": "Лос-Анджелес", "from": 1999, "until": null, "source": "venues"}
+      ],
+      "legends": [
+        {"name": "Джордж Майкен", "detail": "Центровой миннеаполисских Lakers, с которыми выиграл чемпионства BAA и NBA.", "number": "99", "source": "mikan", "hallOfFame": "hof-e"},
+        {"name": "Джерри Уэст", "detail": "Играл за Lakers, выиграл финал 1972 года и получил MVP финала 1969 года.", "number": "44", "source": "lakers-numbers", "hallOfFame": "hof-s"},
+        {"name": "Мэджик Джонсон", "detail": "Разыгрывающий эпохи Showtime. Привёл Lakers к пяти титулам NBA.", "number": "32", "source": "lakers-numbers", "hallOfFame": "hof-e"},
+        {"name": "Карим Абдул-Джаббар", "detail": "Центровой чемпионской команды Showtime. Его №33 выведен из обращения.", "number": "33", "source": "lakers-numbers", "hallOfFame": "hof-a"},
+        {"name": "Коби Брайант", "detail": "Выиграл три чемпионства в майке №8 и ещё два в майке №24.", "number": "24", "source": "lakers-numbers", "hallOfFame": "hof-a"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "8", "name": "Коби Брайант"},
+          {"number": "13", "name": "Уилт Чемберлен"},
+          {"number": "16", "name": "Пау Газоль"},
+          {"number": "21", "name": "Майкл Купер"},
+          {"number": "22", "name": "Элджин Бэйлор"},
+          {"number": "24", "name": "Коби Брайант"},
+          {"number": "25", "name": "Гейл Гудрич"},
+          {"number": "32", "name": "Мэджик Джонсон"},
+          {"number": "33", "name": "Карим Абдул-Джаббар"},
+          {"number": "34", "name": "Шакил О’Нил"},
+          {"number": "42", "name": "Джеймс Уорти"},
+          {"number": "44", "name": "Джерри Уэст"},
+          {"number": "52", "name": "Джамаал Уилкс"},
+          {"number": "99", "name": "Джордж Майкен"}
+        ],
+        "source": "lal"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MEM",
+      "franchiseId": "nba:franchise:grizzlies-lineage",
+      "founded": {"year": 1995, "detail": "Франшиза пришла в NBA при расширении лиги в Канаду.", "source": "mem"},
+      "eras": [
+        {"name": "Vancouver Grizzlies", "city": "Ванкувер", "from": 1995, "until": 2001, "source": "mem"},
+        {"name": "Memphis Grizzlies", "city": "Мемфис", "from": 2001, "until": null, "source": "mem"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 2002, "category": "legends", "title": "Пау Газоль — новичок года", "detail": "В первом сезоне команды в Мемфисе Газоль получил главную награду для новичков NBA.", "source": "awards"},
+        {"year": 2011, "category": "history", "title": "Победа над первым посевом", "detail": "Grizzlies одержали первую победу в серии плей-офф, выбив San Antonio Spurs.", "source": "playoffs11"},
+        {"year": 2013, "category": "history", "title": "Первый финал Запада", "detail": "Мемфис прошёл до финала конференции. Марк Газоль в том сезоне стал лучшим защищающимся игроком NBA.", "source": "mem13"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Марк Газоль", "detail": "Опора защиты Memphis эпохи Grit and Grind и обладатель приза лучшему защищающемуся игроку.", "number": "33", "source": "mem13", "hallOfFame": null},
+        {"name": "Зак Рэндолф", "detail": "Игрок передней линии Memphis. Клуб закрепил за ним №50.", "number": "50", "source": "mem", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "33", "name": "Марк Газоль"},
+          {"number": "50", "name": "Зак Рэндолф"}
+        ],
+        "source": "mem"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIA",
+      "franchiseId": "nba:franchise:miami-heat",
+      "founded": {"year": 1988, "detail": "Miami Heat вступили в NBA при расширении лиги.", "source": "mia"},
+      "eras": [
+        {"name": "Miami Heat", "city": "Майами", "from": 1988, "until": null, "source": "mia"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "2005/06", "league": "NBA"},
+          {"season": "2011/12", "league": "NBA"},
+          {"season": "2012/13", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1997, "category": "history", "title": "Первый финал Востока", "detail": "Heat прошли New York Knicks и встретились с Chicago Bulls в финале конференции.", "source": "playoffs97"},
+        {"year": 2006, "category": "history", "title": "Первое чемпионство", "detail": "Miami победил Dallas Mavericks. Дуэйн Уэйд был признан MVP финала.", "source": "mia06"},
+        {"year": 2013, "category": "history", "title": "Второй титул подряд", "detail": "Heat выиграли семиматчевую серию у Spurs через год после победы над Oklahoma City.", "source": "finals"},
+        {"year": 2023, "category": "history", "title": "Восьмой посев в финале", "detail": "Miami вышел в финал NBA после участия в плей-ин и встретился с Denver.", "source": "mia23"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Дуэйн Уэйд", "detail": "Чемпион во всех трёх титульных сезонах Miami и MVP финала 2006 года.", "number": "3", "source": "wade", "hallOfFame": "hof-s"},
+        {"name": "Алонзо Моурнинг", "detail": "Центровой Heat и чемпион 2006 года. Его №33 выведен из обращения.", "number": "33", "source": "mia", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "3", "name": "Дуэйн Уэйд"},
+          {"number": "33", "name": "Алонзо Моурнинг"}
+        ],
+        "source": "mia"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIL",
+      "franchiseId": "nba:franchise:milwaukee-bucks",
+      "founded": {"year": 1968, "detail": "Клуб появился в NBA в результате расширения лиги.", "source": "mil"},
+      "eras": [
+        {"name": "Milwaukee Bucks", "city": "Милуоки", "from": 1968, "until": null, "source": "mil"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1970/71", "league": "NBA"},
+          {"season": "2020/21", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1971, "category": "history", "title": "Титул в третьем сезоне", "detail": "Bucks выиграли финал у Baltimore Bullets в четырёх матчах.", "source": "finals"},
+        {"year": 1974, "category": "history", "title": "Второй финал", "detail": "Milwaukee довёл серию с Boston Celtics до седьмого матча.", "source": "finals"},
+        {"year": 2021, "category": "history", "title": "Пятьдесят лет между титулами", "detail": "Milwaukee победил Phoenix, а Яннис Адетокунбо получил MVP финала.", "source": "mil21"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Карим Абдул-Джаббар", "detail": "Центровой чемпионов 1971 года, получил три награды MVP регулярного сезона в Milwaukee.", "number": "33", "source": "awards", "hallOfFame": "hof-a"},
+        {"name": "Яннис Адетокунбо", "detail": "MVP чемпионского финала 2021 года. Набрал 50 очков в решающей игре.", "number": "34", "source": "mil21", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "33", "name": "Карим Абдул-Джаббар"},
+          {"number": "1", "name": "Оскар Робертсон"}
+        ],
+        "source": "mil"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIN",
+      "franchiseId": "nba:franchise:minnesota-timberwolves",
+      "founded": {"year": 1987, "detail": "Совет управляющих NBA утвердил команду в 1987 году. Дебютный сезон в лиге начался в 1989-м.", "source": "wolves-guide"},
+      "eras": [
+        {"name": "Minnesota Timberwolves", "city": "Миннеаполис", "from": 1989, "until": null, "source": "wolves-guide"}
+      ],
+      "identityNote": {"detail": "Minneapolis Lakers были другой франшизой и переехали в Лос-Анджелес. В 1987 году NBA выделила Миннесоте новое место.", "source": "wolves-guide"},
+      "titles": {
+        "seasons": [],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1987, "category": "history", "title": "Лига одобрила расширение", "detail": "Minnesota и Orlando получили места в NBA с сезона 1989/90.", "source": "wolves-guide"},
+        {"year": 1989, "category": "arenas", "title": "Домашний дебют под куполом", "detail": "Свой первый домашний сезон Wolves провели на стадионе Metrodome.", "source": "wolves-guide"},
+        {"year": 1992, "category": "history", "title": "Волчий вой в Target Center", "detail": "Болельщики повторяли вой талисмана Crunch. Клуб раздал мегафоны к домашнему матчу с Milwaukee.", "source": "wolves-crunch"},
+        {"year": 1994, "category": "arenas", "title": "Матч всех звёзд в Миннеаполисе", "detail": "Target Center принял Матч всех звёзд NBA.", "source": "wolves-asg"},
+        {"year": 1995, "category": "legends", "title": "Кевин Гарнетт на драфте", "detail": "Клуб выбрал форварда, который пришёл в NBA прямо из старшей школы.", "source": "kg"},
+        {"year": 1997, "category": "history", "title": "Дебют в плей-офф", "detail": "Во втором сезоне Гарнетта Minnesota впервые пробилась в плей-офф и встретилась с Houston.", "source": "min97"},
+        {"year": 2000, "category": "legends", "title": "№2 Малика Сили", "detail": "После гибели защитника клуб поднял его майку под своды Target Center.", "source": "sealy"},
+        {"year": 2004, "category": "history", "title": "MVP и финал Запада", "detail": "Гарнетт получил MVP регулярного сезона, а Minnesota впервые дошла до финала конференции.", "source": "min04"},
+        {"year": 2017, "category": "history", "title": "Новый знак франшизы", "detail": "Timberwolves представили очередную версию знака с волком к сезону 2017/18.", "source": "wolves"},
+        {"year": 2024, "category": "history", "title": "Снова в финале Запада", "detail": "Wolves выбили действующего чемпиона Denver и впервые за двадцать лет вернулись в финал конференции.", "source": "playoffs24"},
+        {"year": 2025, "category": "history", "title": "Второй финал Запада подряд", "detail": "Команда дошла до встречи с будущим чемпионом Oklahoma City.", "source": "playoffs25"},
+        {"year": 2026, "category": "history", "title": "Возвращение сине-зелёной палитры", "detail": "В новой основной форме команда обратилась к цветам первых лет франшизы.", "source": "wolves-colors"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:metrodome", "name": "Hubert H. Humphrey Metrodome", "city": "Миннеаполис", "from": 1989, "until": 1990, "source": "wolves-guide"},
+        {"arenaId": "nba:arena:target-center", "name": "Target Center", "city": "Миннеаполис", "from": 1990, "until": null, "source": "wolves-guide"}
+      ],
+      "legends": [
+        {"name": "Кевин Гарнетт", "detail": "MVP NBA 2003/04 в составе Minnesota. Клуб назначил церемонию вывода №21 на 28 февраля 2027 года.", "number": "21", "source": "kg", "hallOfFame": "hof-e"},
+        {"name": "Малик Сили", "detail": "Защитник Wolves на рубеже веков. Клуб закрепил за ним №2 в ноябре 2000 года.", "number": "2", "source": "sealy", "hallOfFame": null},
+        {"name": "Энтони Эдвардс", "detail": "Вёл Minnesota в плей-офф 2024 года, когда команда дошла до финала Запада.", "number": "5", "source": "playoffs24", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "2", "name": "Малик Сили"}
+        ],
+        "source": "min"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:NOP",
+      "franchiseId": "nba:franchise:new-orleans-basketball-records",
+      "founded": {"year": 2002, "detail": "История клуба в Новом Орлеане начинается с сезона 2002/03, когда сюда переехала команда Hornets.", "source": "nola"},
+      "eras": [
+        {"name": "New Orleans Hornets", "city": "Новый Орлеан", "from": 2002, "until": 2005, "source": "nola"},
+        {"name": "New Orleans/Oklahoma City Hornets", "city": "Новый Орлеан и Оклахома-Сити", "from": 2005, "until": 2007, "source": "nop"},
+        {"name": "New Orleans Hornets", "city": "Новый Орлеан", "from": 2007, "until": 2013, "source": "nop"},
+        {"name": "New Orleans Pelicans", "city": "Новый Орлеан", "from": 2013, "until": null, "source": "nola"}
+      ],
+      "identityNote": {"detail": "Архив Charlotte Hornets 1988–2002 годов вернулся в Шарлотт. Временная база в Оклахома-Сити также не связывает Pelicans с франшизой Thunder.", "source": "charlotte"},
+      "titles": {
+        "seasons": [],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 2005, "category": "identity", "title": "Временный переезд после Катрины", "detail": "Часть домашних игр двух сезонов клуб провёл в Оклахома-Сити.", "source": "katrina"},
+        {"year": 2006, "category": "legends", "title": "Крис Пол — новичок года", "detail": "Разыгрывающий Hornets получил награду после первого сезона в лиге.", "source": "awards"},
+        {"year": 2008, "category": "history", "title": "Победа в Юго-Западном дивизионе", "detail": "Hornets заняли первое место в дивизионе и дошли до второго раунда плей-офф.", "source": "nop"},
+        {"year": 2013, "category": "identity", "title": "Имя Pelicans", "detail": "Клуб выбрал новое имя, связанное с бурым пеликаном штата Луизиана.", "source": "pelicans-name"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Крис Пол", "detail": "Дебютировал в составе Hornets и стал новичком года в 2006-м.", "number": "3", "source": "awards", "hallOfFame": null},
+        {"name": "Энтони Дэвис", "detail": "В Новом Орлеане попал в первую пятёрку All-NBA по итогам сезона 2014/15.", "number": "23", "source": "all-nba", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "7", "name": "Пит Маравич (дань памяти игроку New Orleans Jazz)"}
+        ],
+        "source": "pelicans-7"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:NYK",
+      "franchiseId": "nba:franchise:knickerbockers",
+      "founded": {"year": 1946, "detail": "New York Knickerbockers участвовали в первом сезоне BAA.", "source": "original"},
+      "eras": [
+        {"name": "New York Knicks", "city": "Нью-Йорк", "from": 1946, "until": null, "source": "original"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1969/70", "league": "NBA"},
+          {"season": "1972/73", "league": "NBA"},
+          {"season": "2025/26", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1946, "category": "history", "title": "Первая игра BAA", "detail": "Knicks начали историю лиги выездной встречей с Toronto Huskies.", "source": "original"},
+        {"year": 1970, "category": "history", "title": "Седьмая игра Уиллиса Рида", "detail": "Рид вышел на площадку с травмой, и Knicks одержали решающую победу над Lakers.", "source": "reed"},
+        {"year": 1994, "category": "history", "title": "Финал команды Юинга", "detail": "Knicks дошли до седьмого матча финала против Houston Rockets.", "source": "finals"},
+        {"year": 1999, "category": "history", "title": "Из восьмого посева в финал", "detail": "Нью-Йорк вышел в финал NBA с восьмого места на Востоке и встретился с San Antonio.", "source": "ny99"},
+        {"year": 2026, "category": "history", "title": "Первое чемпионство с 1973 года", "detail": "Knicks победили San Antonio Spurs в пяти матчах и вернули титул в Нью-Йорк.", "source": "knicks26"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:madison-square-garden", "name": "Madison Square Garden", "city": "Нью-Йорк", "from": 1968, "until": null, "source": "nyk-arena"}
+      ],
+      "legends": [
+        {"name": "Уиллис Рид", "detail": "MVP финалов 1970 и 1973 годов, оба титула выиграл за Нью-Йорк.", "number": "19", "source": "finals-mvp", "hallOfFame": "hof-e"},
+        {"name": "Патрик Юинг", "detail": "Центровой эпохи 1990-х. Его №33 выведен из обращения.", "number": "33", "source": "nyk", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "19", "name": "Уиллис Рид"},
+          {"number": "33", "name": "Патрик Юинг"}
+        ],
+        "source": "nyk"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:OKC",
+      "franchiseId": "nba:franchise:seattle-oklahoma-city-lineage",
+      "founded": {"year": 1967, "detail": "Линия франшизы начинается с Seattle SuperSonics, команды расширения NBA.", "source": "seattle"},
+      "eras": [
+        {"name": "Seattle SuperSonics", "city": "Сиэтл", "from": 1967, "until": 2008, "source": "seattle"},
+        {"name": "Oklahoma City Thunder", "city": "Оклахома-Сити", "from": 2008, "until": null, "source": "seattle"}
+      ],
+      "identityNote": {"detail": "NBA учитывает титул Seattle SuperSonics 1978/79 в истории этой франшизы. Под именем Thunder команда впервые стала чемпионом в сезоне 2024/25.", "source": "title-count"},
+      "titles": {
+        "seasons": [
+          {"season": "1978/79", "league": "NBA"},
+          {"season": "2024/25", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1978, "category": "history", "title": "Первый финал Seattle", "detail": "SuperSonics довели серию против Washington до седьмой игры.", "source": "finals"},
+        {"year": 1979, "category": "history", "title": "Реванш SuperSonics", "detail": "Seattle выиграл чемпионство у тех же Washington Bullets.", "source": "finals"},
+        {"year": 2012, "category": "history", "title": "Первый финал под именем Thunder", "detail": "Оклахома-Сити выиграла Запад и встретилась с Miami Heat.", "source": "finals"},
+        {"year": 2025, "category": "history", "title": "Первый титул в Оклахома-Сити", "detail": "Thunder выиграли седьмой матч финала с Indiana.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Гэри Пэйтон", "detail": "Разыгрывающий Seattle, лучший защищающийся игрок NBA в сезоне 1995/96.", "number": "20", "source": "payton", "hallOfFame": "hof-e"},
+        {"name": "Шей Гилджес-Александер", "detail": "MVP регулярного сезона и финала в чемпионском 2024/25.", "number": "2", "source": "okc25", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "4", "name": "Ник Коллисон"}
+        ],
+        "source": "okc"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:ORL",
+      "franchiseId": "nba:franchise:orlando-magic",
+      "founded": {"year": 1987, "detail": "NBA утвердила расширение в Орландо в 1987 году. Первый сезон Magic сыграли в 1989/90.", "source": "wolves-guide"},
+      "eras": [
+        {"name": "Orlando Magic", "city": "Орландо", "from": 1989, "until": null, "source": "orl"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1992, "category": "legends", "title": "Первый выбор на драфте", "detail": "Magic выбрали центрового Шакила О’Нила. По итогам сезона он стал новичком года.", "source": "shaq"},
+        {"year": 1995, "category": "history", "title": "Первый финал", "detail": "Орландо вышел в финал NBA, где встретился с чемпионом из Хьюстона.", "source": "finals"},
+        {"year": 2009, "category": "history", "title": "Второй финал", "detail": "Команда Дуайта Ховарда выиграла Восток, а в финале сыграла с Lakers.", "source": "orl09"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Шакил О’Нил", "detail": "Первый номер драфта 1992 года и центровой первого финалиста NBA из Орландо.", "number": "32", "source": "shaq", "hallOfFame": "hof-e"},
+        {"name": "Дуайт Ховард", "detail": "Центровой финалистов 2009 года. Трижды подряд стал лучшим защищающимся игроком NBA в составе Magic.", "number": "12", "source": "orl09", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "32", "name": "Шакил О’Нил"}
+        ],
+        "source": "orl"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:PHI",
+      "franchiseId": "nba:franchise:syracuse-nationals-lineage",
+      "founded": {"year": 1946, "detail": "Дэнни Баязоне основал Syracuse Nationals, получив место в NBL.", "source": "sixers"},
+      "eras": [
+        {"name": "Syracuse Nationals", "city": "Сиракьюс", "from": 1946, "until": 1963, "source": "sixers"},
+        {"name": "Philadelphia 76ers", "city": "Филадельфия", "from": 1963, "until": null, "source": "sixers"}
+      ],
+      "identityNote": {"detail": "Франшиза 76ers продолжает линию Syracuse Nationals. История Philadelphia Warriors ушла вместе с Warriors в Калифорнию.", "source": "original"},
+      "titles": {
+        "seasons": [
+          {"season": "1954/55", "league": "NBA"},
+          {"season": "1966/67", "league": "NBA"},
+          {"season": "1982/83", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1955, "category": "history", "title": "Титул Syracuse Nationals", "detail": "Команда выиграла седьмой матч финала у Fort Wayne Pistons.", "source": "sixers"},
+        {"year": 1967, "category": "history", "title": "Первое чемпионство в Филадельфии", "detail": "Команда Уилта Чемберлена выиграла финальную серию у San Francisco Warriors.", "source": "sixers"},
+        {"year": 1983, "category": "history", "title": "Ирвинг и Мэлоун берут титул", "detail": "Philadelphia выиграла четыре матча финала подряд у Lakers.", "source": "sixers"},
+        {"year": 2001, "category": "history", "title": "Финал команды Айверсона", "detail": "76ers выиграли Восток. Аллен Айверсон стал MVP регулярного сезона.", "source": "recaps"}
+      ],
+      "arenas": [
+        {"arenaId": "nba:arena:philadelphia-spectrum", "name": "The Spectrum", "city": "Филадельфия", "from": 1967, "until": 1996, "source": "phi-arena"}
+      ],
+      "legends": [
+        {"name": "Дольф Шейес", "detail": "Форвард чемпионских Syracuse Nationals, чей №4 вывела из обращения франшиза.", "number": "4", "source": "sixers", "hallOfFame": "hof-s"},
+        {"name": "Аллен Айверсон", "detail": "MVP сезона 2000/01, в котором вывел 76ers в финал.", "number": "3", "source": "iverson", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "4", "name": "Дольф Шейес"},
+          {"number": "3", "name": "Аллен Айверсон"}
+        ],
+        "source": "phi"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:PHX",
+      "franchiseId": "nba:franchise:phoenix-suns",
+      "founded": {"year": 1968, "detail": "Suns появились при расширении NBA и начали играть в Финиксе.", "source": "phx"},
+      "eras": [
+        {"name": "Phoenix Suns", "city": "Финикс", "from": 1968, "until": null, "source": "phx"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1976, "category": "history", "title": "Первый финал", "detail": "Suns дошли до финала NBA. Пятая игра против Boston продолжалась три овертайма.", "source": "suns76"},
+        {"year": 1993, "category": "history", "title": "Финал в сезон MVP Баркли", "detail": "Чарльз Баркли стал MVP регулярного сезона. В финале Suns уступили Chicago.", "source": "recaps"},
+        {"year": 2021, "category": "history", "title": "Возвращение в финал", "detail": "Финикс выиграл Запад и встретился в финале с Milwaukee.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Чарльз Баркли", "detail": "MVP сезона 1992/93 в составе Phoenix. Его №34 выведен из обращения.", "number": "34", "source": "awards", "hallOfFame": "hof-a"},
+        {"name": "Стив Нэш", "detail": "Разыгрывающий Suns, выиграл два MVP подряд в 2005 и 2006 годах.", "number": "13", "source": "awards", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "34", "name": "Чарльз Баркли"},
+          {"number": "13", "name": "Стив Нэш"}
+        ],
+        "source": "phx"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:POR",
+      "franchiseId": "nba:franchise:portland-trail-blazers",
+      "founded": {"year": 1970, "detail": "Портленд вошёл в NBA при расширении лиги.", "source": "por"},
+      "eras": [
+        {"name": "Portland Trail Blazers", "city": "Портленд", "from": 1970, "until": null, "source": "por"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1976/77", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1977, "category": "history", "title": "Титул в первом плей-офф", "detail": "В своём первом плей-офф Trail Blazers дошли до финала и обыграли Philadelphia.", "source": "por77"},
+        {"year": 1990, "category": "history", "title": "Второй финал", "detail": "Команда Клайда Дрекслера выиграла Запад и встретилась с Detroit Pistons.", "source": "finals"},
+        {"year": 1992, "category": "history", "title": "Третий финал", "detail": "Portland снова вышел в финал. Соперником стали Chicago Bulls.", "source": "finals"},
+        {"year": 2019, "category": "history", "title": "Финал Запада", "detail": "Trail Blazers прошли Denver в семи матчах и вышли в финал конференции.", "source": "playoffs19"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Билл Уолтон", "detail": "Центровой и MVP финала 1977 года, первого титула Портленда.", "number": "32", "source": "finals-mvp", "hallOfFame": "hof-s"},
+        {"name": "Клайд Дрекслер", "detail": "Вёл Portland к финалам 1990 и 1992 годов. Клуб закрепил за ним №22.", "number": "22", "source": "drexler", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "32", "name": "Билл Уолтон"},
+          {"number": "22", "name": "Клайд Дрекслер"}
+        ],
+        "source": "por"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:SAC",
+      "franchiseId": "nba:franchise:rochester-royals-lineage",
+      "founded": {"year": 1923, "detail": "Клуб ведёт отсчёт от команды из Рочестера, основанной в 1923 году. Эра в BAA началась в 1948-м.", "source": "kings"},
+      "eras": [
+        {"name": "Rochester Royals", "city": "Рочестер", "from": 1948, "until": 1957, "source": "kings-guide"},
+        {"name": "Cincinnati Royals", "city": "Цинциннати", "from": 1957, "until": 1972, "source": "kings-guide"},
+        {"name": "Kansas City–Omaha Kings", "city": "Канзас-Сити и Омаха", "from": 1972, "until": 1975, "source": "sac-record"},
+        {"name": "Kansas City Kings", "city": "Канзас-Сити", "from": 1975, "until": 1985, "source": "sac-record"},
+        {"name": "Sacramento Kings", "city": "Сакраменто", "from": 1985, "until": null, "source": "kings-guide"}
+      ],
+      "identityNote": {"detail": "До вступления в BAA команда из Рочестера играла в NBL. Интервалы названий начинаются с эры BAA.", "source": "kings-guide"},
+      "titles": {
+        "seasons": [
+          {"season": "1950/51", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1951, "category": "history", "title": "Чемпионы из Рочестера", "detail": "Royals обыграли New York Knicks в седьмом матче финала.", "source": "finals"},
+        {"year": 1964, "category": "legends", "title": "MVP Оскар Робертсон", "detail": "Разыгрывающий Cincinnati Royals получил приз самого ценного игрока NBA.", "source": "awards"},
+        {"year": 2002, "category": "history", "title": "Финал Западной конференции", "detail": "Sacramento довёл серию с будущим чемпионом Lakers до седьмой игры.", "source": "playoffs02"},
+        {"year": 2023, "category": "history", "title": "Возвращение в плей-офф", "detail": "После предыдущего участия в 2006 году Kings снова вышли в плей-офф и встретились с Golden State.", "source": "sac23"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Оскар Робертсон", "detail": "MVP регулярного сезона 1963/64, играл за Cincinnati Royals.", "number": "14", "source": "awards", "hallOfFame": "hof-e"},
+        {"name": "Крис Уэббер", "detail": "Один из лидеров Sacramento в начале 2000-х. Клуб вывел из обращения №4.", "number": "4", "source": "sac", "hallOfFame": "hof-s"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "14", "name": "Оскар Робертсон"},
+          {"number": "4", "name": "Крис Уэббер"}
+        ],
+        "source": "sac"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:SAS",
+      "franchiseId": "nba:franchise:dallas-chaparrals-lineage",
+      "founded": {"year": 1967, "detail": "Франшиза начинала в ABA под именем Dallas Chaparrals.", "source": "sas-record"},
+      "eras": [
+        {"name": "Dallas Chaparrals", "city": "Даллас", "from": 1967, "until": 1970, "source": "sas-record"},
+        {"name": "Texas Chaparrals", "city": "Даллас и другие города Техаса", "from": 1970, "until": 1971, "source": "sas-record"},
+        {"name": "Dallas Chaparrals", "city": "Даллас", "from": 1971, "until": 1973, "source": "sas-record"},
+        {"name": "San Antonio Spurs", "city": "Сан-Антонио", "from": 1973, "until": null, "source": "sas-record"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [
+          {"season": "1998/99", "league": "NBA"},
+          {"season": "2002/03", "league": "NBA"},
+          {"season": "2004/05", "league": "NBA"},
+          {"season": "2006/07", "league": "NBA"},
+          {"season": "2013/14", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1976, "category": "identity", "title": "Вступление в NBA", "detail": "Spurs продолжили играть в NBA с сезона 1976/77 после закрытия ABA.", "source": "sas-record"},
+        {"year": 1999, "category": "history", "title": "Первый титул", "detail": "Команда Дэвида Робинсона и Тима Данкана выиграла финал у New York Knicks.", "source": "sas99"},
+        {"year": 2014, "category": "history", "title": "Реванш у Miami", "detail": "Через год после поражения от Heat Spurs выиграли у них чемпионскую серию в пяти матчах.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Тим Данкан", "detail": "Центровой и форвард пяти чемпионских составов Spurs, трижды MVP финала.", "number": "21", "source": "duncan", "hallOfFame": "hof-e"},
+        {"name": "Дэвид Робинсон", "detail": "Центровой Spurs, MVP сезона 1994/95 и чемпион 1999 и 2003 годов.", "number": "50", "source": "robinson", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "21", "name": "Тим Данкан"},
+          {"number": "50", "name": "Дэвид Робинсон"}
+        ],
+        "source": "sas"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:TOR",
+      "franchiseId": "nba:franchise:toronto-raptors",
+      "founded": {"year": 1995, "detail": "Toronto Raptors дебютировали при расширении NBA в Канаду.", "source": "tor"},
+      "eras": [
+        {"name": "Toronto Raptors", "city": "Торонто", "from": 1995, "until": null, "source": "tor"}
+      ],
+      "identityNote": {"detail": "Toronto Huskies провели сезон 1946/47 в BAA. Raptors получили новое место в NBA в 1995 году.", "source": "original"},
+      "titles": {
+        "seasons": [
+          {"season": "2018/19", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1999, "category": "legends", "title": "Винс Картер — новичок года", "detail": "Первый сезон Картера в составе Raptors принёс ему награду лучшему новичку.", "source": "awards"},
+        {"year": 2001, "category": "history", "title": "Первая выигранная серия", "detail": "Toronto прошёл New York Knicks, а затем уступил Philadelphia в семи матчах.", "source": "playoffs01"},
+        {"year": 2019, "category": "history", "title": "Чемпионство в дебютном финале", "detail": "Toronto победил Golden State. Кавай Леонард получил приз MVP финала.", "source": "tor19"},
+        {"year": 2024, "category": "legends", "title": "Первый выведенный номер", "detail": "Клуб закрепил №15 за Винсом Картером.", "source": "carter"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Винс Картер", "detail": "Звезда ранних Raptors, новичок года в сезоне 1998/99 и первый игрок с выведенным номером в Торонто.", "number": "15", "source": "carter", "hallOfFame": "hof-a"},
+        {"name": "Кайл Лаури", "detail": "Разыгрывающий чемпионского состава Toronto 2019 года.", "number": "7", "source": "tor19", "hallOfFame": null}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "15", "name": "Винс Картер"}
+        ],
+        "source": "carter"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:UTA",
+      "franchiseId": "nba:franchise:new-orleans-jazz-lineage",
+      "founded": {"year": 1974, "detail": "Франшиза начинала в Новом Орлеане как New Orleans Jazz.", "source": "jazz"},
+      "eras": [
+        {"name": "New Orleans Jazz", "city": "Новый Орлеан", "from": 1974, "until": 1979, "source": "uta"},
+        {"name": "Utah Jazz", "city": "Солт-Лейк-Сити", "from": 1979, "until": null, "source": "uta"}
+      ],
+      "identityNote": null,
+      "titles": {
+        "seasons": [],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1977, "category": "legends", "title": "Пит Маравич — лучший снайпер", "detail": "В сезоне 1976/77 Маравич стал лучшим в NBA по очкам за игру, выступая за New Orleans Jazz.", "source": "scoring77"},
+        {"year": 1997, "category": "history", "title": "Первый финал NBA", "detail": "Команда Джона Стоктона и Карла Мэлоуна выиграла Запад и сыграла за титул с Bulls.", "source": "uta97"},
+        {"year": 1998, "category": "history", "title": "Повторный финал против Bulls", "detail": "Через год Jazz снова выиграли Запад и встретились с Chicago.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Джон Стоктон", "detail": "Играл за Utah всю карьеру NBA. Клуб закрепил за ним №12.", "number": "12", "source": "stockton", "hallOfFame": "hof-s"},
+        {"name": "Карл Мэлоун", "detail": "Дважды получал MVP регулярного сезона в составе Jazz. Его №32 выведен из обращения.", "number": "32", "source": "awards", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "12", "name": "Джон Стоктон"},
+          {"number": "32", "name": "Карл Мэлоун"}
+        ],
+        "source": "uta"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:WAS",
+      "franchiseId": "nba:franchise:chicago-packers-wizards-lineage",
+      "founded": {"year": 1961, "detail": "Франшиза вошла в NBA как Chicago Packers.", "source": "was-record"},
+      "eras": [
+        {"name": "Chicago Packers", "city": "Чикаго", "from": 1961, "until": 1962, "source": "was-record"},
+        {"name": "Chicago Zephyrs", "city": "Чикаго", "from": 1962, "until": 1963, "source": "was-record"},
+        {"name": "Baltimore Bullets", "city": "Балтимор", "from": 1963, "until": 1973, "source": "was-record"},
+        {"name": "Capital Bullets", "city": "Ландовер", "from": 1973, "until": 1974, "source": "was-record"},
+        {"name": "Washington Bullets", "city": "Вашингтон и окрестности", "from": 1974, "until": 1997, "source": "was-record"},
+        {"name": "Washington Wizards", "city": "Вашингтон", "from": 1997, "until": null, "source": "was-record"}
+      ],
+      "identityNote": {"detail": "Балтиморский клуб, выигравший титул BAA 1947/48, прекратил играть в 1954 году. Он учитывается отдельно от линии Chicago Packers → Washington Wizards.", "source": "old-bullets"},
+      "titles": {
+        "seasons": [
+          {"season": "1977/78", "league": "NBA"}
+        ],
+        "source": "finals"
+      },
+      "events": [
+        {"year": 1969, "category": "legends", "title": "Новичок и MVP одного сезона", "detail": "Уэс Анселд получил обе награды в дебютный год за Baltimore Bullets.", "source": "awards"},
+        {"year": 1978, "category": "history", "title": "Первый титул", "detail": "Washington Bullets выиграли семиматчевый финал у Seattle SuperSonics.", "source": "finals"},
+        {"year": 1979, "category": "history", "title": "Ответный финал с Seattle", "detail": "Bullets второй раз подряд встретились с SuperSonics в финале. На этот раз победил Seattle.", "source": "finals"}
+      ],
+      "arenas": [],
+      "legends": [
+        {"name": "Уэс Анселд", "detail": "Центровой чемпионов 1978 года и MVP того финала.", "number": "41", "source": "finals-mvp", "hallOfFame": "hof-s"},
+        {"name": "Элвин Хейз", "detail": "Форвард и центровой чемпионского состава 1978 года. Команда закрепила за ним №11.", "number": "11", "source": "was", "hallOfFame": "hof-e"}
+      ],
+      "retired": {
+        "numbers": [
+          {"number": "41", "name": "Уэс Анселд"},
+          {"number": "11", "name": "Элвин Хейз"}
+        ],
+        "source": "was"
+      }
+    }
+  ]
+}
