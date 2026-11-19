@@ -116,7 +116,10 @@ export async function checkSpoilerMode({
         ],
       },
     },
-    '/api/standings': { data: standings, meta },
+    '/api/standings': {
+      data: standings,
+      meta: { ...meta, source: 'bbs', isStale: false, rejectedRecords: 0, refreshError: null },
+    },
   }
   fixtures['/api/players/' + encodeURIComponent(player.id)] = {
     ...fixtures['/api/players'],
@@ -184,6 +187,12 @@ export async function checkSpoilerMode({
   }
   const fixturesPath = '/games?date=' + yesterday
   const details = (game) => '/games/' + encodeURIComponent(game.id) + '?date=' + game.nbaGameDate
+
+  await visit('/standings')
+  await page.locator('.standings-table tbody tr').last().waitFor()
+  assert.equal(await page.locator('.standings-table tbody tr').count(), 15)
+  await page.locator('.gc-source-details summary').click()
+  await page.getByText('Big Balls Sports Data').waitFor()
 
   await visit(fixturesPath)
   await visibleResult(rows.first(), '149').first().waitFor({ state: 'attached' })
