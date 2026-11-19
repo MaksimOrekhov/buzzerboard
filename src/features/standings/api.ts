@@ -15,7 +15,7 @@ function isNullableCounter(value: unknown): value is number | null {
 }
 
 function isProvider(value: unknown): value is NbaProviderId {
-  return value === 'dunkapi' || value === 'espn'
+  return value === 'dunkapi' || value === 'espn' || value === 'bbs'
 }
 
 function isNbaApiError(value: unknown): boolean {
