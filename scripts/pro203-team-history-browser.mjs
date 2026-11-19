@@ -76,8 +76,15 @@ export async function checkTeamHistory({ page, capture }) {
   await timeline.getByLabel('Порядок').selectOption('desc')
   assert.equal(await timeline.locator('time').first().textContent(), '2020')
   assert.equal(await timeline.locator('time').last().textContent(), '1948')
-  await page.getByText('Арены по эпохам', { exact: true }).click()
-  await page.getByText('Los Angeles Memorial Sports Arena', { exact: true }).first().waitFor()
+  const arenaList = page.locator('details').filter({ hasText: 'Исторические арены · выборочно' })
+  await arenaList.getByText('Исторические арены · выборочно', { exact: true }).click()
+  await arenaList.getByText('Los Angeles Memorial Sports Arena', { exact: true }).waitFor()
+  const currentArena = page.locator('dd').filter({ hasText: 'Crypto.com Arena' })
+  await currentArena.waitFor()
+  assert.equal(
+    await currentArena.getByRole('link', { name: 'Источник' }).getAttribute('href'),
+    'https://www.nba.com/news/all-30-nba-arenas-by-team',
+  )
 
   await overview.focus()
   await page.keyboard.press('Enter')

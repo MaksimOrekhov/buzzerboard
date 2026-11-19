@@ -22,15 +22,18 @@ const props = defineProps<{ profile: TeamHistory }>()
       </li>
     </ul>
     <template v-if="props.profile.retired">
-      <h4>Выведенные из обращения номера</h4>
-      <ul class="team-history-retired">
-        <li v-for="entry in props.profile.retired.numbers" :key="entry.number">
-          <strong>№{{ entry.number }}</strong> {{ entry.name }}
-        </li>
-      </ul>
-      <TeamHistorySource :source-id="props.profile.retired.source"
-        >Источник подборки</TeamHistorySource
-      >
+      <template v-if="props.profile.retired.numbers.length">
+        <h4>Подборка выведенных номеров</h4>
+        <ul class="team-history-retired">
+          <li v-for="entry in props.profile.retired.numbers" :key="entry.number">
+            <strong>№{{ entry.number }}</strong> {{ entry.name }}
+          </li>
+        </ul>
+      </template>
+      <p v-else class="team-history-meta">
+        По данным источника, у франшизы нет выведенных номеров.
+      </p>
+      <TeamHistorySource :source-id="props.profile.retired.source" />
     </template>
     <p v-else class="team-history-meta">Список выведенных номеров пока не подтверждён.</p>
   </section>

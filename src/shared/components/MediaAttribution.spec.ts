@@ -29,6 +29,25 @@ describe('MediaAttribution', () => {
     }
   })
 
+  it('displays the exact credit required by the photographer of United Center', () => {
+    const asset = TEAM_MEDIA_ASSETS.find(
+      ({ assetId }) => assetId === 'commons:file:united-center-exterior',
+    )!
+    const wrapper = mount(MediaAttribution, { props: { asset } })
+
+    expect(wrapper.get('figcaption .media-attribution__links span').text()).toBe(
+      'Автор: © Jeremy Atherton, 2006',
+    )
+    expect(
+      wrapper
+        .get('a[href="https://commons.wikimedia.org/wiki/File:United_Center_060716.jpg"]')
+        .text(),
+    ).toBe('Файл на Wikimedia Commons')
+    expect(wrapper.get('a[href="https://creativecommons.org/licenses/by-sa/2.5/"]').text()).toBe(
+      'CC BY-SA 2.5',
+    )
+  })
+
   it('shows a Russian fallback when a local image fails', async () => {
     const asset = TEAM_MEDIA_ASSETS[0]!
     const wrapper = mount(MediaAttribution, { props: { asset } })

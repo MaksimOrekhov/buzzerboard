@@ -83,7 +83,7 @@ const titleGroups = computed(() => [
             <TeamHistorySource :source-id="profile.identityNote.source" />
           </p>
           <details v-if="profile.arenas.length" class="team-history-venues">
-            <summary>Арены по эпохам</summary>
+            <summary>Исторические арены · выборочно</summary>
             <ol class="team-history-eras">
               <li v-for="arena in profile.arenas" :key="`${arena.name}-${arena.from}`">
                 <span class="team-history-meta">{{
