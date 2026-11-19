@@ -116,6 +116,20 @@ function archiveReferenceSummary(
   }
 }
 
+function sameGameTeams(left: Game, right: Game) {
+  return (
+    left.id === right.id &&
+    left.provider === right.provider &&
+    left.nbaGameDate === right.nbaGameDate &&
+    left.homeTeam.id === right.homeTeam.id &&
+    left.awayTeam.id === right.awayTeam.id
+  )
+}
+
+function hasCompleteFinalScore(game: Game) {
+  return game.status !== 'final' || (game.score.home !== null && game.score.away !== null)
+}
+
 export interface BbsRefreshOutcome {
   target: NbaRefreshTarget
   state: 'refreshed' | 'up_to_date' | 'deferred' | 'in_progress'
@@ -766,8 +780,65 @@ export async function refreshBbsGames(
           }
         }
       }
-      const missingArchiveReferences = gamesMissingArchiveReferences(data, providerReferences)
-      const referenceSummary = archiveReferenceSummary(data, providerReferences)
+      const previousGames = previous?.capability === 'games' ? previous : null
+      const previousById = new Map(previousGames?.data.map((game) => [game.id, game]) ?? [])
+      const incomingById = new Map(data.map((game) => [game.id, game]))
+      const missingPriorFinals =
+        previousGames?.data.filter(
+          (game) => game.status === 'final' && !incomingById.has(game.id),
+        ) ?? []
+      if (missingPriorFinals.length > 0) {
+        const previousFinalCount =
+          previousGames?.data.filter((game) => game.status === 'final').length ?? 0
+        diagnosticCounts = {
+          expectedCount: previousFinalCount,
+          actualCount: previousFinalCount - missingPriorFinals.length,
+        }
+        throw createNbaApiError('invalid_response', 'bbs')
+      }
+      const coherentData = data.map((game) => {
+        const previousGame = previousById.get(game.id)
+        if (previousGame && !sameGameTeams(previousGame, game)) {
+          diagnosticPhase = 'games_normalization'
+          diagnosticCounts = { expectedCount: data.length, actualCount: data.length - 1 }
+          throw createNbaApiError('invalid_response', 'bbs')
+        }
+        if (
+          previousGame?.status === 'final' &&
+          (game.status !== 'final' || !hasCompleteFinalScore(game))
+        ) {
+          diagnosticPhase = 'games_normalization'
+          diagnosticCounts = { expectedCount: data.length, actualCount: data.length - 1 }
+          throw createNbaApiError('invalid_response', 'bbs')
+        }
+        if (!hasCompleteFinalScore(game)) {
+          diagnosticPhase = 'games_normalization'
+          diagnosticCounts = { expectedCount: data.length, actualCount: data.length - 1 }
+          throw createNbaApiError('invalid_response', 'bbs')
+        }
+        return game
+      })
+      diagnosticPhase = 'games_archive_references'
+      for (const game of coherentData) {
+        const previousGame = previousById.get(game.id)
+        if (!previousGame || !sameGameTeams(previousGame, game)) continue
+        for (const key of [
+          game.id,
+          archiveTeamReferenceKey(game.id, 'home'),
+          archiveTeamReferenceKey(game.id, 'away'),
+        ]) {
+          const incomingReference = providerReferences[key]
+          const verifiedReference = previousGames?.providerReferences?.[key]
+          if (incomingReference && verifiedReference && incomingReference !== verifiedReference)
+            throw createNbaApiError('invalid_response', 'bbs')
+          if (!incomingReference && verifiedReference) providerReferences[key] = verifiedReference
+        }
+      }
+      const missingArchiveReferences = gamesMissingArchiveReferences(
+        coherentData,
+        providerReferences,
+      )
+      const referenceSummary = archiveReferenceSummary(coherentData, providerReferences)
       diagnosticCounts = {
         ...referenceSummary,
       }
@@ -775,7 +846,7 @@ export async function refreshBbsGames(
         cacheKey: key,
         capability: 'games',
         provider: 'bbs',
-        data,
+        data: coherentData,
         providerReferences,
         fetchedAt: snapshot.meta.fetchedAt,
         providerUpdatedAt: snapshot.meta.providerUpdatedAt,
@@ -1594,6 +1665,7 @@ export async function runScheduledBbsRefresh(
     const completed = result.state === 'refreshed' || result.state === 'up_to_date'
     let pauseUntil: number | null = null
     let failedTasks = progress.failedTasks
+    let taskExhausted = false
     if (completed) {
       const completedKey = scheduledBbsTaskKey(task)
       const remainingFailures = failedTasks?.filter(
@@ -1616,8 +1688,17 @@ export async function runScheduledBbsRefresh(
               cachedBox?.capability === 'boxScore' &&
               cachedBox.data !== null &&
               isSameFinalGameSnapshot(cachedBox.data.game, game)
-            )
+            ) {
+              const boxKey = scheduledBbsTaskKey({
+                type: 'boxScore',
+                date: task.date,
+                gameId: game.id,
+              })
+              failedTasks = failedTasks?.filter(
+                (failure) => scheduledBbsTaskKey(failure.task) !== boxKey,
+              )
               return
+            }
             const boxTask: ScheduledBbsTask = {
               type: 'boxScore',
               date: task.date,
@@ -1711,6 +1792,7 @@ export async function runScheduledBbsRefresh(
           ...(lastError ? { lastError } : {}),
         })
       } else {
+        taskExhausted = true
         const errorCode = result.error?.code ?? null
         failedTasks = setScheduledFailure(failedTasks, {
           task,
@@ -1720,20 +1802,18 @@ export async function runScheduledBbsRefresh(
         })
       }
     }
-    const saved = await saveOwnedProgress({
+    const progressToSave = {
       ...progress,
       tasks,
       cursor: 0,
       pauseUntil,
-      ...(failedTasks === undefined ? {} : { failedTasks }),
-    })
+    }
+    if (failedTasks === undefined) delete progressToSave.failedTasks
+    else progressToSave.failedTasks = failedTasks
+    const saved = await saveOwnedProgress(progressToSave)
     if (saved && result.error) {
       const diagnostic = taskDiagnostic(result, task, now)
-      const event = (failedTasks ?? []).some(
-        (failure) => scheduledBbsTaskKey(failure.task) === scheduledBbsTaskKey(task),
-      )
-        ? 'scheduled_bbs_task_exhausted'
-        : 'scheduled_bbs_task_retry'
+      const event = taskExhausted ? 'scheduled_bbs_task_exhausted' : 'scheduled_bbs_task_retry'
       console.warn(
         JSON.stringify({
           event,
