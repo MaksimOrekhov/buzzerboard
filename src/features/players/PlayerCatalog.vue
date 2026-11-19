@@ -31,7 +31,12 @@ import ResourceState from '@/shared/components/ResourceState.vue'
 import StatTable from '@/shared/components/StatTable.vue'
 import AppTooltip from '@/shared/components/AppTooltip.vue'
 
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
+const { hideAggregate } = useSpoilerMode()
 const props = defineProps<{ favoritesOnly?: boolean }>()
+const statsScope = computed(() => (props.favoritesOnly ? 'favorite-players' : 'player-directory'))
+const statsHidden = computed(() => hideAggregate(statsScope.value))
 const route = useRoute()
 const router = useRouter()
 const { data, isPending, isError, refetch } = usePlayers()
@@ -69,6 +74,7 @@ const metrics = computed(() => {
     .filter((column) => column[3] === group.value)
     .map(([key, short, label]) => ({ key, short, label }))
 })
+const visibleMetrics = computed(() => (statsHidden.value ? [] : metrics.value))
 const defaults: Record<PlayerGroup, PlayerSort> = {
   basic: 'pts',
   shooting: 'fg',
@@ -77,7 +83,7 @@ const defaults: Record<PlayerGroup, PlayerSort> = {
   per36: 'pts36',
 }
 const sort = computed<PlayerSort>(() => {
-  if (route.query.sort === 'name') return 'name'
+  if (statsHidden.value || route.query.sort === 'name') return 'name'
   return (
     metrics.value.find((column) => column.key === route.query.sort)?.key ?? defaults[group.value]
   )
@@ -171,7 +177,8 @@ const filtered = computed(() => {
         (conference === 'all' ||
           (player.team && findNbaTeam(player.team)?.conference === conference)) &&
         (position === 'all' || player.position === position) &&
-        meetsPlayerThresholds(player.stats, { gp: minGp, minutes: minMinutes, fga: minFga }) &&
+        (statsHidden.value ||
+          meetsPlayerThresholds(player.stats, { gp: minGp, minutes: minMinutes, fga: minFga })) &&
         (!(props.favoritesOnly || route.query.favorites === '1') || ids.value.has(player.id)),
     )
     .sort((a, b) => comparePlayers(a, b, sort.value, ascending.value, seasonAdvancedMetric))
@@ -206,7 +213,7 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
       >
     </ResourceState>
     <template v-else-if="data">
-      <div v-if="!favoritesOnly" class="players-coverage">
+      <div v-if="!favoritesOnly && !statsHidden" class="players-coverage">
         <div>
           <span>В каталоге</span><strong>{{ data.coverage.total }}</strong>
         </div>
@@ -244,7 +251,7 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
           :model-value="selected('position', positionOptions)"
           @update:model-value="selectFilter('position', $event)"
         />
-        <label
+        <label v-if="!statsHidden"
           >Мин. матчей<input
             type="number"
             min="0"
@@ -252,7 +259,7 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
             :value="route.query.gp ?? 0"
             @change="change('gp', $event)"
         /></label>
-        <label
+        <label v-if="!statsHidden"
           >Мин. минут за игру<input
             type="number"
             min="0"
@@ -261,7 +268,7 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
             :value="route.query.min ?? 0"
             @change="change('min', $event)"
         /></label>
-        <label
+        <label v-if="!statsHidden"
           >Мин. FGA за игру<input
             type="number"
             min="0"
@@ -281,7 +288,10 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
           <AppIcon name="star" :size="17" /><span>Избранные</span>
         </button>
       </div>
-      <details v-if="group === 'advanced' || group === 'per36'" class="player-method-note">
+      <details
+        v-if="!statsHidden && (group === 'advanced' || group === 'per36')"
+        class="player-method-note"
+      >
         <summary>Методика расширенных показателей</summary>
         <p>
           Это расчёты BuzzerBoard по средним BBS, а не официальные рейтинги NBA. Сезонные отношения
@@ -301,10 +311,15 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
           минимум.
         </p>
       </details>
-      <p class="player-meta">
+      <SpoilerAggregateGate
+        v-if="statsHidden"
+        :scope="statsScope"
+        title="Сезонные показатели игроков скрыты"
+      />
+      <p v-else class="player-meta">
         Средние за матч; GP — матчи сезона. Пороги GP, минут и FGA — пользовательские, по умолчанию
         выключены.
-        <template v-if="data?.refreshStatus">
+        <template v-if="!statsHidden && data?.refreshStatus">
           Автообновление BBS: {{ refreshPhaseLabel(data.refreshStatus.phase) }}, проверено
           {{ data.refreshStatus.checked }}/{{ data.refreshStatus.total }}, обновлено
           {{ data.refreshStatus.updated }}, сохранено без изменений
@@ -315,13 +330,17 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
       <div class="players-table-panel">
         <header class="players-panel-heading">
           <AppSegmented
+            v-if="!statsHidden"
             :model-value="group"
             :options="groups"
             label="Показатели"
             @update:model-value="setGroup"
           /><span role="status">{{ filtered.length }} игроков</span>
         </header>
-        <StatTable v-if="rows.length" label="Сезонная статистика игроков">
+        <StatTable
+          v-if="rows.length"
+          :label="statsHidden ? 'Каталог игроков' : 'Сезонная статистика игроков'"
+        >
           <table class="players-table">
             <thead>
               <tr>
@@ -336,7 +355,7 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
                   </button>
                 </th>
                 <th
-                  v-for="{ key, short, label } in metrics"
+                  v-for="{ key, short, label } in visibleMetrics"
                   :key="key"
                   scope="col"
                   :aria-sort="sort === key ? (ascending ? 'ascending' : 'descending') : undefined"
@@ -385,18 +404,18 @@ const change = (key: string, event: Event) => set(key, (event.target as HTMLInpu
                         >{{ player.position ? ' · ' + player.position : '' }}</small
                       >
                       <small
-                        v-if="group === 'advanced' || group === 'per36'"
+                        v-if="!statsHidden && (group === 'advanced' || group === 'per36')"
                         class="player-sample-context"
                       >
                         {{ sampleContext(player) }}
                       </small>
-                      <small v-if="data?.refreshStatus">
+                      <small v-if="!statsHidden && data?.refreshStatus">
                         Средние BBS: {{ formatFreshness(player.averageUpdatedAt) }}
                       </small>
                     </div>
                   </div>
                 </th>
-                <td v-for="{ key } in metrics" :key="key">
+                <td v-for="{ key } in visibleMetrics" :key="key">
                   {{ metricValue(player, key) }}
                 </td>
               </tr>

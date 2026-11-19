@@ -679,6 +679,7 @@
   }
   .teams-profile-hero-links {
     width: 100%;
+    flex-wrap: wrap;
   }
   .teams-profile-hero-links > a {
     flex: 1;
@@ -746,5 +747,32 @@
   }
   .teams-season-facts {
     gap: 8px;
+  }
+}
+
+.teams-profile-columns.spoiler-team-columns {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.teams-result-reveal {
+  min-width: 6rem;
+}
+
+@media (max-width: 620px) {
+  .teams-result-row--protected {
+    padding-block: 8px;
+  }
+  .teams-result-row--protected .teams-result-reveal {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+  }
+  .teams-result-row--protected > a,
+  .teams-result-row--protected > .teams-result-link-placeholder {
+    grid-column: -2;
+    grid-row: 1;
   }
 }

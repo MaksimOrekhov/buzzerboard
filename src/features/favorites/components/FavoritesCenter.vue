@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '../favorites.css'
-import { shallowRef } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { RouterLink } from 'vue-router'
 import { useFavoriteCollections } from '../composables/useFavoriteCollections'
@@ -17,6 +17,10 @@ import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
 import PlayerCatalog from '@/features/players/PlayerCatalog.vue'
 import { usePlayerFavorites } from '@/features/players/usePlayerFavorites'
 import { gameDetailsPath } from '@/features/games/gameDetailsRoute'
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
+const { hideAggregate } = useSpoilerMode()
+const statsHidden = computed(() => hideAggregate('favorite-teams'))
 const route = useRoute()
 const { center, standings, teams, favoriteGames, favoriteGameGroups, favoriteTeams, unknownGames } =
   useFavoriteCollections()
@@ -36,6 +40,13 @@ const {
   favoriteIds,
 } = center
 const teamIds = teams.favoriteIds
+const displayedTeams = computed(() =>
+  statsHidden.value
+    ? [...favoriteTeams.value].sort((a, b) =>
+        (a.team.displayName ?? a.team.id).localeCompare(b.team.displayName ?? b.team.id),
+      )
+    : favoriteTeams.value,
+)
 </script>
 <template>
   <div class="favorites-view">
@@ -72,7 +83,13 @@ const teamIds = teams.favoriteIds
         description="Ваш выбор сохранён. Попробуйте обновить данные позже."
       />
       <div v-else-if="favoriteTeams.length" class="favorite-teams-grid">
-        <article v-for="row in favoriteTeams" :key="row.team.id" class="favorite-team-card">
+        <SpoilerAggregateGate
+          v-if="statsHidden"
+          class="favorite-teams-gate"
+          scope="favorite-teams"
+          title="Показатели избранных команд скрыты"
+        />
+        <article v-for="row in displayedTeams" :key="row.team.id" class="favorite-team-card">
           <header>
             <TeamLogo :team="row.team" :size="46" />
             <div>
@@ -98,7 +115,7 @@ const teamIds = teams.favoriteIds
               <AppIcon name="star" />
             </button>
           </header>
-          <dl>
+          <dl v-if="!statsHidden">
             <div>
               <dt>Победы–поражения</dt>
               <dd>{{ formatRecord(row.record.wins, row.record.losses) }}</dd>

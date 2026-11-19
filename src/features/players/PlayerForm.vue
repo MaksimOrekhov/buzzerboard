@@ -5,6 +5,9 @@ import type { PlayerGame } from '@/entities/nba/players'
 import AppSegmented from '@/shared/components/AppSegmented.vue'
 import StatTable from '@/shared/components/StatTable.vue'
 
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerGameReveal from '@/features/spoilers/SpoilerGameReveal.vue'
+const { hideCompleted } = useSpoilerMode()
 const props = defineProps<{ games: readonly PlayerGame[]; returnTo: string }>()
 type Metric = 'pts' | 'reb' | 'ast' | 'min'
 const metrics = [
@@ -20,20 +23,24 @@ function changeSort(key: Metric | 'date') {
   ascending.value = sort.value === key ? !ascending.value : false
   sort.value = key
 }
+const gameIdentity = (game: PlayerGame) => ({ id: game.gameId, nbaGameDate: game.date })
+const hidden = (game: PlayerGame) => hideCompleted(gameIdentity(game))
 const rows = computed(() =>
   [...props.games].sort((a, b) => {
     const key = sort.value
     const sign = ascending.value ? 1 : -1
     if (key === 'date') return sign * a.date.localeCompare(b.date)
-    const left = a[key]
-    const right = b[key]
+    const left = hidden(a) ? null : a[key]
+    const right = hidden(b) ? null : b[key]
     if (left === null) return right === null ? b.date.localeCompare(a.date) : 1
     if (right === null) return -1
     return sign * (left - right) || b.date.localeCompare(a.date)
   }),
 )
 const chart = computed(() => {
-  const games = [...props.games].sort((a, b) => a.date.localeCompare(b.date))
+  const games = props.games
+    .filter((game) => !hidden(game))
+    .sort((a, b) => a.date.localeCompare(b.date))
   const series = games.map((game) => game[metric.value])
   const max = Math.max(5, Math.ceil(Math.max(0, ...series.map((entry) => entry ?? 0)) / 5) * 5)
   const points = series.flatMap((value, index) =>
@@ -147,11 +154,27 @@ function stat(value: number | null) {
                 }"
                 >{{ game.date }}</RouterLink><span v-else>{{ game.date }}</span>
             </th>
-            <td>{{ game.opponent ?? '—' }}</td>
-            <td v-for="item in metrics" :key="item.value">{{ stat(game[item.value]) }}</td>
+            <td :class="{ 'player-log-opponent--protected': hidden(game) }">
+              <span>{{ game.opponent ?? '—' }}</span>
+              <SpoilerGameReveal v-if="hidden(game)" :game="gameIdentity(game)" />
+            </td>
+            <td v-if="hidden(game)" :colspan="metrics.length" />
+            <template v-else>
+              <td v-for="item in metrics" :key="item.value">{{ stat(game[item.value]) }}</td>
+            </template>
           </tr>
         </tbody>
       </table>
     </StatTable>
   </section>
 </template>
+
+<style scoped>
+.player-log td.player-log-opponent--protected {
+  text-align: start;
+}
+.player-log-opponent--protected .spoiler-game-reveal {
+  justify-items: start;
+  text-align: start;
+}
+</style>

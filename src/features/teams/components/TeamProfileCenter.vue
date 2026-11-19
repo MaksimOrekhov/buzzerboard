@@ -16,6 +16,9 @@ import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
 import TeamSeasonPanel from './TeamSeasonPanel.vue'
 import TeamResultsPanel from './TeamResultsPanel.vue'
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
+const { hideAggregate } = useSpoilerMode()
 const route = useRoute()
 const code = computed(() =>
   typeof route.params.teamCode === 'string' ? route.params.teamCode.toUpperCase() : '',
@@ -23,6 +26,8 @@ const code = computed(() =>
 const team = computed(() => findNbaTeam(code.value))
 const query = useTeamSeason(code, TEAM_SEASON_END_YEAR)
 const { data, isPending, isFetching, isRefetchError } = query
+const statsScope = computed(() => `team:${code.value}`)
+const statsHidden = computed(() => hideAggregate(statsScope.value, data.value?.meta.fetchedAt))
 const { isFavorite, toggleFavorite } = useTeamFavorites()
 const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team.id)))
 const errorTitle = computed(() =>
@@ -90,7 +95,12 @@ const errorTitle = computed(() =>
       ></ResourceState
     >
     <template v-else>
-      <div class="teams-profile-overview">
+      <SpoilerAggregateGate
+        v-if="statsHidden"
+        :scope="statsScope"
+        title="Сезонная статистика скрыта"
+      />
+      <div v-else class="teams-profile-overview">
         <div>
           <span class="teams-eyebrow"
             >Сезон {{ data.data.seasonEndYear - 1 }}/{{
@@ -118,10 +128,13 @@ const errorTitle = computed(() =>
           ><small>строк от источника</small>
         </div>
       </div>
-      <div class="teams-profile-columns">
-        <TeamSeasonPanel :profile="data.data" /><TeamResultsPanel :profile="data.data" />
+      <div class="teams-profile-columns" :class="{ 'spoiler-team-columns': statsHidden }">
+        <TeamSeasonPanel v-if="!statsHidden" :profile="data.data" /><TeamResultsPanel
+          :profile="data.data"
+          :leaders-hidden="statsHidden"
+        />
       </div>
-      <p v-if="data.data.conferenceRank === null" class="teams-profile-note">
+      <p v-if="!statsHidden && data.data.conferenceRank === null" class="teams-profile-note">
         <AppIcon name="database" :size="16" />Ранг в конференции не возвращается BBS. Конференция и
         дивизион показаны по текущему справочнику NBA.
       </p>

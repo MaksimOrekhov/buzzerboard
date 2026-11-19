@@ -484,3 +484,15 @@
     margin-inline-start: 0;
   }
 }
+
+.game-detail-reveal {
+  padding: 16px;
+  border-top: 1px solid var(--gc-line);
+}
+
+.game-detail-hero--schedule .game-detail-side {
+  grid-template-columns: minmax(0, 1fr);
+}
+.game-detail-hero--schedule .game-detail-vs {
+  display: inline;
+}

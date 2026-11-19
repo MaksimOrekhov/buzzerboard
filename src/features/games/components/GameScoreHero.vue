@@ -8,7 +8,8 @@ import StatValue from '@/shared/components/StatValue.vue'
 import AppBadge from '@/shared/components/AppBadge.vue'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 
-const props = defineProps<{ game: Game }>()
+import SpoilerGameReveal from '@/features/spoilers/SpoilerGameReveal.vue'
+const props = defineProps<{ game: Game; hidden: boolean; scheduleOnly: boolean }>()
 const gameStatus = computed(
   () =>
     ({
@@ -23,7 +24,15 @@ const gameStatus = computed(
 )
 const winner = computed(() => {
   const { home, away } = props.game.score
-  if (props.game.status !== 'final' || home === null || away === null || home === away) return null
+  if (
+    props.hidden ||
+    props.scheduleOnly ||
+    props.game.status !== 'final' ||
+    home === null ||
+    away === null ||
+    home === away
+  )
+    return null
   return home > away ? 'home' : 'away'
 })
 const localStart = computed(() =>
@@ -41,9 +50,15 @@ const localStart = computed(() =>
 </script>
 
 <template>
-  <section class="game-detail-hero" aria-label="Результат матча">
+  <section
+    class="game-detail-hero"
+    :class="{ 'game-detail-hero--schedule': hidden || scheduleOnly }"
+    :aria-label="hidden || scheduleOnly ? 'Карточка матча' : 'Результат матча'"
+  >
     <div class="game-detail-hero-meta">
-      <AppBadge tone="neutral" dot>{{ gameStatus }}</AppBadge>
+      <AppBadge v-if="!hidden" tone="neutral" dot>{{
+        scheduleOnly ? 'Запланирован' : gameStatus
+      }}</AppBadge>
       <span>Игровой день NBA · {{ game.nbaGameDate }}</span>
       <span v-if="game.seasonEndYear"
         >Сезон {{ game.seasonEndYear - 1 }}/{{ String(game.seasonEndYear).slice(-2) }}</span
@@ -57,17 +72,17 @@ const localStart = computed(() =>
             game.awayTeam.displayName ?? game.awayTeam.abbreviation ?? 'Гости'
           }}</span><small>ГОСТИ · {{ game.awayTeam.abbreviation }}</small>
         </TeamProfileLink>
-        <strong>{{ game.score.away ?? '—' }}</strong>
+        <strong v-if="!hidden && !scheduleOnly">{{ game.score.away ?? '—' }}</strong>
       </div>
       <div class="game-detail-center">
-        <span>{{ winner ? 'ФИНАЛ' : 'СЧЁТ' }}</span>
+        <span v-if="!hidden && !scheduleOnly">{{ winner ? 'ФИНАЛ' : 'СЧЁТ' }}</span>
         <span class="game-detail-vs">—</span>
       </div>
       <div
         class="game-detail-side game-detail-side--home"
         :class="{ 'game-detail-side--winner': winner === 'home' }"
       >
-        <strong>{{ game.score.home ?? '—' }}</strong>
+        <strong v-if="!hidden && !scheduleOnly">{{ game.score.home ?? '—' }}</strong>
         <TeamProfileLink :team="game.homeTeam" class="game-detail-team-link">
           <TeamLogo :team="game.homeTeam" :size="54" />
           <span>{{
@@ -84,8 +99,9 @@ const localStart = computed(() =>
         {{ winner === 'home' ? game.homeTeam.displayName : game.awayTeam.displayName }}</span
       >
     </div>
+    <SpoilerGameReveal v-if="hidden" :game="game" class="game-detail-reveal" />
     <StatTable
-      v-if="game.scoreByPeriod?.length"
+      v-if="!hidden && !scheduleOnly && game.scoreByPeriod?.length"
       class="game-detail-periods"
       label="Счёт по четвертям"
     >

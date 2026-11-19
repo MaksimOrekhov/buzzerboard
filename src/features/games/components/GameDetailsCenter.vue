@@ -14,9 +14,13 @@ import TeamBoxScoreComparison from './TeamBoxScoreComparison.vue'
 import PlayerBoxScoreTable from './PlayerBoxScoreTable.vue'
 import StatValue from '@/shared/components/StatValue.vue'
 
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+const { hideGame, isFutureSchedule } = useSpoilerMode()
 const { query, returnTo, apiError, gameId, date } = useGameDetails()
 const response = computed(() => query.data.value ?? null)
 const game = computed(() => response.value?.data.game ?? null)
+const hidden = computed(() => (game.value ? hideGame(game.value) : false))
+const scheduleOnly = computed(() => (game.value ? isFutureSchedule(game.value) : false))
 const boxScore = computed(() => response.value?.data.boxScore ?? null)
 const comparisonTeams = computed(() =>
   [game.value?.awayTeam, game.value?.homeTeam].map(
@@ -106,82 +110,84 @@ const unavailableDetails = computed(() =>
       ></template>
     </ResourceState>
     <template v-else-if="game">
-      <GameScoreHero :game="game" />
-      <p v-if="query.isRefetchError.value" class="gc-notice gc-notice--warning" role="status">
-        Не удалось обновить данные. Показан предыдущий результат.
-      </p>
-      <SnapshotStatus v-if="scoreMeta" :meta="scoreMeta" />
-      <div v-if="boxScore" class="game-detail-data">
-        <TeamBoxScoreComparison
-          :teams="comparisonTeams"
-          :match-teams="[game.awayTeam, game.homeTeam]"
-        />
-        <section
-          v-if="leaders.length"
-          class="game-detail-leaders"
-          aria-labelledby="game-leaders-heading"
-        >
-          <header class="game-detail-section-heading">
-            <div>
-              <span>02 / ИГРОКИ</span>
-              <h2 id="game-leaders-heading">Лидеры среди доступных данных</h2>
+      <GameScoreHero :game="game" :hidden="hidden" :schedule-only="scheduleOnly" />
+      <template v-if="!hidden && !scheduleOnly">
+        <p v-if="query.isRefetchError.value" class="gc-notice gc-notice--warning" role="status">
+          Не удалось обновить данные. Показан предыдущий результат.
+        </p>
+        <SnapshotStatus v-if="scoreMeta" :meta="scoreMeta" />
+        <div v-if="boxScore" class="game-detail-data">
+          <TeamBoxScoreComparison
+            :teams="comparisonTeams"
+            :match-teams="[game.awayTeam, game.homeTeam]"
+          />
+          <section
+            v-if="leaders.length"
+            class="game-detail-leaders"
+            aria-labelledby="game-leaders-heading"
+          >
+            <header class="game-detail-section-heading">
+              <div>
+                <span>02 / ИГРОКИ</span>
+                <h2 id="game-leaders-heading">Лидеры среди доступных данных</h2>
+              </div>
+            </header>
+            <article v-for="leader in leaders" :key="leader.key" class="game-leader-card">
+              <span>{{ leader.label }}</span><StatValue :value="leader.maximum" />
+              <div>
+                <span v-for="player in leader.players" :key="player.player.id"
+                  >{{ player.player.displayName ?? 'Игрок'
+                  }}<small>{{
+                    player.player.teamId === game.homeTeam.id
+                      ? game.homeTeam.abbreviation
+                      : game.awayTeam.abbreviation
+                  }}</small></span
+                >
+              </div>
+            </article>
+          </section>
+          <section class="game-detail-panel" aria-labelledby="player-box-score-heading">
+            <header class="game-detail-section-heading">
+              <div>
+                <span>{{ leaders.length ? '03' : '02' }} / ИГРОКИ</span>
+                <h2 id="player-box-score-heading">Статистика игроков</h2>
+              </div>
+              <p>Выберите набор показателей и нажмите на заголовок столбца.</p>
+            </header>
+            <div class="player-box-score-grid">
+              <PlayerBoxScoreTable
+                v-for="team in [game.awayTeam, game.homeTeam]"
+                :key="team.id"
+                :team="team"
+                :players="teamPlayers(team.id)"
+                :did-not-play="teamDnp(team.id)"
+                :sort-by="model.sortBy.value"
+                :direction="model.direction.value"
+                @sort="model.setSort"
+              />
             </div>
-          </header>
-          <article v-for="leader in leaders" :key="leader.key" class="game-leader-card">
-            <span>{{ leader.label }}</span><StatValue :value="leader.maximum" />
-            <div>
-              <span v-for="player in leader.players" :key="player.player.id"
-                >{{ player.player.displayName ?? 'Игрок'
-                }}<small>{{
-                  player.player.teamId === game.homeTeam.id
-                    ? game.homeTeam.abbreviation
-                    : game.awayTeam.abbreviation
-                }}</small></span
-              >
-            </div>
-          </article>
-        </section>
-        <section class="game-detail-panel" aria-labelledby="player-box-score-heading">
-          <header class="game-detail-section-heading">
-            <div>
-              <span>{{ leaders.length ? '03' : '02' }} / ИГРОКИ</span>
-              <h2 id="player-box-score-heading">Статистика игроков</h2>
-            </div>
-            <p>Выберите набор показателей и нажмите на заголовок столбца.</p>
-          </header>
-          <div class="player-box-score-grid">
-            <PlayerBoxScoreTable
-              v-for="team in [game.awayTeam, game.homeTeam]"
-              :key="team.id"
-              :team="team"
-              :players="teamPlayers(team.id)"
-              :did-not-play="teamDnp(team.id)"
-              :sort-by="model.sortBy.value"
-              :direction="model.direction.value"
-              @sort="model.setSort"
-            />
-          </div>
-        </section>
-        <SnapshotStatus v-if="boxScoreMeta" :meta="boxScoreMeta" />
-      </div>
-      <section
-        v-else
-        class="game-detail-panel game-detail-no-box"
-        aria-labelledby="no-boxscore-heading"
-      >
-        <div class="game-detail-no-box-icon"><AppIcon name="chart" :size="20" /></div>
-        <div>
-          <span>BOX SCORE</span>
-          <h2 id="no-boxscore-heading">Подробная статистика пока недоступна</h2>
-          <p>{{ unavailableDetails }}</p>
+          </section>
+          <SnapshotStatus v-if="boxScoreMeta" :meta="boxScoreMeta" />
         </div>
-        <AppIcon name="database" :size="17" />
-      </section>
-      <SnapshotStatus v-if="boxScoreMeta && !boxScore" :meta="boxScoreMeta" />
-      <footer class="game-detail-footnote">
-        Числа без значения источника показаны как «—». Проценты и лидеры рассчитаны только из
-        полученных строк.
-      </footer>
+        <section
+          v-else
+          class="game-detail-panel game-detail-no-box"
+          aria-labelledby="no-boxscore-heading"
+        >
+          <div class="game-detail-no-box-icon"><AppIcon name="chart" :size="20" /></div>
+          <div>
+            <span>BOX SCORE</span>
+            <h2 id="no-boxscore-heading">Подробная статистика пока недоступна</h2>
+            <p>{{ unavailableDetails }}</p>
+          </div>
+          <AppIcon name="database" :size="17" />
+        </section>
+        <SnapshotStatus v-if="boxScoreMeta && !boxScore" :meta="boxScoreMeta" />
+        <footer class="game-detail-footnote">
+          Числа без значения источника показаны как «—». Проценты и лидеры рассчитаны только из
+          полученных строк.
+        </footer>
+      </template>
     </template>
   </div>
 </template>

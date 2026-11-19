@@ -1,3 +1,4 @@
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
 import { computed, shallowRef } from 'vue'
 import { useTeamFavorites } from '@/features/standings/composables/useTeamFavorites'
 import { TEAM_SEASON_END_YEAR } from '../season'
@@ -7,6 +8,8 @@ export type TeamConferenceFilter = 'all' | 'east' | 'west'
 export type TeamSort = 'name' | 'rank' | 'wins' | 'points'
 
 export function useTeamsDirectory() {
+  const { hideAggregate } = useSpoilerMode()
+  const statsHidden = computed(() => hideAggregate('team-directory'))
   const query = useTeams(TEAM_SEASON_END_YEAR)
   const { favoriteIds, isFavorite, toggleFavorite } = useTeamFavorites()
   const search = shallowRef('')
@@ -28,6 +31,7 @@ export function useTeamsDirectory() {
       )
     })
     return [...filtered].sort((left, right) => {
+      if (statsHidden.value) return left.name.localeCompare(right.name, 'ru')
       const order = sortDirection.value === 'ascending' ? 1 : -1
       if (sortBy.value === 'name') return order * left.name.localeCompare(right.name, 'ru')
       const leftValue =
@@ -68,6 +72,7 @@ export function useTeamsDirectory() {
     sortDirection.value = sortDirection.value === 'ascending' ? 'descending' : 'ascending'
   }
   return {
+    statsHidden,
     query,
     favoriteIds,
     isFavorite,

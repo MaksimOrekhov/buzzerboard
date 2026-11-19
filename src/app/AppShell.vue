@@ -7,6 +7,10 @@ import { navigationItems, comingSoonItems } from './navigation'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import NbaLeagueLogo from '@/shared/components/NbaLeagueLogo.vue'
 import '@/assets/design-system.css'
+import SpoilerToggle from '@/features/spoilers/SpoilerToggle.vue'
+import { useSpoilerClock } from '@/features/spoilers/useSpoilerMode'
+
+useSpoilerClock()
 const route = useRoute()
 const sectionIsActive = (id: string, path: string) =>
   route.name === id || ((id === 'teams' || id === 'players') && route.path.startsWith(path + '/'))
@@ -75,8 +79,9 @@ const sectionIsActive = (id: string, path: string) =>
             <AppIcon name="basketball" :size="17" /><span>Баскетбол</span><span>/</span
             ><strong>NBA</strong>
           </div>
-          <span class="gc-topbar-caption">Твоя игра. Твои цифры.</span
-          ><RouterLink to="/favorites" class="gc-topbar-favorites" aria-label="Открыть избранное"
+          <span class="gc-topbar-spacer" aria-hidden="true" />
+          <SpoilerToggle />
+          <RouterLink to="/favorites" class="gc-topbar-favorites" aria-label="Открыть избранное"
             ><AppIcon name="star" :size="18" /><span>Избранное</span></RouterLink
           >
         </header>

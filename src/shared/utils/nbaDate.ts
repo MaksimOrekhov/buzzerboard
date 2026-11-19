@@ -26,3 +26,9 @@ export function getViewerGameDate(startsAt: string | Date): string {
 
   return getDateKeyInTimeZone(instant, VIEWER_TIME_ZONE)
 }
+
+export function shiftNbaGameDate(date: string, days: number): string {
+  const shifted = new Date(`${date}T12:00:00Z`)
+  shifted.setUTCDate(shifted.getUTCDate() + days)
+  return shifted.toISOString().slice(0, 10)
+}

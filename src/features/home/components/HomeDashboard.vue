@@ -20,6 +20,8 @@ import TeamLogo from '@/shared/components/TeamLogo.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
 import { gameDetailsPath } from '@/features/games/gameDetailsRoute'
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
 const {
   selectedDate,
   minDate,
@@ -27,6 +29,8 @@ const {
   setDate,
   query,
   games,
+  hasHiddenGames,
+  statusOf,
   meta,
   displayDate,
   errorTitle,
@@ -36,6 +40,8 @@ const {
   toggleFavorite,
   toggleDetails,
 } = useGameCenter()
+const { hideAggregate } = useSpoilerMode()
+const seasonHidden = computed(() => hideAggregate('overview-standings'))
 const standings = useStandings(CURRENT_SEASON)
 const conference = shallowRef<Conference>('east')
 const previewTeams = computed(() =>
@@ -45,8 +51,8 @@ const previewTeams = computed(() =>
     'descending',
   ).slice(0, 5),
 )
-const upcoming = computed(() => games.value.filter((game) => game.status === 'scheduled').length)
-const completed = computed(() => games.value.filter((game) => game.status === 'final').length)
+const upcoming = computed(() => games.value.filter((game) => statusOf(game) === 'scheduled').length)
+const completed = computed(() => games.value.filter((game) => statusOf(game) === 'final').length)
 const gameRows = computed(() =>
   [...games.value].sort((a, b) => (a.startsAt ?? '').localeCompare(b.startsAt ?? '')).slice(0, 4),
 )
@@ -77,11 +83,11 @@ const gameRows = computed(() =>
           <dt>Матчей</dt>
           <dd>{{ games.length }}</dd>
         </div>
-        <div>
+        <div v-if="!hasHiddenGames">
           <dt>Завершено</dt>
           <dd>{{ completed }}</dd>
         </div>
-        <div>
+        <div v-if="!hasHiddenGames">
           <dt>Впереди</dt>
           <dd>{{ upcoming }}</dd>
         </div>
@@ -146,11 +152,15 @@ const gameRows = computed(() =>
           title="Таблица пока недоступна"
           description="Попробуйте вернуться позже."
           compact /><ResourceState
-          v-else-if="!previewTeams.length"
+          v-else-if="!seasonHidden && !previewTeams.length"
           status="empty"
           title="Таблица пока пуста"
           description="Показатели появятся после загрузки."
           compact />
+        <SpoilerAggregateGate
+          v-else-if="seasonHidden"
+          scope="overview-standings"
+          title="Картина сезона скрыта" />
         <div v-else class="overview-mini-table">
           <div class="overview-mini-head"><span>Команда</span><span>В–П</span><span>PCT</span></div>
           <div v-for="row in previewTeams" :key="row.team.id" class="overview-mini-row">
@@ -164,7 +174,9 @@ const gameRows = computed(() =>
             }}</strong>
           </div>
         </div>
-        <SnapshotStatus v-if="standings.data.value" :meta="standings.data.value.meta"
+        <SnapshotStatus
+          v-if="!seasonHidden && standings.data.value"
+          :meta="standings.data.value.meta"
       /></AppPanel>
     </div>
     <section class="overview-next" aria-label="Будущие разделы">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import '../../standings/standings.css'
 import '../teams.css'
+import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
 import { RouterLink } from 'vue-router'
 import { useTeamsDirectory } from '../composables/useTeamsDirectory'
 import PageHeading from '@/shared/components/PageHeading.vue'
@@ -14,6 +15,7 @@ import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
 import TeamDirectoryCard from './TeamDirectoryCard.vue'
 const {
+  statsHidden,
   query,
   favoriteIds,
   isFavorite,
@@ -55,7 +57,7 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
           среза.</span
         >
       </div>
-      <div class="teams-intro-stat">
+      <div v-if="!statsHidden" class="teams-intro-stat">
         <span>Профили с данными</span
         ><strong>{{ data?.coverage.available ?? 0 }}<small> / 30</small></strong>
         <div class="teams-coverage-meter">
@@ -86,8 +88,14 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
       />
       <div class="teams-toolbar-controls">
         <AppSearch v-model="search" label="Поиск команды" placeholder="Команда или дивизион" />
-        <AppSelect v-model="sortBy" label="Сортировать команды" :options="sortOptions" />
+        <AppSelect
+          v-if="!statsHidden"
+          v-model="sortBy"
+          label="Сортировать команды"
+          :options="sortOptions"
+        />
         <AppButton
+          v-if="!statsHidden"
           icon="sort"
           :aria-label="`Порядок сортировки: ${sortDirection === 'descending' ? 'по убыванию' : 'по возрастанию'}`"
           @click="toggleSortDirection"
@@ -104,6 +112,11 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
         >
       </div>
     </div>
+    <SpoilerAggregateGate
+      v-if="statsHidden && data"
+      scope="team-directory"
+      title="Сезонные показатели команд скрыты"
+    />
     <div v-if="data" class="teams-results-meta">
       <span>{{ visibleTeams.length }} из {{ teams.length }} команд</span
       ><button v-if="activeFilters" class="gc-reset" @click="resetFilters">Сбросить фильтры</button>
@@ -142,6 +155,7 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
         v-for="entry in visibleTeams"
         :key="entry.code"
         :entry="entry"
+        :stats-hidden="statsHidden"
         :favorite="isFavorite(entry.team.id)"
         @toggle-favorite="toggleFavorite"
       />

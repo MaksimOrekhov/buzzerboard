@@ -8,6 +8,7 @@ import TeamLogo from '@/shared/components/TeamLogo.vue'
 defineProps<{
   entry: TeamDirectoryEntry
   favorite: boolean
+  statsHidden: boolean
 }>()
 defineEmits<{ toggleFavorite: [teamId: TeamId] }>()
 </script>
@@ -32,7 +33,7 @@ defineEmits<{ toggleFavorite: [teamId: TeamId] }>()
         <AppIcon name="star" :size="18" />
       </button>
     </header>
-    <RouterLink :to="`/teams/${entry.code}`" class="teams-card-stats">
+    <RouterLink v-if="!statsHidden" :to="`/teams/${entry.code}`" class="teams-card-stats">
       <div>
         <span>Баланс</span
         ><strong>{{
@@ -53,7 +54,7 @@ defineEmits<{ toggleFavorite: [teamId: TeamId] }>()
     </RouterLink>
     <footer class="teams-card-footer">
       <span>{{ entry.conference === 'east' ? 'Восток' : 'Запад' }}</span>
-      <span v-if="entry.season?.isStale" class="teams-stale">Снимок устарел</span>
+      <span v-if="!statsHidden && entry.season?.isStale" class="teams-stale">Снимок устарел</span>
       <RouterLink :to="`/teams/${entry.code}`" :aria-label="`Открыть профиль ${entry.name}`"
         >Профиль<AppIcon name="arrow" :size="14"
       /></RouterLink>

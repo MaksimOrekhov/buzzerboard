@@ -708,3 +708,24 @@
     font-size: 12px;
   }
 }
+
+.gc-match-reveal {
+  align-self: center;
+}
+
+@media (max-width: 620px) {
+  .gc-match-main .gc-match-reveal {
+    grid-column: 1;
+    grid-row: 3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px 8px;
+    margin-top: 4px;
+    text-align: left;
+  }
+  .gc-score-row--protected .gc-match-team {
+    grid-template-columns: 31px minmax(0, 1fr);
+  }
+}

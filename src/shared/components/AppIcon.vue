@@ -34,6 +34,15 @@ withDefaults(
     <template v-else-if="name === 'chevron-right'">
       <path d="m9 18 6-6-6-6" />
     </template>
+    <template v-else-if="name === 'eye'">
+      <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </template>
+    <template v-else-if="name === 'eye-off'">
+      <path
+        d="m3 3 18 18M10 6.2c.6-.1 1.3-.2 2-.2 6.4 0 10 6 10 6a16 16 0 0 1-3.1 3.4M6.2 8A16 16 0 0 0 2 12s3.6 6 10 6c1.3 0 2.6-.3 3.7-.8"
+      />
+    </template>
     <template v-else-if="name === 'chart'">
       <path d="M4 19V5M4 19h17" />
       <path d="M8 16v-4M13 16V8M18 16v-7" />

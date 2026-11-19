@@ -10,7 +10,10 @@ import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
 import VerifiedPlayerLink from '@/features/players/VerifiedPlayerLink.vue'
 import { bbsPlayerId } from '@/entities/nba/players'
 import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
-const props = defineProps<{ profile: TeamSeasonProfile }>()
+import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import SpoilerGameReveal from '@/features/spoilers/SpoilerGameReveal.vue'
+const { hideCompleted } = useSpoilerMode()
+const props = defineProps<{ profile: TeamSeasonProfile; leadersHidden?: boolean }>()
 const dateLabel = (value: string) =>
   new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
     new Date(`${value}T12:00:00Z`),
@@ -27,6 +30,8 @@ const nextGameTime = (value: string | null, nbaDate: string | null) => {
     }).format(new Date(value))
   return nbaDate ? dateLabel(nbaDate) : 'Время уточняется'
 }
+const hidden = (game: NonNullable<TeamSeasonProfile['lastTen']>[number]) =>
+  hideCompleted({ id: game.gameId, nbaGameDate: game.nbaGameDate })
 const teamLabel = computed(
   () => props.profile.team.displayName ?? props.profile.team.abbreviation ?? 'Команда',
 )
@@ -97,13 +102,16 @@ function opponentTeam(code: string): Team {
         v-for="game in profile.lastTen"
         :key="game.gameId ?? `${game.nbaGameDate}-${game.opponentCode}`"
         class="teams-result-row"
+        :class="{ 'teams-result-row--protected': hidden(game) }"
       >
         <time :datetime="game.nbaGameDate">{{ dateLabel(game.nbaGameDate) }}</time>
         <span
+          v-if="!hidden(game)"
           class="teams-result-outcome"
           :class="`teams-result-outcome--${game.result.toLowerCase()}`"
           >{{ game.result }}</span
         >
+        <span v-else aria-hidden="true" />
         <TeamLogo :team="opponentTeam(game.opponentCode)" :size="28" />
         <span class="teams-result-opponent"
           ><span v-if="game.venue">{{ game.venue === 'home' ? 'vs' : '@' }} </span>
@@ -111,7 +119,12 @@ function opponentTeam(code: string): Team {
             ><span>{{ game.opponentCode }}</span></TeamProfileLink
           ></span
         >
-        <strong>{{ game.pointsFor }}–{{ game.pointsAgainst }}</strong>
+        <SpoilerGameReveal
+          v-if="hidden(game)"
+          class="teams-result-reveal"
+          :game="{ id: game.gameId, nbaGameDate: game.nbaGameDate }"
+        />
+        <strong v-else>{{ game.pointsFor }}–{{ game.pointsAgainst }}</strong>
         <RouterLink
           v-if="game.gameId"
           :to="{
@@ -126,7 +139,7 @@ function opponentTeam(code: string): Team {
       </div>
     </div>
     <p v-else class="teams-data-empty">Список последних десяти матчей отсутствует в снимке BBS.</p>
-    <div v-if="profile.leaders.length" class="teams-leaders">
+    <div v-if="!leadersHidden && profile.leaders.length" class="teams-leaders">
       <h3>Лидеры команды по данным BBS</h3>
       <div class="teams-leader-grid">
         <article v-for="leader in profile.leaders" :key="leader.playerId">
@@ -141,7 +154,9 @@ function opponentTeam(code: string): Team {
         </article>
       </div>
     </div>
-    <div v-else class="teams-data-empty">BBS не вернул сезонных лидеров для этой команды.</div>
+    <div v-else-if="!leadersHidden" class="teams-data-empty">
+      BBS не вернул сезонных лидеров для этой команды.
+    </div>
     <p class="teams-data-footnote">
       <AppIcon name="database" :size="15" />Ссылки ведут к доступным карточкам матчей.
     </p>
