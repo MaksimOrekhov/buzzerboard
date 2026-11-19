@@ -99,6 +99,105 @@
       "bytes": 228870,
       "fileName": "Minneapolis Skyline looking south.jpg",
       "capturedAt": "2018-03-27"
+    },
+    {
+      "assetId": "commons:file:united-center-exterior",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:united-center"
+      },
+      "category": "arena-history",
+      "fileName": "United Center 060716.jpg",
+      "title": "United Center, 2006",
+      "description": "Домашняя арена Bulls в Чикаго.",
+      "alt": "Фасад United Center и аллея перед ареной.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/United_Center_060716.jpg",
+      "deliverySourceUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/United_Center_060716.jpg",
+      "author": "JeremyA",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:United_Center_060716.jpg",
+      "license": "CC BY-SA 2.5",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5/",
+      "capturedAt": "2006-07-16",
+      "checkedAt": "2026-11-19",
+      "modifications": "Оригинальный JPEG, без изменений.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Commons file and imageinfo agree on the selected Creative Commons license. No additional Commons restrictions were reported. Venue exterior, incidental venue signage where visible, and no identifiable people. Attribution and applicable ShareAlike terms retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/united-center.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1024,
+      "height": 658,
+      "bytes": 303865
+    },
+    {
+      "assetId": "commons:file:inglewood-forum-exterior",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:inglewood-forum"
+      },
+      "category": "arena-history",
+      "fileName": "Forum Inglewood.JPG",
+      "title": "The Forum, 2014",
+      "description": "Арена, где Lakers играли в эпоху Showtime.",
+      "alt": "Колоннада The Forum в Инглвуде.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Forum_Inglewood.JPG",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Forum_Inglewood.JPG/1280px-Forum_Inglewood.JPG",
+      "author": "Ritapepaj",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Forum_Inglewood.JPG",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "capturedAt": "2014-03-10",
+      "checkedAt": "2026-11-19",
+      "modifications": "Миниатюра Wikimedia Commons, 1280 × 672 пикселей.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Commons file and imageinfo agree on the selected Creative Commons license. No additional Commons restrictions were reported. Venue exterior, incidental venue signage where visible, and no identifiable people. Attribution and applicable ShareAlike terms retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/inglewood-forum.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 672,
+      "bytes": 208713
+    },
+    {
+      "assetId": "commons:file:metrodome-exterior",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:metrodome"
+      },
+      "category": "arena-history",
+      "fileName": "Metrodome - Minneapolis, MN - panoramio.jpg",
+      "title": "Metrodome, 2013",
+      "description": "Стадион первого домашнего сезона Timberwolves.",
+      "alt": "Белая крыша Metrodome над улицей Миннеаполиса.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/68/Metrodome_-_Minneapolis%2C_MN_-_panoramio.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Metrodome_-_Minneapolis%2C_MN_-_panoramio.jpg/1280px-Metrodome_-_Minneapolis%2C_MN_-_panoramio.jpg",
+      "author": "Gabriel Vanslette",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Metrodome_-_Minneapolis,_MN_-_panoramio.jpg",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "capturedAt": "2013-08-25",
+      "checkedAt": "2026-11-19",
+      "modifications": "Миниатюра Wikimedia Commons, 1280 × 915 пикселей.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Commons file and imageinfo agree on the selected Creative Commons license. No additional Commons restrictions were reported. Venue exterior, incidental venue signage where visible, and no identifiable people. Attribution and applicable ShareAlike terms retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/metrodome.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 915,
+      "bytes": 187490
     }
   ]
 }

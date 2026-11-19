@@ -5,7 +5,7 @@ import MediaAttribution from './MediaAttribution.vue'
 
 describe('MediaAttribution', () => {
   it('renders each real pilot asset with full Russian attribution and intrinsic dimensions', () => {
-    expect(TEAM_MEDIA_ASSETS).toHaveLength(3)
+    expect(TEAM_MEDIA_ASSETS).toHaveLength(6)
 
     for (const asset of TEAM_MEDIA_ASSETS) {
       const wrapper = mount(MediaAttribution, { props: { asset } })
@@ -26,7 +26,6 @@ describe('MediaAttribution', () => {
       expect(wrapper.text()).toContain(`Изменения: ${asset.modifications}`)
       expect(wrapper.get(`a[href="${asset.sourceUrl}"]`).text()).toBe('Файл на Wikimedia Commons')
       expect(wrapper.get(`a[href="${asset.licenseUrl}"]`).text()).toBe(asset.license)
-      expect(asset.subject.kind).toBe('city')
     }
   })
 

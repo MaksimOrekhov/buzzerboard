@@ -1,0 +1,255 @@
+.team-history,
+.team-history-top,
+.team-history-body,
+.team-history-side,
+.team-history-gallery {
+  display: grid;
+  gap: var(--gc-space-md, 16px);
+  min-width: 0;
+}
+
+.team-history-top,
+.team-history-body {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+}
+
+.team-history-heading h2,
+.team-history-heading p,
+.team-history-card h3,
+.team-history-card h4,
+.team-history-card p {
+  margin: 0;
+}
+
+.team-history-heading {
+  padding-block: 8px;
+}
+
+.team-history-heading h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  letter-spacing: -0.03em;
+}
+
+.team-history-card {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: 16px;
+  padding: clamp(16px, 2vw, 24px);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius);
+  background: var(--gc-panel);
+}
+
+.team-history-card h3 {
+  font-size: 1.125rem;
+}
+
+.team-history-card h4 {
+  color: var(--gc-text);
+  font-size: 0.95rem;
+}
+
+.team-history-card p {
+  color: var(--gc-secondary);
+  line-height: 1.55;
+}
+
+.team-history .team-history-meta,
+.team-history-current dt,
+.team-history-eras small {
+  color: var(--gc-muted);
+  font-size: 0.8125rem;
+}
+
+.team-history-source {
+  display: inline-block;
+  color: var(--gc-accent);
+  font-size: 0.8125rem;
+  text-underline-offset: 3px;
+}
+
+.team-history-foundation {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.team-history-foundation > strong {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-history-foundation p {
+  flex: 1 1 14rem;
+}
+
+.team-history-current,
+.team-history-eras,
+.team-history-titles,
+.team-history-timeline,
+.team-history-legends,
+.team-history-retired {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-history-current {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+.team-history-current > div,
+.team-history-eras li {
+  padding: 10px 0;
+  border-top: 1px solid var(--gc-line);
+}
+
+.team-history-current dd {
+  margin: 0;
+}
+
+.team-history-eras li {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 6px 10px;
+  font-size: 0.875rem;
+}
+
+.team-history-eras small,
+.team-history-titles span {
+  display: block;
+}
+
+.team-history-venues summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--gc-accent);
+}
+
+.team-history-venues ol {
+  margin-top: 10px;
+}
+
+.team-history-titles,
+.team-history-legends {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 8px;
+}
+
+.team-history-titles li,
+.team-history-legends li {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--gc-line);
+  border-radius: 8px;
+  background: var(--gc-panel-hover);
+}
+
+.team-history-titles strong,
+.team-history-number {
+  color: var(--gc-accent);
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-history-titles span,
+.team-history-legends p {
+  color: var(--gc-secondary);
+  font-size: 0.8125rem;
+}
+
+.team-history-controls,
+.team-history-inline,
+.team-history-retired {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.team-history-controls label {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 12rem;
+  color: var(--gc-secondary);
+  font-size: 0.875rem;
+}
+
+.team-history-controls select {
+  width: 100%;
+  min-height: 44px;
+  padding-inline: 10px;
+  color-scheme: dark;
+}
+
+.team-history-timeline {
+  display: grid;
+}
+
+.team-history-timeline li {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  gap: 12px;
+}
+
+.team-history-timeline time {
+  padding-block: 11px;
+  color: var(--gc-accent);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-history-timeline li > div {
+  display: grid;
+  gap: 4px;
+  padding: 11px 0 14px 16px;
+  border-inline-start: 2px solid var(--gc-line);
+}
+
+.team-history-retired li {
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: var(--gc-panel-hover);
+  color: var(--gc-secondary);
+  font-size: 0.8125rem;
+}
+
+.team-history-retired strong {
+  color: var(--gc-text);
+}
+
+.team-history-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .team-history-top,
+  .team-history-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  .team-history-eras li {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .team-history-eras .team-history-source {
+    grid-column: 2;
+  }
+}
