@@ -1,0 +1,273 @@
+.jersey-panel {
+  display: grid;
+  min-width: 0;
+  gap: clamp(12px, 2vw, 22px);
+}
+
+.jersey-panel :is(h2, h3, h4, p) {
+  margin: 0;
+}
+
+.jersey-hero,
+.jersey-toolbar,
+.jersey-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius);
+  background: var(--gc-panel);
+}
+
+.jersey-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+  align-items: stretch;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse at 12% 0%,
+      color-mix(in srgb, var(--gc-accent) 16%, transparent),
+      transparent 74%
+    ),
+    var(--gc-panel);
+}
+
+.jersey-hero__copy,
+.jersey-hero__season {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.jersey-hero__copy h2 {
+  font-size: clamp(1.7rem, 4vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.jersey-hero__copy p:last-child,
+.jersey-hero__season > span,
+.jersey-toolbar__note,
+.jersey-season__heading > span,
+.jersey-coverage {
+  color: var(--gc-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.jersey-hero__season {
+  min-width: 0;
+  border-inline-start: 1px solid var(--gc-line);
+  background: color-mix(in srgb, var(--gc-bg) 46%, transparent);
+}
+
+.jersey-hero__season strong {
+  color: var(--gc-text);
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.jersey-hero__palette,
+.jersey-swatches {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius);
+}
+
+.jersey-hero__palette {
+  max-width: 18rem;
+  min-height: 10px;
+  margin-top: 4px;
+}
+
+.jersey-hero__palette span,
+.jersey-swatches span {
+  flex: 1;
+}
+
+.jersey-kicker {
+  color: var(--gc-accent);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.jersey-toolbar,
+.jersey-card__content {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  min-width: 0;
+  gap: 12px;
+  padding: clamp(12px, 2vw, 20px);
+}
+
+.jersey-filters,
+.jersey-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(8px, 1.5vw, 16px);
+  width: 100%;
+}
+
+.jersey-filters > div,
+.jersey-filters .gc-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.jersey-filters > div {
+  display: grid;
+}
+
+.jersey-toolbar__note,
+.jersey-season__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.jersey-season {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.jersey-season--archive {
+  padding-inline-start: clamp(10px, 2vw, 18px);
+  border-inline-start: 2px solid var(--gc-line);
+}
+
+.jersey-season__heading h3 {
+  font-size: 1.15rem;
+  color: var(--gc-text);
+}
+
+.jersey-card {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.jersey-visual {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  background: var(--gc-bg);
+  border-bottom: 1px solid var(--gc-line);
+}
+
+.jersey-visual--empty {
+  min-height: 99px;
+  align-content: center;
+}
+
+.jersey-swatches {
+  min-height: 62px;
+}
+
+.jersey-visual p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 7px;
+  color: var(--gc-secondary);
+  font-size: 0.75rem;
+}
+
+.jersey-visual p span:first-child {
+  color: var(--gc-muted);
+}
+
+.jersey-card__content h4 {
+  font-size: clamp(1.02rem, 1.9vw, 1.38rem);
+  line-height: 1.25;
+}
+
+.jersey-card__content p {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--gc-secondary);
+}
+
+.jersey-card__source {
+  align-self: start;
+  min-height: 32px;
+}
+
+.jersey-provenance {
+  width: 100%;
+  min-width: 0;
+  border-top: 1px solid var(--gc-line);
+  padding-top: 7px;
+  font-size: 0.8125rem;
+}
+
+.jersey-provenance summary {
+  color: var(--gc-accent);
+  cursor: pointer;
+  padding-block: 5px;
+}
+
+.jersey-provenance dl {
+  display: grid;
+  gap: 6px;
+  margin: 7px 0;
+}
+
+.jersey-provenance dt {
+  color: var(--gc-muted);
+}
+
+.jersey-provenance dd {
+  margin-inline-start: 0;
+}
+
+.jersey-coverage {
+  padding: 8px 12px;
+  border-inline-start: 2px solid var(--gc-line);
+}
+
+@media (max-width: 900px) {
+  .jersey-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .jersey-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .jersey-grid,
+  .jersey-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .jersey-hero__season {
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    gap: 8px;
+    border-inline-start: 0;
+    border-top: 1px solid var(--gc-line);
+  }
+
+  .jersey-hero__season strong {
+    justify-self: end;
+  }
+
+  .jersey-hero__palette {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+}
+
+@media (max-width: 350px) {
+  .jersey-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
