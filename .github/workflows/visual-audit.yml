@@ -1,0 +1,76 @@
+name: Visual Audit
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Compare all visual scenarios
+    if: github.event.label.name == 'visual-audit'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Capture baseline from pull request base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          baseline_dir="$RUNNER_TEMP/buzzerboard-visual-baseline"
+          if ! git cat-file -e "$BASE_SHA^{commit}"; then
+            git fetch --depth=1 origin "$BASE_SHA"
+          fi
+          git worktree add --detach "$baseline_dir" "$BASE_SHA"
+          pnpm --dir "$baseline_dir" install --frozen-lockfile --prefer-offline
+          BUZZERBOARD_VISUAL_BASELINE_ROOT="$baseline_dir" pnpm run visual:pro171
+
+      - name: Capture all pull request scenarios
+        run: pnpm run visual:pro171
+
+      - name: Upload full visual audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-visual-audit
+          path: |
+            artifacts/pro-171/baseline/
+            artifacts/pro-171/synthetic/
+            artifacts/pro-171/comparison.html
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload representative before and after pairs
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-before-after-sample
+          path: |
+            artifacts/pro-171/*/320x600-audit-games-select-open.png
+            artifacts/pro-171/*/375x1000-audit-lal-history-filters.png
+            artifacts/pro-171/*/375x1000-audit-min-coaches.png
+            artifacts/pro-171/*/1440x600-audit-chi-coaches.png
+          if-no-files-found: error
+          retention-days: 7

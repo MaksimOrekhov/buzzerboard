@@ -1,10 +1,21 @@
 # PRO-217 · UI/UX-аудит BuzzerBoard
 
-Базовая версия — main на `1e58f1d419d4d752eee21186dbfda31f2e7179af`. В CI артефакт
-`buzzerboard-pro171-synthetic` содержит `comparison.html`, снимки `baseline/` и
-`synthetic/`, а также `checks.json` для обоих прогонов. После распаковки в
-`comparison.html` можно открыть пары в исходном размере. Для нативных селектов Chromium
-сохраняет закрытый контрол. Открытые меню истории и тренеров показаны в снимках PR.
+Базовая версия — main на `1e58f1d419d4d752eee21186dbfda31f2e7179af`. Исходная
+[публикация до/после](https://github.com/MaksimOrekhov/buzzerboard/actions/runs/45139359069/artifacts/14801906804)
+содержит полный набор снимков PRO-217. Для нативных селектов Chromium сохраняет закрытый
+контрол. Открытые меню истории и тренеров показаны в снимках PR.
+
+## CI и полный аудит по запросу
+
+- Обычный CI выполняет браузерные проверки на всех семи ширинах. В
+  `buzzerboard-visual-ci` сохраняются восемь репрезентативных PNG и `checks.json` на три дня.
+  Локальный эквивалент — `pnpm run visual:pro171 --compact`.
+- Добавьте метку `visual-audit` к открытому PR, чтобы запустить workflow **Visual Audit**.
+  Для PR #32 команда — `gh pr edit 32 --add-label visual-audit`. Для повторного запуска
+  снимите метку и добавьте её снова. Обычные push и pull request CI сохраняют компактный режим.
+- В `buzzerboard-visual-audit` доступны `baseline/`, `synthetic/` и `comparison.html` на семь
+  дней. После распаковки откройте `comparison.html`. В отдельном
+  `buzzerboard-before-after-sample` сохраняются четыре пары ключевых сцен.
 
 ## Исправленные находки
 

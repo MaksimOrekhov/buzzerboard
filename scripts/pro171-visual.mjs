@@ -11,13 +11,35 @@ import { checkUiAudit } from './pro217-ui-browser.mjs'
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const baselineRoot = process.env.BUZZERBOARD_VISUAL_BASELINE_ROOT
+const compact = process.argv.includes('--compact')
+assert.ok(!baselineRoot || !compact, 'Baseline capture requires full screenshots')
 const root = baselineRoot ? path.resolve(baselineRoot) : workspace
 const auditOnly = Boolean(baselineRoot) || process.argv.includes('--audit-only')
 const artifact = path.join(workspace, 'artifacts/pro-171')
 const baselineOutput = path.join(artifact, 'baseline')
-const output = baselineRoot ? baselineOutput : path.join(artifact, 'synthetic')
+const output = baselineRoot ? baselineOutput : path.join(artifact, compact ? 'ci' : 'synthetic')
+const ciScreenshots = new Set([
+  '320x600-audit-games-select-open.png',
+  '320x600-audit-players-filters.png',
+  '375x1000-audit-lal-history-filters.png',
+  '375x1000-audit-min-coaches.png',
+  '768x1000-audit-teams-filters.png',
+  '1440x600-audit-standings.png',
+  '1440x600-audit-comparison-open.png',
+  '1440x600-audit-chi-coaches.png',
+])
+
+async function saveScreenshot(page, filename, fullPage) {
+  if (compact && !ciScreenshots.has(filename)) return
+  await page.screenshot({
+    path: path.join(output, filename),
+    fullPage: !compact && fullPage,
+    animations: 'disabled',
+  })
+}
 const viewports = [320, 375, 620, 768, 1024, 1280, 1440]
 const checks = []
+const auditViewports = []
 const layoutFailures = []
 const today = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/New_York',
@@ -360,11 +382,7 @@ try {
         baselineRoot || documentWidth <= width,
         `${width} ${label}: overflow ${documentWidth}`,
       )
-      await page.screenshot({
-        path: path.join(output, `${width}-${label}.png`),
-        fullPage,
-        animations: 'disabled',
-      })
+      await saveScreenshot(page, `${width}-${label}.png`, fullPage)
     }
     const sizes = width === 1440 ? [1000, 600] : [width === 320 ? 600 : 1000]
     const setMode = (nextMode) => {
@@ -396,13 +414,10 @@ try {
             )
             layoutFailures.push({ width, height, label, actualWidth, elements })
           }
-          await auditPage.screenshot({
-            path: path.join(output, width + 'x' + height + '-' + label + '.png'),
-            fullPage,
-            animations: 'disabled',
-          })
+          await saveScreenshot(auditPage, width + 'x' + height + '-' + label + '.png', fullPage)
         },
       })
+      auditViewports.push({ width, height })
     }
     await auditPage.close()
     assert.deepEqual(errors, [])
@@ -718,9 +733,9 @@ try {
   }
   await writeFile(
     path.join(output, 'checks.json'),
-    JSON.stringify({ checks, layoutFailures }, null, 2),
+    JSON.stringify({ auditViewports, checks, layoutFailures }, null, 2),
   )
-  if (!baselineRoot) {
+  if (!baselineRoot && !compact) {
     const before = new Set(
       await readdir(baselineOutput).catch((error) => {
         if (error.code !== 'ENOENT') throw error
@@ -755,8 +770,8 @@ ${comparison}
 </html>`,
       )
     }
-    assert.equal(layoutFailures.length, 0, 'Page overflow found. See checks.json.')
   }
+  if (!baselineRoot) assert.equal(layoutFailures.length, 0, 'Page overflow found. See checks.json.')
   console.info(
     `BuzzerBoard UI audit: all 11 route types with synthetic GET data at ${viewports.join(', ')} px. Regression suite: ${checks.length} viewports.`,
   )
