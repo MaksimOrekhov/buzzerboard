@@ -5,7 +5,7 @@ import MediaAttribution from './MediaAttribution.vue'
 
 describe('MediaAttribution', () => {
   it('renders each real pilot asset with full Russian attribution and intrinsic dimensions', () => {
-    expect(TEAM_MEDIA_ASSETS).toHaveLength(6)
+    expect(TEAM_MEDIA_ASSETS).toHaveLength(9)
 
     for (const asset of TEAM_MEDIA_ASSETS) {
       const wrapper = mount(MediaAttribution, { props: { asset } })

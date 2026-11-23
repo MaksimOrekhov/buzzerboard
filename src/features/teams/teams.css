@@ -787,7 +787,7 @@
   display: grid;
   min-height: 44px;
   align-items: center;
-  padding-inline: 20px;
+  padding-inline: clamp(14px, 4vw, 20px);
   border-bottom: 2px solid transparent;
   border-radius: 8px 8px 0 0;
   color: var(--gc-secondary);

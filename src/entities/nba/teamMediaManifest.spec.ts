@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import rawManifest from './teamMediaManifest.json'
 import {
   getCityMediaForTeam,
+  getPersonMedia,
   getTeamMedia,
   isReviewedTeamMediaAsset,
   supportedLicenseUrl,
@@ -13,9 +14,9 @@ function copyManifest(): typeof rawManifest {
 }
 
 describe('team media manifest rights and subject checks', () => {
-  it('accepts the six reviewed pilot files and exact Commons license URLs', () => {
+  it('accepts the nine reviewed pilot files and exact Commons license URLs', () => {
     expect(validateTeamMediaManifest(rawManifest)).toEqual([])
-    expect(rawManifest.assets).toHaveLength(6)
+    expect(rawManifest.assets).toHaveLength(9)
     for (const asset of rawManifest.assets) {
       expect(isReviewedTeamMediaAsset(asset)).toBe(true)
       expect(supportedLicenseUrl(asset.license)).toBe(asset.licenseUrl)
@@ -42,6 +43,19 @@ describe('team media manifest rights and subject checks', () => {
     expect(getTeamMedia('MIN').map(({ subject }) => subject.id)).toContain('nba:arena:metrodome')
     expect(getTeamMedia('LAC')).toEqual([])
     expect(getTeamMedia('unknown')).toEqual([])
+  })
+
+  it('resolves portraits by a known NBA person ID', () => {
+    const [portrait] = getPersonMedia('nba:person:tiago-splitter')
+    expect(portrait?.subject.kind).toBe('person')
+    expect(getTeamMedia('CHI')).not.toContain(portrait)
+    expect(getPersonMedia('nba:person:not-registered')).toEqual([])
+    expect(
+      isReviewedTeamMediaAsset({
+        ...portrait,
+        subject: { kind: 'person', id: 'nba:person:not-registered' },
+      }),
+    ).toBe(false)
   })
 
   it('allows multiple assets for the same canonical subject', () => {
