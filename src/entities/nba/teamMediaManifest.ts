@@ -9,6 +9,7 @@ export interface TeamMediaAsset {
   assetId: string
   subject: { kind: TeamMediaSubjectKind; id: string }
   category: string
+  jerseyId?: string
   fileName: string
   title: string
   description: string
@@ -89,6 +90,11 @@ export function isReviewedTeamMediaAsset(value: unknown): value is TeamMediaAsse
     knownSubjects.has(`${value.subject.kind}:${value.subject.id}`) &&
     typeof value.category === 'string' &&
     /^[a-z][a-z0-9-]{0,39}$/.test(value.category) &&
+    (value.category === 'jersey'
+      ? value.subject.kind === 'team' &&
+        typeof value.jerseyId === 'string' &&
+        /^nba:jersey:[a-z]{3}:\d{4}-\d{2}:[a-z]+$/.test(value.jerseyId)
+      : value.jerseyId === undefined) &&
     nonEmpty(value.fileName) &&
     nonEmpty(value.title) &&
     nonEmpty(value.description) &&
@@ -179,6 +185,7 @@ export function getTeamMedia(teamCode: string): TeamMediaAsset[] {
     ({ subject, category }) =>
       category !== 'arena-guide' &&
       category !== 'city-guide' &&
+      category !== 'jersey' &&
       ((subject.kind === 'team' && subject.id === team.canonicalTeamId) ||
         (subject.kind === 'city' && subject.id === team.cityId) ||
         (subject.kind === 'arena' && arenas.has(subject.id))),

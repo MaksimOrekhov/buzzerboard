@@ -14,13 +14,16 @@ import AppButton from '@/shared/components/AppButton.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import TeamProfileOverview from './TeamProfileOverview.vue'
+import { withoutJerseyFilters } from '../jerseys/catalog'
 
 const TeamHistoryPanel = defineAsyncComponent(() => import('./TeamHistoryPanel.vue'))
 const TeamCoachesPanel = defineAsyncComponent(() => import('./TeamCoachesPanel.vue'))
+const TeamJerseysPanel = defineAsyncComponent(() => import('../jerseys/TeamJerseysPanel.vue'))
 const sections = [
   { label: 'Обзор', tab: null },
   { label: 'История', tab: 'history' },
   { label: 'Тренеры', tab: 'coaches' },
+  { label: 'Форма', tab: 'jerseys' },
 ]
 const route = useRoute()
 const code = computed(() =>
@@ -31,7 +34,7 @@ const arena = computed(() => getTeamArena(code.value))
 const city = computed(() => getTeamCity(code.value))
 const activeTab = computed(() => sections.find(({ tab }) => tab === route.query.tab)?.tab ?? null)
 const overviewQuery = computed(() => {
-  const query = { ...route.query }
+  const query = withoutJerseyFilters(route.query)
   delete query.tab
   return query
 })
@@ -89,7 +92,12 @@ const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team
         v-slot="{ href, navigate }"
         :to="{
           path: route.path,
-          query: section.tab ? { ...overviewQuery, tab: section.tab } : overviewQuery,
+          query:
+            section.tab === 'jerseys' && activeTab === 'jerseys'
+              ? route.query
+              : section.tab
+                ? { ...overviewQuery, tab: section.tab }
+                : overviewQuery,
         }"
         custom
       >
@@ -105,6 +113,7 @@ const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team
     </nav>
     <TeamHistoryPanel v-if="activeTab === 'history'" :key="team.code" :team-code="team.code" />
     <TeamCoachesPanel v-else-if="activeTab === 'coaches'" :key="team.code" :team-code="team.code" />
+    <TeamJerseysPanel v-else-if="activeTab === 'jerseys'" :key="team.code" :team-code="team.code" />
     <template v-else>
       <CityTeamSpotlight v-if="city" :city="city" />
       <TeamProfileOverview :code="team.code" />

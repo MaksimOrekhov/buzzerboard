@@ -9,6 +9,7 @@ import { checkTeamHistory } from './pro203-team-history-browser.mjs'
 import { checkTeamCoaching } from './pro204-team-coaching-browser.mjs'
 import { checkArenaGuide } from './pro205-arena-browser.mjs'
 import { checkCityGuide } from './pro206-city-browser.mjs'
+import { checkTeamJerseys } from './pro207-team-jerseys-browser.mjs'
 import { checkUiAudit } from './pro217-ui-browser.mjs'
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -24,6 +25,12 @@ const hasCityGuide = await access(path.join(root, 'src/pages/CitiesView.vue')).t
   () => true,
   () => false,
 )
+const hasTeamJerseys = await access(
+  path.join(root, 'src/features/teams/jerseys/TeamJerseysPanel.vue'),
+).then(
+  () => true,
+  () => false,
+)
 const routeTypes = 11 + (hasArenaGuide ? 2 : 0) + (hasCityGuide ? 2 : 0)
 const auditOnly = Boolean(baselineRoot) || process.argv.includes('--audit-only')
 const artifact = path.join(workspace, 'artifacts/pro-171')
@@ -31,13 +38,13 @@ const baselineOutput = path.join(artifact, 'baseline')
 const output = baselineRoot ? baselineOutput : path.join(artifact, compact ? 'ci' : 'synthetic')
 const ciScreenshots = new Set([
   '320x600-audit-games-select-open.png',
-  '320x600-audit-cities-catalog.png',
-  '375x1000-audit-lal-history-filters.png',
+  '320x600-audit-jerseys-chi.png',
+  '375x1000-audit-jerseys-archive.png',
   '375x1000-audit-cities-inglewood.png',
   '768x1000-audit-cities-game-geo.png',
   '1440x600-audit-standings.png',
   '1440x600-audit-comparison-open.png',
-  '1440x600-audit-cities-toronto.png',
+  '1440x600-audit-jerseys-min.png',
 ])
 
 async function saveScreenshot(page, filename, fullPage) {
@@ -443,6 +450,12 @@ try {
           today,
           game: games[0],
           meta,
+          capture: (label, options) => auditCapture('audit-' + label, options),
+        })
+      }
+      if (hasTeamJerseys) {
+        await checkTeamJerseys({
+          page: auditPage,
           capture: (label, options) => auditCapture('audit-' + label, options),
         })
       }

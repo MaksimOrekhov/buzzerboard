@@ -1,0 +1,1162 @@
+{
+  "schemaVersion": 1,
+  "currentSeason": "2026-27",
+  "reviewedAt": "2026-11-23",
+  "sets": [
+    {
+      "canonicalTeamId": "nba:team:ATL",
+      "jerseyId": "nba:jersey:atl:2026-27:city",
+      "season": "2026-27",
+      "type": "city",
+      "eraFrom": 1968,
+      "name": "MLK",
+      "palette": [],
+      "description": "Коллекция 2026/27 возвращает серию в память о Мартине Лютере Кинге. Лига и клуб работали над ней вместе с King Estate.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/atlanta-hawks?gameid=0022600078",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2027-01-18",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:ATL",
+      "jerseyId": "nba:jersey:atl:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1968,
+      "name": "Lift As We Fly",
+      "palette": ["light-blue", "brown", "black"],
+      "description": "Голубой оттенок отсылает к форме 1968 года. Надпись atl строчными буквами подчёркивает разговорное, знакомое жителям имя города.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/atlanta-hawks-2023-24-city-edition-uniform-lift-as-we-fly",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:BKN",
+      "jerseyId": "nba:jersey:bkn:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 2012,
+      "palette": ["black", "white"],
+      "description": "Чёрно-белый комплект с надписью Brooklyn. Рисунок боковой отделки напоминает паркет Barclays Center.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/brooklyn-nets?gameid=0022600349",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-13",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:BKN",
+      "jerseyId": "nba:jersey:bkn:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 2012,
+      "name": "Nets × KAWS",
+      "palette": ["black", "white", "gray"],
+      "description": "Художник KAWS соединил нейтральную гамму Nets с мотивами своей работы TENSION и собственным стилем леттеринга.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/brooklyn-nets-2023-24-city-edition-uniform-nets-x-kaws",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:BOS",
+      "jerseyId": "nba:jersey:bos:2026-27:city",
+      "season": "2026-27",
+      "type": "city",
+      "eraFrom": 1946,
+      "palette": ["gold"],
+      "description": "Переосмысление Earned Edition 2018/19. Золотистый акцент отсылает к разминочной форме Celtics 1980-х.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/boston-celtics?gameid=0022600626",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2027-01-20",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:BOS",
+      "jerseyId": "nba:jersey:bos:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1946,
+      "name": "It All Leads Back to Our City",
+      "palette": ["cream", "brown"],
+      "description": "Оформление напоминает клейма бостонских мебельщиков. Боковая тесьма отсылает к плетёным персиковым корзинам первых баскетбольных игр.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/boston-celtics-2023-24-city-edition-uniform-it-all-leads-back-to-our-city",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CHA",
+      "jerseyId": "nba:jersey:cha:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 2014,
+      "palette": ["teal", "white", "purple"],
+      "description": "Белые двойные полосы на бирюзовой основе напоминают второе поколение формы оригинальных Hornets 1997–2002 годов.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/charlotte-hornets?gameid=0022600298",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-28",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CHA",
+      "jerseyId": "nba:jersey:cha:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 2014,
+      "name": "Buzz City Gold Rush",
+      "palette": ["teal", "mint", "gold"],
+      "description": "Мятные и золотые вставки отсылают к золотой лихорадке Каролины и первому филиалу монетного двора США в Шарлотте.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/charlotte-hornets-2023-24-city-edition-uniform-buzz-city-gold-rush",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CHI",
+      "jerseyId": "nba:jersey:chi:2026-27:city",
+      "season": "2026-27",
+      "type": "city",
+      "eraFrom": 1966,
+      "name": "Sweet Home",
+      "palette": ["red", "light-blue"],
+      "description": "Возвращение первого City Edition клуба. Четыре красные звезды и голубые акценты отсылают к флагу Чикаго.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/chicago-bulls?gameid=0022600588",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2027-01-14",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CHI",
+      "jerseyId": "nba:jersey:chi:2026-27:statement",
+      "season": "2026-27",
+      "type": "statement",
+      "eraFrom": 1966,
+      "palette": ["black", "red"],
+      "description": "Красные тонкие полосы вернулись в обновлении 2025/26 и сохранились в календаре 2026/27. Деталь отсылает к комплектам эпохи 1990-х.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/chicago-bulls?gameid=0022600292",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CHI",
+      "jerseyId": "nba:jersey:chi:2025-26:city",
+      "season": "2025-26",
+      "type": "city",
+      "eraFrom": 1966,
+      "name": "Sweet Home",
+      "palette": ["black", "light-blue", "red"],
+      "description": "В ремиксе белую основу первой городской формы сменил чёрный фон. Цветовые акценты и звёзды вновь отсылают к флагу Чикаго.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/chicago-bulls?gameid=0022500647",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      },
+      "outfitDate": "2026-01-24"
+    },
+    {
+      "canonicalTeamId": "nba:team:CHI",
+      "jerseyId": "nba:jersey:chi:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1966,
+      "name": "Madhouse on Madison",
+      "palette": ["black", "red"],
+      "description": "Посвящение старому Chicago Stadium. Вертикальные буквы и оформление деталей отсылают к вывескам, билетам и паркету арены.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/chicago-bulls-2023-24-city-edition-uniform-madhouse-on-madison",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CHI",
+      "jerseyId": "nba:jersey:chi:2022-23:city",
+      "season": "2022-23",
+      "type": "city",
+      "eraFrom": 1966,
+      "name": "Ode to Architecture",
+      "palette": ["rust"],
+      "description": "Муниципальный знак Y обозначает слияние рукавов реки Чикаго. Ржаво-красный оттенок напоминает о цвете мостов.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/chicago-bulls?gameid=0022200227",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      },
+      "outfitDate": "2022-11-18"
+    },
+    {
+      "canonicalTeamId": "nba:team:CLE",
+      "jerseyId": "nba:jersey:cle:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1970,
+      "palette": ["burgundy", "gold"],
+      "description": "Лаконичный комплект Дэниела Аршама с золотой надписью Cleveland на винно-бордовой основе.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/cleveland-cavaliers?gameid=0022600305",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-29",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:CLE",
+      "jerseyId": "nba:jersey:cle:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1970,
+      "name": "Cavs’ Playbill",
+      "palette": [],
+      "description": "Афиши и театральные вывески Playhouse Square подсказали дизайн надписей и номеров. Декоративные огни на шортах напоминают театральное фойе.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/cleveland-cavaliers-2023-24-city-edition-uniform-cavs-playbill",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DAL",
+      "jerseyId": "nba:jersey:dal:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1980,
+      "palette": ["royal-blue"],
+      "description": "Синяя версия с названием Dallas и звездой на поясе. LockerVision относит её исходный дизайн к 2010/11 и отмечает поздние небольшие изменения.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/dallas-mavericks?gameid=0022600316",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-30",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DAL",
+      "jerseyId": "nba:jersey:dal:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1980,
+      "name": "Mavs × Bridges",
+      "palette": ["black"],
+      "description": "Коллаборация с Леоном Бриджесом посвящена истории ритм-н-блюза Северного Техаса. В текстуре спрятаны мотивы гитарных струн и рукописных строк песен.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/dallas-mavericks-2023-24-city-edition-uniform-mavs-x-bridges",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DEN",
+      "jerseyId": "nba:jersey:den:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1974,
+      "palette": ["navy"],
+      "description": "На тёмно-синей основе указано название города, а отделка шорт отсылает к горному ландшафту Денвера.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/denver-nuggets?gameid=0022600313",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-30",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DEN",
+      "jerseyId": "nba:jersey:den:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1974,
+      "name": "5280",
+      "palette": ["burgundy"],
+      "description": "Число 5280 — высота Денвера в футах. Горные детали и бордовая отделка подчёркивают эту тему.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/denver-nuggets-2023-24-city-edition-uniform-5280",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DET",
+      "jerseyId": "nba:jersey:det:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1957,
+      "palette": ["royal-blue"],
+      "description": "Синий комплект с надписью Detroit и классическими боковыми полосами, которые повторяются в Association.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/detroit-pistons?gameid=0022600327",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-02",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:DET",
+      "jerseyId": "nba:jersey:det:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1957,
+      "name": "Detroit Bad Boys",
+      "palette": ["black", "orange"],
+      "description": "Чёрно-оранжевый дизайн вспоминает чемпионскую команду Bad Boys. Детали 313 и CD2 отсылают к Детройту и тренеру Чаку Дэйли.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/detroit-pistons-2023-24-city-edition-uniform-detroit-bad-boys",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:GSW",
+      "jerseyId": "nba:jersey:gsw:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 2019,
+      "palette": ["royal-blue", "gold"],
+      "description": "Изображение моста Бэй-Бридж связывает нынешний Сан-Франциско с периодом команды в Окленде.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/golden-state-warriors?gameid=0022600437",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:GSW",
+      "jerseyId": "nba:jersey:gsw:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 2019,
+      "name": "Born in the City",
+      "palette": [],
+      "description": "Городские канатные трамваи подсказали шрифт надписи, фактуру пояса и линии боковой отделки.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/golden-state-warriors-2023-24-city-edition-uniform-born-in-the-city",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:HOU",
+      "jerseyId": "nba:jersey:hou:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1971,
+      "palette": ["red"],
+      "description": "Красный Icon запланирован в сезоне, в котором Houston представил новый набор формы с отсылками к истории Rockets.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/houston-rockets?gameid=0022600294",
+      "sourceAsOf": "2026-11-23",
+      "designSourceUrl": "https://www.nba.com/news/rockets-unveil-new-uniforms-2026-27",
+      "announcedOn": "2026-06-04",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:HOU",
+      "jerseyId": "nba:jersey:hou:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1971,
+      "name": "Hometown Heroes",
+      "palette": [],
+      "description": "Форма отмечает путь Хакима Оладжьювона и Клайда Дрекслера от университета Хьюстона до Rockets. Типографика номеров напоминает студенческую форму.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/houston-rockets-2023-24-city-edition-uniform-hometown-heroes",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:IND",
+      "jerseyId": "nba:jersey:ind:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1967,
+      "palette": ["navy", "gold"],
+      "description": "На тёмно-синей основе написано Indiana Pacers. Золотистые линии по бокам отсылают к полям Индианы.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/indiana-pacers?gameid=0022600381",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-17",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:IND",
+      "jerseyId": "nba:jersey:ind:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1967,
+      "name": "THIS is INDY",
+      "palette": ["black", "light-blue", "gold"],
+      "description": "Цветные брызги на чёрной основе отсылают к уличной живописи и ночным огням Индианаполиса.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/indiana-pacers-2023-24-city-edition-uniform-this-is-indy",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:LAC",
+      "jerseyId": "nba:jersey:lac:2026-27:association",
+      "season": "2026-27",
+      "type": "association",
+      "eraFrom": 2024,
+      "palette": ["white", "navy", "light-blue"],
+      "description": "На белом фоне показана обновлённая классическая надпись Clippers. Голубой кант продолжает морскую тему комплекта.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/los-angeles-clippers?gameid=0022600102",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-10-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:LAC",
+      "jerseyId": "nba:jersey:lac:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 2024,
+      "palette": ["navy", "red", "light-blue"],
+      "description": "Красная надпись и тонкая голубая отделка напоминают морской горизонт. Шрифт номеров вдохновлён маркировкой кораблей.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/los-angeles-clippers?gameid=0022600335",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-02",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:LAC",
+      "jerseyId": "nba:jersey:lac:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 2015,
+      "name": "LA × Jonas Wood",
+      "palette": ["navy", "light-blue"],
+      "description": "Джонас Вуд нарисовал надпись Clips для комплекта с отсылками к 1980-м. Два оттенка синего напоминают о морской истории марки Clippers.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/la-clippers-2023-24-city-edition-uniform-la-x-jonas-wood",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:LAL",
+      "jerseyId": "nba:jersey:lal:2026-27:association",
+      "season": "2026-27",
+      "type": "association",
+      "eraFrom": 1960,
+      "palette": ["white", "purple", "gold"],
+      "description": "Белая Association Edition с цветами Lakers. Игровой выпуск подтверждён отдельно от золотого Icon.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/los-angeles-lakers?gameid=0022600197",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-08",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:LAL",
+      "jerseyId": "nba:jersey:lal:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1960,
+      "palette": ["gold", "purple"],
+      "description": "Золотой комплект нынешней лос-анджелесской палитры. LockerVision связывает золото и пурпур с переходом от ранней голубой и белой гаммы.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/los-angeles-lakers?gameid=0022600315",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-30",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:LAL",
+      "jerseyId": "nba:jersey:lal:2025-26:city",
+      "season": "2025-26",
+      "type": "city",
+      "eraFrom": 1960,
+      "name": "California Dream Edition",
+      "palette": [],
+      "description": "Возвращение темы ранних лет Lakers в Лос-Анджелесе после переезда из Миннеаполиса.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/los-angeles-lakers?gameid=0022500891",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      },
+      "designSourceUrl": "https://www.nba.com/news/2025-26-nike-city-edition-uniforms-unveiled#:~:text=California%20Dream%20Edition",
+      "outfitDate": "2026-03-03"
+    },
+    {
+      "canonicalTeamId": "nba:team:LAL",
+      "jerseyId": "nba:jersey:lal:2024-25:city",
+      "season": "2024-25",
+      "type": "city",
+      "eraFrom": 1960,
+      "name": "Lake Show",
+      "palette": ["black", "purple", "gold"],
+      "description": "Переход от чёрного к пурпурному отличает серию Lake Show. Золотой контур и шрифт номеров возвращают детали комплектов 1999–2017 годов.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/lakers-unveil-city-edition-uniform-and-court-for-2024-25",
+      "sourceAsOf": "2026-11-23",
+      "announcedOn": "2024-10-08",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:LAL",
+      "jerseyId": "nba:jersey:lal:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1960,
+      "name": "The California Dream",
+      "palette": ["black"],
+      "description": "Чёрная основа и треугольная надпись отсылают к первым годам команды в Лос-Анджелесе. Шрифт номеров взят из периода 1999–2017.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/los-angeles-lakers-2023-24-city-edition-uniform-the-california-dream",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MEM",
+      "jerseyId": "nba:jersey:mem:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 2001,
+      "palette": ["navy", "light-blue"],
+      "description": "Тёмно-синюю основу дополняет голубой ворот. Асимметрию боковых линий клуб связывает с рекой Миссисипи и транспортными путями Мемфиса.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/memphis-grizzlies?gameid=0022600287",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MEM",
+      "jerseyId": "nba:jersey:mem:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 2001,
+      "name": "Hometown Feels",
+      "palette": ["black", "white", "gold"],
+      "description": "Асимметричная белая полоса на чёрном отсылает к Миссисипи. MEM совмещает аэропортовый код и неоновый стиль Memphis.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/memphis-grizzlies-2023-24-city-edition-uniform-hometown-feels",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIA",
+      "jerseyId": "nba:jersey:mia:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1988,
+      "palette": ["black"],
+      "description": "Чёрная основа отличает Icon от светлого Association, а надпись Miami подчёркивает связь с городом.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/miami-heat?gameid=0022600321",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-01",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIA",
+      "jerseyId": "nba:jersey:mia:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1988,
+      "name": "HEAT Culture",
+      "palette": ["black"],
+      "description": "На чёрной основе выделяется название культуры команды. Внутри формы — отсылка к принципам Пэта Райли.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/miami-heat-2023-24-city-edition-uniform-heat-culture",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIL",
+      "jerseyId": "nba:jersey:mil:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1968,
+      "palette": ["green"],
+      "description": "Тёмно-зелёный комплект с названием Milwaukee. Разноцветная боковая отделка отсылает к городской теме Cream City.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/milwaukee-bucks?gameid=0022600290",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIL",
+      "jerseyId": "nba:jersey:mil:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1968,
+      "name": "Great Lakes Blue",
+      "palette": ["light-blue", "navy", "green"],
+      "description": "Синие оттенки напоминают об озере Мичиган, а дуга надписи — о крыше Fiserv Forum.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/milwaukee-bucks-2023-24-city-edition-uniform-great-lakes-blue",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIN",
+      "jerseyId": "nba:jersey:min:2026-27:association",
+      "season": "2026-27",
+      "type": "association",
+      "eraFrom": 1989,
+      "palette": ["white", "royal-blue", "green"],
+      "description": "Светлая версия новой линейки возвращает синий и зелёный на белую основу. Цвета отсылают к ранним комплектам Minnesota.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/timberwolves-unveil-all-new-logo-uniforms-and-courts",
+      "sourceAsOf": "2026-11-23",
+      "designSourceUrl": "https://www.nba.com/gamenotes/timberwolves.pdf",
+      "announcedOn": "2026-06-07",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIN",
+      "jerseyId": "nba:jersey:min:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1989,
+      "palette": ["royal-blue", "green", "white"],
+      "description": "Синяя версия обновления 2026/27 с зелёно-белой отделкой возвращает сочетание цветов ранней франшизы.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/minnesota-timberwolves?gameid=0022600393",
+      "sourceAsOf": "2026-11-23",
+      "designSourceUrl": "https://www.nba.com/gamenotes/timberwolves.pdf",
+      "announcedOn": "2026-06-07",
+      "outfitDate": "2026-12-18",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIN",
+      "jerseyId": "nba:jersey:min:2026-27:statement",
+      "season": "2026-27",
+      "type": "statement",
+      "eraFrom": 1989,
+      "palette": ["black", "green", "white"],
+      "description": "Тёмный комплект с зелёной отделкой развивает тему хвойных деревьев, которая вернулась в айдентику Wolves в 2026 году.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/minnesota-timberwolves?gameid=0022600291",
+      "sourceAsOf": "2026-11-23",
+      "designSourceUrl": "https://www.nba.com/gamenotes/timberwolves.pdf",
+      "announcedOn": "2026-06-07",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIN",
+      "jerseyId": "nba:jersey:min:2025-26:city",
+      "season": "2025-26",
+      "type": "city",
+      "eraFrom": 1989,
+      "name": "Prince",
+      "palette": ["purple"],
+      "description": "Фиолетовая серия в память о Принсе вернулась в рамках City Edition Remix. В календаре её дебют пришёлся на первую тематическую ночь в Target Center.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/timberwolves/news/timberwolves-run-it-back-with-prince-inspired-nike-city-edition-uniforms-in-partnership-with-princes-paisley-park-enterprises",
+      "sourceAsOf": "2026-11-23",
+      "announcedOn": "2025-10-20",
+      "outfitDate": "2025-11-15",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIN",
+      "jerseyId": "nba:jersey:min:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1989,
+      "name": "Lake Life",
+      "palette": ["light-blue", "white"],
+      "description": "Озёрно-голубой оттенок и разработанная в Блумингтоне фактура воды посвящены летней жизни на озёрах Миннесоты.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/minnesota-timberwolves-2023-24-city-edition-uniform-lake-life",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:MIN",
+      "jerseyId": "nba:jersey:min:2023-24:classic",
+      "season": "2023-24",
+      "type": "classic",
+      "eraFrom": 1989,
+      "name": "’89 to Infinity",
+      "palette": ["white", "green", "royal-blue"],
+      "description": "К 35-летию Wolves вернули белую форму первых сезонов. Зелёная и синяя отделка воспроизводят палитру 1989–1996 годов.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/timberwolves-classic-edition-uniforms-2023-24",
+      "sourceAsOf": "2026-11-23",
+      "announcedOn": "2023-09-22",
+      "outfitDate": "2023-11-08",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:NOP",
+      "jerseyId": "nba:jersey:nop:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 2013,
+      "palette": ["navy"],
+      "description": "Название New Orleans вынесено на грудь. В основе — дизайн, который появился с переходом клуба к имени Pelicans в 2013/14.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/new-orleans-pelicans?gameid=0022600309",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-29",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:NOP",
+      "jerseyId": "nba:jersey:nop:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 2013,
+      "name": "NOLA Nights",
+      "palette": ["purple", "green"],
+      "description": "Фиолетовая основа и яркие зелёные акценты отсылают к ночным улицам Нового Орлеана. Изображение пеликана переосмыслено в виде скелета.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/new-orleans-pelicans-2023-24-city-edition-uniform-nola-nights",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:NYK",
+      "jerseyId": "nba:jersey:nyk:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1946,
+      "palette": ["royal-blue", "orange", "white"],
+      "description": "Синюю основу дополняет яркая оранжевая надпись New York со светлым контуром.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/new-york-knicks?gameid=0022600362",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-14",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:NYK",
+      "jerseyId": "nba:jersey:nyk:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1946,
+      "name": "Ode to 90s and 2000s",
+      "palette": [],
+      "description": "Совместный проект с Kith возвращает цветовые блоки рубежа веков. Тонкие полосы и двойная надпись New York стали отличиями этого выпуска.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/new-york-knicks-2023-24-city-edition-uniform-ode-to-90s-and-2000s",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:OKC",
+      "jerseyId": "nba:jersey:okc:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 2008,
+      "palette": ["royal-blue", "white"],
+      "description": "Синий цвет связан с флагом Оклахомы. Надпись OKC на поясе отсылает к скандированию болельщиков на домашней арене.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/oklahoma-city-thunder?gameid=0022600289",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:OKC",
+      "jerseyId": "nba:jersey:okc:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 2008,
+      "name": "OKC’s Renaissance",
+      "palette": [],
+      "description": "Городские ремесленники и творческие сообщества стали темой комплекта с новой надписью OKC и контуром штата на пряжке.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/oklahoma-city-thunder-2023-24-city-edition-uniform-okcs-renaissance",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:ORL",
+      "jerseyId": "nba:jersey:orl:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1989,
+      "palette": ["royal-blue", "white"],
+      "description": "На синей основе — белые тонкие полосы. Надпись Orlando и звезда в букве A возвращают мотив форм 1990-х.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/orlando-magic?gameid=0022600372",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-16",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:ORL",
+      "jerseyId": "nba:jersey:orl:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1989,
+      "name": "Coat of Armor",
+      "palette": [],
+      "description": "Фактура доспехов и готические элементы отмечают 35-й сезон Magic. В название вернулась звезда вместо буквы A.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/orlando-magic-2023-24-city-edition-uniform-coat-of-armor",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:PHI",
+      "jerseyId": "nba:jersey:phi:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1963,
+      "palette": ["royal-blue", "red", "white"],
+      "description": "Объёмная надпись PHILA отсылает к 1960-м, а 13 боковых звёзд — к форме чемпионской команды 1976/77.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/philadelphia-76ers?gameid=0022600288",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:PHI",
+      "jerseyId": "nba:jersey:phi:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1963,
+      "name": "City of Brotherly Love",
+      "palette": ["navy", "red", "white"],
+      "description": "Надпись на тёмно-синем фоне повторяет идею неоновой вывески Reading Terminal Market.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/philadelphia-76ers-2023-24-city-edition-uniform-city-of-brotherly-love",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:PHX",
+      "jerseyId": "nba:jersey:phx:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1968,
+      "palette": ["purple", "orange"],
+      "description": "Лучистое солнце возвращает один из мотивов формы Phoenix 1990-х. Клуб выбрал его после опроса болельщиков.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/phoenix-suns?gameid=0022600293",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:PHX",
+      "jerseyId": "nba:jersey:phx:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1968,
+      "name": "El Valle",
+      "palette": [],
+      "description": "Боковой рисунок вдохновлён тонкими линиями на автомобилях lowrider, а рукописная надпись посвящена чикано и латиноамериканским болельщикам.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/phoenix-suns-2023-24-city-edition-uniform-el-valle",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:POR",
+      "jerseyId": "nba:jersey:por:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1970,
+      "palette": ["black", "red", "white"],
+      "description": "Красно-белая диагональ пересекает чёрную основу. Золотистая отметка сзади напоминает о чемпионстве 1977 года.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/portland-trail-blazers?gameid=0022600325",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-01",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:POR",
+      "jerseyId": "nba:jersey:por:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1970,
+      "name": "Dr. Jack Plaid",
+      "palette": ["black", "red"],
+      "description": "Красно-чёрная клетка отсылает к одежде Джека Рэмзи, тренера чемпионской команды 1976/77.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/portland-trail-blazers-2023-24-city-edition-uniform-dr-jack-plaid",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:SAC",
+      "jerseyId": "nba:jersey:sac:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1985,
+      "palette": ["black", "purple"],
+      "description": "На чёрной основе с фиолетовыми деталями вновь используется рукописное название команды. Палитра напоминает смену цветов в 1994 году.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/sacramento-kings?gameid=0022600296",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:SAC",
+      "jerseyId": "nba:jersey:sac:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1985,
+      "name": "Cincinnati Royals",
+      "palette": ["royal-blue", "gray"],
+      "description": "Королевский синий возвращает мотив гостевой формы Cincinnati Royals 1968 года. Современный серый отличает юбилейную версию Kings.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/sacramento-kings-2023-24-city-edition-uniform-cincinnati-royals",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:SAS",
+      "jerseyId": "nba:jersey:sas:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1973,
+      "palette": ["black", "silver"],
+      "description": "Серебристые боковые вставки и надпись Spurs выделяются на чёрной основе.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/san-antonio-spurs?gameid=0022600303",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-11-29",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:SAS",
+      "jerseyId": "nba:jersey:sas:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1973,
+      "name": "Viva Spurs",
+      "palette": [],
+      "description": "Леттеринг и знак башни напоминают о Всемирной выставке HemisFair 1968 года в Сан-Антонио.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/san-antonio-spurs-2023-24-city-edition-uniform-viva-spurs",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:TOR",
+      "jerseyId": "nba:jersey:tor:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1995,
+      "palette": ["red"],
+      "description": "Красный Icon продолжает линию с шевроном, который клуб представил в 2020 году. Игровой календарь подтверждает этот тип в 2026/27.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/toronto-raptors?gameid=0022600308",
+      "sourceAsOf": "2026-11-23",
+      "designSourceUrl": "https://www.nba.com/news/raptors-unveil-new-uniforms-2020-21-season",
+      "outfitDate": "2026-11-29",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:TOR",
+      "jerseyId": "nba:jersey:tor:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1995,
+      "name": "Drip Gold",
+      "palette": ["gold"],
+      "description": "Золото стало основным цветом. В элементе в виде молнии спрятана фраза We The North на нескольких языках.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/toronto-raptors-2023-24-city-edition-uniform-drip-gold",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:UTA",
+      "jerseyId": "nba:jersey:uta:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1979,
+      "palette": ["purple", "light-blue"],
+      "description": "Ступенчатый фиолетовый силуэт гор с голубой отделкой переосмысляет раннюю горную форму Jazz.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/utah-jazz?gameid=0022600375",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-16",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:UTA",
+      "jerseyId": "nba:jersey:uta:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1979,
+      "name": "Purple Mountain",
+      "palette": ["purple"],
+      "description": "Ступени фиолетового цвета изображают горы Уосатч. Версия отсылает к дизайну 1996–2002 годов.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/utah-jazz-2023-24-city-edition-uniform-purple-mountain",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:WAS",
+      "jerseyId": "nba:jersey:was:2026-27:icon",
+      "season": "2026-27",
+      "type": "icon",
+      "eraFrom": 1997,
+      "palette": ["red", "navy", "white"],
+      "description": "Синие плечи и белая полоса контрастируют с красной основой. Детали надписи Washington отсылают к монументу Вашингтона.",
+      "status": "verified",
+      "sourceUrl": "https://lockervision.nba.com/game-outfit/washington-wizards?gameid=0022600342",
+      "sourceAsOf": "2026-11-23",
+      "outfitDate": "2026-12-12",
+      "designRights": {
+        "status": "unverified"
+      }
+    },
+    {
+      "canonicalTeamId": "nba:team:WAS",
+      "jerseyId": "nba:jersey:was:2023-24:city",
+      "season": "2023-24",
+      "type": "city",
+      "eraFrom": 1997,
+      "name": "The District",
+      "palette": ["black", "gray", "red", "bronze"],
+      "description": "Чёрный и антрацит разделены красными линиями, напоминающими старую карту округа. Бронзовые элементы отсылают к оградам пограничных камней.",
+      "status": "verified",
+      "sourceUrl": "https://www.nba.com/news/washington-wizards-2023-24-city-edition-uniform-the-district",
+      "sourceAsOf": "2026-11-23",
+      "designRights": {
+        "status": "unverified"
+      }
+    }
+  ]
+}

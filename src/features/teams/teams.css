@@ -764,3 +764,15 @@
   padding: 4px clamp(12px, 4vw, 20px);
   font-size: 0.875rem !important;
 }
+
+@media (max-width: 420px) {
+  .teams-profile-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .teams-profile-nav .gc-status-tab {
+    padding-inline: 4px;
+  }
+}
