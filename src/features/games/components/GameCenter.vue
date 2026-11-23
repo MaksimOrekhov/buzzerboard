@@ -24,6 +24,7 @@ const {
   hasHiddenGames,
   statusOf,
   meta,
+  yesterdayPending,
   visibleGames,
   teamOptions,
   statusFilter,
@@ -58,9 +59,9 @@ const labels: Partial<Record<GameStatus, string>> = {
   live: 'Уточняются',
 }
 const recentDates = computed(() => [
-  { label: 'Позавчера', value: shiftGameDate(today, -2) },
-  { label: 'Вчера', value: shiftGameDate(today, -1) },
-  { label: 'Сегодня', value: today },
+  { label: 'Позавчера', value: shiftGameDate(today.value, -2) },
+  { label: 'Вчера', value: shiftGameDate(today.value, -1) },
+  { label: 'Сегодня', value: today.value },
 ])
 const tabs = computed(() => [
   { value: 'all' as const, label: 'Все матчи', count: games.value.length },
@@ -195,7 +196,10 @@ const scoredCount = computed(
           Не удалось обновить данные. Показаны последние загруженные результаты.
         </p>
         <p v-else-if="meta?.refreshError" class="gc-notice gc-notice--warning" role="status">
-          Источник временно недоступен. Показаны последние загруженные результаты.
+          Обновление из источника задерживается. Показаны последние загруженные данные.
+        </p>
+        <p v-else-if="yesterdayPending" class="gc-notice" role="status">
+          Ждём подтверждённые результаты от источника.
         </p>
         <ResourceState v-if="isPending" status="loading" />
         <ResourceState

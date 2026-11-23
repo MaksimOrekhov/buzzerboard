@@ -1,4 +1,9 @@
-import { SCHEDULED_BBS_MAX_ATTEMPTS, SCHEDULED_BBS_TASK_LIMIT, scheduledBbsTaskKey } from './types'
+import {
+  SCHEDULED_BBS_FINALIZATION_ATTEMPTS,
+  SCHEDULED_BBS_MAX_ATTEMPTS,
+  SCHEDULED_BBS_TASK_LIMIT,
+  scheduledBbsTaskKey,
+} from './types'
 import type {
   Game,
   GameId,
@@ -21,7 +26,7 @@ import {
   mapHttpStatusToNbaError,
 } from '@/server/nba/adapters/errors'
 import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
-import { getDateKeyInTimeZone, NBA_TIME_ZONE } from '@/shared/utils/nbaDate'
+import { getDateKeyInTimeZone, NBA_TIME_ZONE, shiftNbaGameDate } from '@/shared/utils/nbaDate'
 import type {
   BoxScoreCacheRecord,
   NbaCacheRecord,
@@ -34,6 +39,7 @@ import type {
   ScheduledBbsFailure,
   ScheduledBbsTaskDiagnostic,
   ScheduledBbsTask,
+  ScheduledBbsWorkItem,
   WorkerEnvironment,
 } from './types'
 import {
@@ -45,7 +51,7 @@ import {
 } from './cacheKeys'
 import type { NbaRefreshTarget } from './types'
 import type { BoxScoreRefreshOutcome } from './gameDetails'
-import { isSameFinalGameSnapshot } from '@/shared/api/nba/gameDetailsGuards'
+import { isSameFinalGameSnapshot, isSettledGameResult } from '@/shared/api/nba/gameDetailsGuards'
 import { runScheduledBbsPlayerRefresh } from './bbsPlayerRefresh'
 
 const DEFAULT_DAILY_LIMIT = 150
@@ -666,6 +672,17 @@ async function refreshCachedBoxes(
   return { error: firstError, retryAt, refreshed, missingReferences }
 }
 
+function canReuseGames(record: NbaCacheRecord | null, force: boolean, finalize: boolean): boolean {
+  if (!record) return false
+  const fresh = Date.now() < record.expiresAt
+  if (!finalize) return !force && fresh
+  return (
+    record.capability === 'games' &&
+    (fresh || (record.data.length > 0 && Date.now() < record.staleUntil)) &&
+    record.data.every(isSettledGameResult)
+  )
+}
+
 export async function refreshBbsGames(
   target: Extract<NbaRefreshTarget, { type: 'games' }>,
   env: WorkerEnvironment,
@@ -674,12 +691,15 @@ export async function refreshBbsGames(
   now: number,
   refreshBoxes = true,
   force = false,
+  finalize = false,
 ): Promise<BbsRefreshOutcome> {
   const key = gamesCacheKey('bbs', target.date)
   const previous = await repository.getCache(key)
+  if (finalize && previous && canReuseGames(previous, force, true))
+    return outcome(target, 'up_to_date', previous, now, null, null)
   if (previous?.retryAt && previous.retryAt > now)
     return outcome(target, 'deferred', previous, now, previous.refreshError, previous.retryAt)
-  if (!force && previous && Date.now() < previous.expiresAt) {
+  if (!finalize && previous && canReuseGames(previous, force, false)) {
     if (refreshBoxes && env.BBS_REFRESH_ENABLED === 'true' && previous.capability === 'games') {
       const boxes = await refreshCachedBoxes(
         previous.data,
@@ -720,6 +740,7 @@ export async function refreshBbsGames(
   if (!(await repository.tryAcquireLock(lockKey, token, lockStartedAt, lockStartedAt + LOCK_MS))) {
     return outcome(target, 'in_progress', previous, now, null, now + LOCK_MS)
   }
+  let lockedPrevious = previous
   let record: Extract<NbaCacheRecord, { capability: 'games' }> | null = null
   let listRefreshed = false
   let refreshError: NbaApiError | null = null
@@ -728,8 +749,11 @@ export async function refreshBbsGames(
   let diagnosticCounts: Omit<ScheduledBbsTaskDiagnostic, 'observedAt' | 'errorCode' | 'phase'> = {}
   try {
     const latest = await repository.getCache(key)
+    lockedPrevious = latest
     const latestGames = latest?.capability === 'games' ? latest : null
-    if (!force && latest && Date.now() < latest.expiresAt) {
+    if (latest?.retryAt && latest.retryAt > now)
+      return outcome(target, 'deferred', latest, now, latest.refreshError, latest.retryAt)
+    if (latest && canReuseGames(latest, force, finalize)) {
       if (latestGames) record = latestGames
       else throw createNbaApiError('invalid_response', 'bbs')
     } else {
@@ -780,19 +804,21 @@ export async function refreshBbsGames(
           }
         }
       }
-      const previousGames = previous?.capability === 'games' ? previous : null
+      const previousGames = latestGames
       const previousById = new Map(previousGames?.data.map((game) => [game.id, game]) ?? [])
       const incomingById = new Map(data.map((game) => [game.id, game]))
-      const missingPriorFinals =
-        previousGames?.data.filter(
-          (game) => game.status === 'final' && !incomingById.has(game.id),
+      const expectedGames =
+        previousGames?.data.filter((game) =>
+          finalize
+            ? game.status !== 'postponed' && game.status !== 'canceled'
+            : game.status === 'final',
         ) ?? []
-      if (missingPriorFinals.length > 0) {
-        const previousFinalCount =
-          previousGames?.data.filter((game) => game.status === 'final').length ?? 0
+      const missingCount = expectedGames.filter((game) => !incomingById.has(game.id)).length
+      if (missingCount > 0) {
+        diagnosticPhase = 'games_date_validation'
         diagnosticCounts = {
-          expectedCount: previousFinalCount,
-          actualCount: previousFinalCount - missingPriorFinals.length,
+          expectedCount: expectedGames.length,
+          actualCount: expectedGames.length - missingCount,
         }
         throw createNbaApiError('invalid_response', 'bbs')
       }
@@ -872,7 +898,7 @@ export async function refreshBbsGames(
     const failed =
       error.code === 'refresh_in_progress'
         ? null
-        : cacheFailure(previous, error, Date.now(), retryAt)
+        : cacheFailure(lockedPrevious, error, Date.now(), retryAt)
     if (failed && !(await repository.putCacheIfLockOwned(failed, lockKey, token, Date.now())))
       return outcome(target, 'in_progress', previous, now, null, now + LOCK_MS)
   } finally {
@@ -883,7 +909,7 @@ export async function refreshBbsGames(
     }
   }
   if (refreshError)
-    return outcome(target, 'deferred', previous, Date.now(), refreshError, refreshRetryAt, {
+    return outcome(target, 'deferred', lockedPrevious, Date.now(), refreshError, refreshRetryAt, {
       phase: diagnosticPhase,
       ...diagnosticCounts,
     })
@@ -1390,44 +1416,29 @@ export function parseBbsBoxTarget(value: unknown): BbsBoxTarget | null {
     : null
 }
 
-function scheduledBbsTasksForDate(today: NbaGameDate): ScheduledBbsTask[] {
-  const start = new Date(`${today}T12:00:00.000Z`)
+function scheduledBbsTasksForDate(today: NbaGameDate): ScheduledBbsWorkItem[] {
   const seasonEndYear = parseSeasonEndYear(
     Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0),
   )
-  if (!seasonEndYear) return []
-  const tasks: ScheduledBbsTask[] = [
-    { type: 'standings', seasonEndYear },
-    { type: 'teamDirectory', seasonEndYear },
+  const previousDate = dateAtOffset(today, -1)
+  if (!seasonEndYear || !previousDate) return []
+  const tasks: ScheduledBbsWorkItem[] = [
+    { ...workItem({ type: 'games', date: previousDate }), finalizationAttempts: 0 },
+    workItem({ type: 'teamDirectory', seasonEndYear }),
+    workItem({ type: 'standings', seasonEndYear }),
   ]
-  const previousDate = parseNbaGameDate(
-    new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() - 1))
-      .toISOString()
-      .slice(0, 10),
-  )
-  if (previousDate) tasks.push({ type: 'games', date: previousDate })
-  if (previousDate) tasks.push({ type: 'lateGames', date: previousDate })
   for (let offset = -7; offset <= 7; offset += 1) {
-    const date = parseNbaGameDate(
-      new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + offset))
-        .toISOString()
-        .slice(0, 10),
-    )
-    if (date && date !== previousDate) tasks.push({ type: 'games', date })
+    const date = dateAtOffset(today, offset)
+    if (date && date !== previousDate) tasks.push(workItem({ type: 'games', date }))
   }
   for (const team of NBA_TEAMS)
-    tasks.push({ type: 'teamSeason', teamCode: team.code, seasonEndYear })
-  tasks.push({ type: 'enrichStandings', seasonEndYear })
+    tasks.push(workItem({ type: 'teamSeason', teamCode: team.code, seasonEndYear }))
+  tasks.push(workItem({ type: 'enrichStandings', seasonEndYear }))
   return tasks
 }
 
 function dateAtOffset(date: NbaGameDate, offset: number): NbaGameDate | null {
-  const start = new Date(`${date}T12:00:00.000Z`)
-  return parseNbaGameDate(
-    new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + offset))
-      .toISOString()
-      .slice(0, 10),
-  )
+  return parseNbaGameDate(shiftNbaGameDate(date, offset))
 }
 
 function taskWithinRolloverHorizon(task: ScheduledBbsTask, today: NbaGameDate): boolean {
@@ -1439,6 +1450,26 @@ function taskWithinRolloverHorizon(task: ScheduledBbsTask, today: NbaGameDate): 
   const lowerBound = dateAtOffset(today, -7)
   const upperBound = dateAtOffset(today, task.type === 'boxScore' ? 0 : 7)
   return !!lowerBound && !!upperBound && task.date >= lowerBound && task.date <= upperBound
+}
+
+const CYPRUS_TIME_ZONE = 'Asia/Nicosia'
+const PLAN_START = '12:00'
+const FINALIZATION_END = '13:30'
+const FINALIZATION_RETRY_MS = 20 * MINUTE_MS
+const cyprusTime = new Intl.DateTimeFormat('en-GB', {
+  timeZone: CYPRUS_TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+function inFinalizationWindow(now: number, cycleDate: NbaGameDate): boolean {
+  const clock = cyprusTime.format(now)
+  return (
+    clock >= PLAN_START &&
+    clock <= FINALIZATION_END &&
+    getDateKeyInTimeZone(new Date(now), CYPRUS_TIME_ZONE) === cycleDate
+  )
 }
 
 const QUEUE_LOCK_KEY = 'bbs:scheduled-queue'
@@ -1500,17 +1531,24 @@ function mergePendingTasks(
   pending: ScheduledBbsProgress['tasks'],
 ) {
   const pendingByKey = new Map(pending.map((item) => [scheduledBbsTaskKey(item.task), item]))
-  const merged = priority.map((item) => {
+  let freeSlots = SCHEDULED_BBS_TASK_LIMIT - pending.length
+  const merged: ScheduledBbsWorkItem[] = []
+  for (const item of priority) {
     const key = scheduledBbsTaskKey(item.task)
     const previous = pendingByKey.get(key)
-    if (previous) pendingByKey.delete(key)
-    return previous ?? item
-  })
-  for (const item of pendingByKey.values()) {
-    merged.push(item)
+    if (previous) {
+      pendingByKey.delete(key)
+      merged.push(
+        item.finalizationAttempts === undefined
+          ? previous
+          : { ...previous, finalizationAttempts: item.finalizationAttempts },
+      )
+    } else if (freeSlots > 0) {
+      merged.push(item)
+      freeSlots--
+    }
   }
-  if (merged.length > SCHEDULED_BBS_TASK_LIMIT) throw new Error('BBS refresh queue exceeds limit')
-  return merged
+  return [...merged, ...pendingByKey.values()]
 }
 
 export async function runScheduledBbsRefresh(
@@ -1522,12 +1560,7 @@ export async function runScheduledBbsRefresh(
   if (env.BBS_REFRESH_ENABLED !== 'true' || !env.BBS_API_KEY) return []
   const today = parseNbaGameDate(getDateKeyInTimeZone(new Date(now), NBA_TIME_ZONE))
   if (!today) return []
-  const etClock = new Intl.DateTimeFormat('en-GB', {
-    timeZone: NBA_TIME_ZONE,
-    hour: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(now))
-  const currentHour = Number(etClock)
+  const canOpenPlan = cyprusTime.format(now) >= PLAN_START
   const token = crypto.randomUUID()
   if (!(await repository.tryAcquireLock(QUEUE_LOCK_KEY, token, now, now + QUEUE_LOCK_MS))) return []
   const saveOwnedProgress = async (progress: ScheduledBbsProgress) => {
@@ -1545,48 +1578,44 @@ export async function runScheduledBbsRefresh(
   }
   try {
     let progress = await repository.getScheduledBbsProgress()
-    if (
-      currentHour < 10 &&
-      (!progress || (progress.cycleDate !== today && progress.tasks.length === 0))
-    )
-      return []
-    if (!progress) {
+    if (progress && (progress.cycleDate > today || (progress.lastTickAt ?? -1) >= now)) return []
+    if (!progress && !canOpenPlan) return []
+    let openedPlan = false
+    if (!progress || (progress.cycleDate < today && canOpenPlan)) {
       const daily = scheduledBbsTasksForDate(today)
-      if (!daily.length) return []
-      progress = {
-        cycleDate: today,
-        tasks: daily.map((task) =>
-          task.type === 'lateGames' ? workItem(task, now + 2 * 60 * MINUTE_MS) : workItem(task),
-        ),
-        cursor: 0,
-        pauseUntil: null,
-      }
-    } else if (progress.cycleDate !== today && currentHour >= 10) {
-      const retained = progress.tasks.filter((item) => taskWithinRolloverHorizon(item.task, today))
-      const expiredCount = progress.tasks.length - retained.length
-      if (expiredCount > 0)
-        console.info(`Scheduled BBS refresh discarded expired queue items: ${expiredCount}`)
-      const daily = scheduledBbsTasksForDate(today).map((task) =>
-        task.type === 'lateGames' ? workItem(task, now + 2 * 60 * MINUTE_MS) : workItem(task),
-      )
-      progress = {
-        cycleDate: today,
-        tasks: mergePendingTasks(daily, retained),
-        cursor: 0,
-        pauseUntil: progress.pauseUntil,
-        ...(progress.failedTasks === undefined
-          ? {}
-          : {
-              failedTasks: progress.failedTasks.filter((failure) =>
-                taskWithinRolloverHorizon(failure.task, today),
-              ),
-            }),
+      const critical = daily[0]
+      if (!critical) return []
+      const retained =
+        progress?.tasks.filter((item) => taskWithinRolloverHorizon(item.task, today)) ?? []
+      const expiredCount = (progress?.tasks.length ?? 0) - retained.length
+      const tasks = mergePendingTasks(daily, retained)
+      // A saturated queue resumes until there is room for the new day's priority item.
+      const first = tasks[0]
+      if (first && scheduledBbsTaskKey(first.task) === scheduledBbsTaskKey(critical.task)) {
+        openedPlan = true
+        if (expiredCount > 0)
+          console.info(`Scheduled BBS refresh discarded expired queue items: ${expiredCount}`)
+        progress = {
+          cycleDate: today,
+          tasks,
+          cursor: 0,
+          pauseUntil: progress?.pauseUntil ?? null,
+          ...(progress?.failedTasks === undefined
+            ? {}
+            : {
+                failedTasks: progress.failedTasks.filter((failure) =>
+                  taskWithinRolloverHorizon(failure.task, today),
+                ),
+              }),
+        }
       }
     }
+    if (!progress) return []
     if (progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT)
       throw new Error('BBS refresh queue exceeds limit')
     const taskIndex = firstDueTask(progress, now)
     if (taskIndex < 0) {
+      if (openedPlan && !(await saveOwnedProgress({ ...progress, lastTickAt: now }))) return []
       if (
         progress.cycleDate === today &&
         (progress.pauseUntil ?? 0) <= now &&
@@ -1606,13 +1635,31 @@ export async function runScheduledBbsRefresh(
       }
       return []
     }
-    if (!(await saveOwnedProgress(progress))) return []
     const item = progress.tasks[taskIndex]
     if (!item) return []
     const task = item.task
+    const gamesTask = task.type === 'games' || task.type === 'lateGames'
+    const finalizationAttempts =
+      task.type === 'games' && task.date === dateAtOffset(progress.cycleDate, -1)
+        ? item.finalizationAttempts
+        : undefined
+    const isFinalization = finalizationAttempts !== undefined
+    const expiredRetry =
+      isFinalization && finalizationAttempts > 0 && !inFinalizationWindow(now, progress.cycleDate)
+    const skipFinalization =
+      expiredRetry || finalizationAttempts === SCHEDULED_BBS_FINALIZATION_ATTEMPTS
+    // Persist the attempt before contacting BBS so a restarted tick cannot reset the budget.
+    const claimedTasks = [...progress.tasks]
+    if (isFinalization && !skipFinalization) {
+      claimedTasks[taskIndex] = { ...item, finalizationAttempts: finalizationAttempts + 1 }
+    }
+    progress = { ...progress, lastTickAt: now }
+    if (!(await saveOwnedProgress({ ...progress, tasks: claimedTasks }))) return []
 
     let result: BbsRefreshOutcome
-    if (task.type === 'standings') {
+    if (skipFinalization && gamesTask) {
+      result = outcome({ type: 'games', date: task.date }, 'deferred', null, now)
+    } else if (task.type === 'standings') {
       result = await refreshBbsStandings(task.seasonEndYear, env, repository, fetcher, now)
     } else if (task.type === 'enrichStandings') {
       result = await enrichBbsStandings(task.seasonEndYear, repository, now)
@@ -1627,6 +1674,7 @@ export async function runScheduledBbsRefresh(
         now,
         false,
         task.type === 'lateGames',
+        isFinalization,
       )
     } else if (task.type === 'teamSeason') {
       result = await refreshBbsTeamSeason(task, env, repository, fetcher, now)
@@ -1662,94 +1710,68 @@ export async function runScheduledBbsRefresh(
 
     const tasks = [...progress.tasks]
     tasks.splice(taskIndex, 1)
-    const completed = result.state === 'refreshed' || result.state === 'up_to_date'
-    let pauseUntil: number | null = null
+    let refreshed = result.state === 'refreshed' || result.state === 'up_to_date'
+    const snapshot =
+      gamesTask && (isFinalization || (refreshed && task.date < today))
+        ? await repository.getCache(gamesCacheKey('bbs', task.date))
+        : null
+    const games = snapshot?.capability === 'games' ? snapshot : null
+    const missingScheduledCount =
+      isFinalization && games
+        ? games.data.filter((game) => !isSettledGameResult(game)).length
+        : null
+    if (skipFinalization && gamesTask && games && canReuseGames(games, false, true)) {
+      result = outcome({ type: 'games', date: task.date }, 'up_to_date', games, now, null, null)
+      refreshed = true
+    }
+    const waitingForLease =
+      result.state === 'in_progress' || result.error?.code === 'refresh_in_progress'
+    const providerPaused = result.error !== null && PROVIDER_PAUSE_CODES.has(result.error.code)
+    const providerRetryAt = Date.parse(result.retryAfter ?? '') || 0
+    const pauseUntil = providerPaused ? providerRetryAt || now + COOLDOWN_MS : null
     let failedTasks = progress.failedTasks
     let taskExhausted = false
-    if (completed) {
+    let finalizationState: 'settled' | 'waiting' | 'exhausted' | 'window_expired' = 'settled'
+    let attempts = finalizationAttempts ?? 0
+    // Keep durable phases readable by workers deployed before the noon scheduler.
+    const finalizationDiagnostic = result.error
+      ? taskDiagnostic(result, task, now)
+      : { phase: 'provider_fetch' as const, errorCode: null, observedAt: now }
+    if (isFinalization && (!refreshed || missingScheduledCount !== 0)) {
+      if (!waitingForLease && !skipFinalization) attempts++
+      const diagnostic = (skipFinalization ? item.lastError : undefined) ?? finalizationDiagnostic
+      const retryAt = Math.max(
+        now + (waitingForLease ? QUEUE_LOCK_MS : FINALIZATION_RETRY_MS),
+        providerRetryAt,
+        pauseUntil ?? 0,
+      )
+      if (
+        !skipFinalization &&
+        attempts < SCHEDULED_BBS_FINALIZATION_ATTEMPTS &&
+        inFinalizationWindow(retryAt, progress.cycleDate)
+      ) {
+        finalizationState = 'waiting'
+        tasks.unshift({ ...item, finalizationAttempts: attempts, retryAt, lastError: diagnostic })
+      } else {
+        finalizationState = expiredRetry ? 'window_expired' : 'exhausted'
+        failedTasks = setScheduledFailure(failedTasks, {
+          task,
+          errorCode: diagnostic.errorCode,
+          failedAt: now,
+          diagnostic,
+        })
+      }
+    }
+    if (refreshed && (!isFinalization || finalizationState === 'settled')) {
       const completedKey = scheduledBbsTaskKey(task)
       const remainingFailures = failedTasks?.filter(
         (failure) => scheduledBbsTaskKey(failure.task) !== completedKey,
       )
       failedTasks = remainingFailures?.length ? remainingFailures : undefined
-      if ((task.type === 'games' || task.type === 'lateGames') && task.date < today) {
-        const games = await repository.getCache(gamesCacheKey('bbs', task.date))
-        if (games?.capability === 'games') {
-          const finalGames = games.data.filter(
-            (game) => game.provider === 'bbs' && game.status === 'final',
-          )
-          const cachedBoxes = await repository.getCaches(
-            finalGames.map((game) => gameDetailsCacheKey('bbs', game.id)),
-          )
-          const boxes: ScheduledBbsTask[] = []
-          finalGames.forEach((game, index) => {
-            const cachedBox = cachedBoxes[index]
-            if (
-              cachedBox?.capability === 'boxScore' &&
-              cachedBox.data !== null &&
-              isSameFinalGameSnapshot(cachedBox.data.game, game)
-            ) {
-              const boxKey = scheduledBbsTaskKey({
-                type: 'boxScore',
-                date: task.date,
-                gameId: game.id,
-              })
-              failedTasks = failedTasks?.filter(
-                (failure) => scheduledBbsTaskKey(failure.task) !== boxKey,
-              )
-              return
-            }
-            const boxTask: ScheduledBbsTask = {
-              type: 'boxScore',
-              date: task.date,
-              gameId: game.id,
-            }
-            const availableReferences = archiveReferenceCount(game, games.providerReferences)
-            if (availableReferences < 3) {
-              failedTasks = setScheduledFailure(failedTasks, {
-                task: boxTask,
-                errorCode: 'cache_miss',
-                failedAt: now,
-                diagnostic: {
-                  phase: 'box_score_archive_references',
-                  errorCode: 'cache_miss',
-                  observedAt: now,
-                  expectedCount: 3,
-                  actualCount: availableReferences,
-                },
-              })
-              console.warn(
-                JSON.stringify({
-                  event: 'scheduled_bbs_task_deferred',
-                  cycleDate: progress.cycleDate,
-                  taskType: boxTask.type,
-                  targetDate: boxTask.date,
-                  phase: 'box_score_archive_references',
-                  errorCode: 'cache_miss',
-                  expectedCount: 3,
-                  actualCount: availableReferences,
-                }),
-              )
-              return
-            }
-            boxes.push(boxTask)
-          })
-          const uniqueBoxes = boxes.filter(
-            (box) =>
-              !tasks.some(
-                (queued) => scheduledBbsTaskKey(queued.task) === scheduledBbsTaskKey(box),
-              ),
-          )
-          tasks.splice(taskIndex, 0, ...uniqueBoxes.map((box) => workItem(box)))
-        }
-      }
-    } else if (result.error && PROVIDER_PAUSE_CODES.has(result.error.code)) {
+    } else if (!isFinalization && result.error && providerPaused) {
       const lastError = taskDiagnostic(result, task, now)
       tasks.splice(taskIndex, 0, { ...item, lastError })
-      pauseUntil = result.retryAfter ? Date.parse(result.retryAfter) : now + COOLDOWN_MS
-    } else {
-      const waitingForLease =
-        result.state === 'in_progress' || result.error?.code === 'refresh_in_progress'
+    } else if (!isFinalization) {
       const attempts = waitingForLease ? item.attempts : item.attempts + 1
       const lastError = result.error ? taskDiagnostic(result, task, now) : item.lastError
       if (attempts < SCHEDULED_BBS_MAX_ATTEMPTS) {
@@ -1802,6 +1824,77 @@ export async function runScheduledBbsRefresh(
         })
       }
     }
+    if (refreshed && gamesTask && task.date < today && games && finalizationState !== 'waiting') {
+      const finalGames = games.data.filter(
+        (game) => game.provider === 'bbs' && game.status === 'final',
+      )
+      const cachedBoxes = await repository.getCaches(
+        finalGames.map((game) => gameDetailsCacheKey('bbs', game.id)),
+      )
+      const boxes: ScheduledBbsTask[] = []
+      finalGames.forEach((game, index) => {
+        const cachedBox = cachedBoxes[index]
+        if (
+          cachedBox?.capability === 'boxScore' &&
+          cachedBox.data !== null &&
+          isSameFinalGameSnapshot(cachedBox.data.game, game)
+        ) {
+          const boxKey = scheduledBbsTaskKey({
+            type: 'boxScore',
+            date: task.date,
+            gameId: game.id,
+          })
+          failedTasks = failedTasks?.filter(
+            (failure) => scheduledBbsTaskKey(failure.task) !== boxKey,
+          )
+          return
+        }
+        const boxTask: ScheduledBbsTask = {
+          type: 'boxScore',
+          date: task.date,
+          gameId: game.id,
+        }
+        const availableReferences = archiveReferenceCount(game, games.providerReferences)
+        if (availableReferences < 3) {
+          failedTasks = setScheduledFailure(failedTasks, {
+            task: boxTask,
+            errorCode: 'cache_miss',
+            failedAt: now,
+            diagnostic: {
+              phase: 'box_score_archive_references',
+              errorCode: 'cache_miss',
+              observedAt: now,
+              expectedCount: 3,
+              actualCount: availableReferences,
+            },
+          })
+          console.warn(
+            JSON.stringify({
+              event: 'scheduled_bbs_task_deferred',
+              cycleDate: progress.cycleDate,
+              taskType: boxTask.type,
+              targetDate: boxTask.date,
+              phase: 'box_score_archive_references',
+              errorCode: 'cache_miss',
+              expectedCount: 3,
+              actualCount: availableReferences,
+            }),
+          )
+          return
+        }
+        boxes.push(boxTask)
+      })
+      const uniqueBoxes = boxes.filter(
+        (box) =>
+          !tasks.some((queued) => scheduledBbsTaskKey(queued.task) === scheduledBbsTaskKey(box)),
+      )
+      const slots = SCHEDULED_BBS_TASK_LIMIT - tasks.length
+      const afterMetadata = isFinalization
+        ? tasks.findIndex(({ task }) => task.type !== 'teamDirectory' && task.type !== 'standings')
+        : taskIndex
+      const boxIndex = afterMetadata === -1 ? tasks.length : afterMetadata
+      tasks.splice(boxIndex, 0, ...uniqueBoxes.slice(0, slots).map((box) => workItem(box)))
+    }
     const progressToSave = {
       ...progress,
       tasks,
@@ -1811,7 +1904,29 @@ export async function runScheduledBbsRefresh(
     if (failedTasks === undefined) delete progressToSave.failedTasks
     else progressToSave.failedTasks = failedTasks
     const saved = await saveOwnedProgress(progressToSave)
-    if (saved && result.error) {
+    if (saved && isFinalization && gamesTask) {
+      const cooldown = await repository.getProviderCooldown('bbs').catch(() => null)
+      console.info(
+        JSON.stringify({
+          event: 'scheduled_bbs_yesterday_finalization',
+          cycleDate: progress.cycleDate,
+          targetDate: task.date,
+          taskType: task.type,
+          phase: result.error ? finalizationDiagnostic.phase : 'games_finalization',
+          state: finalizationState,
+          errorCode: skipFinalization
+            ? (item.lastError?.errorCode ?? null)
+            : (result.error?.code ?? null),
+          attempts:
+            attempts + (finalizationState === 'settled' && result.state === 'refreshed' ? 1 : 0),
+          missingScheduledCount,
+          finalCount: games?.data.filter((game) => game.status === 'final').length ?? null,
+          updatedAt: games?.fetchedAt ?? null,
+          remainingAllowance:
+            cooldown && (cooldown.resetAt ?? 0) > now ? (cooldown.remaining ?? null) : null,
+        }),
+      )
+    } else if (saved && result.error) {
       const diagnostic = taskDiagnostic(result, task, now)
       const event = taskExhausted ? 'scheduled_bbs_task_exhausted' : 'scheduled_bbs_task_retry'
       console.warn(

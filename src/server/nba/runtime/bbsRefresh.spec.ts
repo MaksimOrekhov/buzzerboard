@@ -1165,77 +1165,44 @@ describe('BBS cached refresh flow', () => {
     const { fetcher, paths } = fakeBbsFetch({ status: 403 })
     const scheduled = await runScheduledBbsRefresh(environment, authRepository, fetcher, now)
     expect(scheduled).toHaveLength(1)
-    expect(scheduled[0]?.error?.code).toBe('cache_miss')
-    expect(paths).toHaveLength(0)
-    const directory = await runScheduledBbsRefresh(environment, authRepository, fetcher, now)
-    expect(directory[0]?.error?.code).toBe('forbidden')
+    expect(scheduled[0]?.error?.code).toBe('forbidden')
+    expect(paths).toHaveLength(1)
+    expect(await runScheduledBbsRefresh(environment, authRepository, fetcher, now)).toEqual([])
     expect(paths).toHaveLength(1)
     vi.restoreAllMocks()
   })
 
-  it('persists one refresh task at a time and resumes the same task after a provider failure', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(now)
+  it.each([
+    ['winter', '2026-01-20T10:00:00Z', '2026-01-19'],
+    ['summer', '2026-07-20T09:00:00Z', '2026-07-19'],
+    ['US spring only', '2026-03-16T10:00:00Z', '2026-03-15'],
+    ['both on summer time', '2026-03-30T09:00:00Z', '2026-03-29'],
+    ['Cyprus autumn only', '2026-10-26T10:00:00Z', '2026-10-25'],
+    ['both on winter time', '2026-11-02T10:00:00Z', '2026-11-01'],
+  ])('opens at 12:00 Cyprus time in %s', async (_, noon, yesterday) => {
+    const start = Date.parse(noon)
+    let tick = start - 10 * 60_000
+    vi.spyOn(Date, 'now').mockImplementation(() => tick)
     const repository = new MemoryRepository()
-    const standingsKey = standingsCacheKey('bbs', 2027 as SeasonEndYear)
-    repository.cache.set(standingsKey, {
-      cacheKey: standingsKey,
-      capability: 'standings',
-      provider: 'bbs',
-      data: [],
-      fetchedAt: new Date(now - 1_000).toISOString() as UtcTimestamp,
-      providerUpdatedAt: null,
-      rejectedRecords: 0,
-      expiresAt: now + 60_000,
-      staleUntil: now + 7 * 24 * 60 * 60_000,
-      retryAt: null,
-      refreshError: null,
-    })
-    const first = fakeBbsFetch()
-    const completed = await runScheduledBbsRefresh(environment, repository, first.fetcher, now)
-    expect(completed[0]?.state).toBe('up_to_date')
-    expect(first.paths).toHaveLength(0)
-    expect(repository.scheduledBbsProgress?.cursor).toBe(0)
-    expect(repository.scheduledBbsProgress?.tasks[0]?.task.type).toBe('teamDirectory')
+    const fetcher = vi.fn(async () =>
+      Response.json({ data: [], pagination: { total: 0 } }),
+    ) as typeof fetch
 
-    const failed = fakeBbsFetch({ status: 403 })
-    const deferred = await runScheduledBbsRefresh(environment, repository, failed.fetcher, now)
-    expect(deferred[0]?.error?.code).toBe('forbidden')
-    expect(failed.paths).toHaveLength(1)
-    expect(repository.scheduledBbsProgress?.cursor).toBe(0)
-    vi.restoreAllMocks()
-  })
-
-  it('starts at 10:00 New York time across daylight-saving changes', async () => {
-    const repository = new MemoryRepository()
-    let simulatedNow = Date.parse('2026-11-17T14:59:00.000Z')
-    vi.spyOn(Date, 'now').mockImplementation(() => simulatedNow)
-    const fetcher = vi.fn(async () => new Response('{}', { status: 500 })) as typeof fetch
-    const beforeWinterWindow = Date.parse('2026-11-17T14:59:00.000Z')
-    expect(
-      await runScheduledBbsRefresh(environment, repository, fetcher, beforeWinterWindow),
-    ).toEqual([])
+    expect(await runScheduledBbsRefresh(environment, repository, fetcher, tick)).toEqual([])
     expect(fetcher).not.toHaveBeenCalled()
-    const afterWinterWindow = Date.parse('2026-11-17T15:00:00.000Z')
-    simulatedNow = afterWinterWindow
+    tick = start
     expect(
-      await runScheduledBbsRefresh(environment, repository, fetcher, afterWinterWindow),
-    ).toHaveLength(1)
-
-    const dstRepository = new MemoryRepository()
-    const beforeDstWindow = Date.parse('2026-03-08T13:59:00.000Z')
-    simulatedNow = beforeDstWindow
-    expect(
-      await runScheduledBbsRefresh(environment, dstRepository, fetcher, beforeDstWindow),
-    ).toEqual([])
-    simulatedNow = Date.parse('2026-03-08T14:00:00.000Z')
-    expect(
-      await runScheduledBbsRefresh(environment, dstRepository, fetcher, simulatedNow),
-    ).toHaveLength(1)
+      (await runScheduledBbsRefresh(environment, repository, fetcher, tick))[0]?.target,
+    ).toEqual({ type: 'games', date: yesterday })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(repository.scheduledBbsProgress?.tasks[0]?.task.type).toBe('teamDirectory')
+    expect(await runScheduledBbsRefresh(environment, repository, fetcher, tick)).toEqual([])
+    expect(fetcher).toHaveBeenCalledTimes(1)
     vi.restoreAllMocks()
   })
 
   it('does not spend player quota before the new core queue is scheduled', async () => {
-    const beforeWindow = Date.parse('2026-11-18T14:59:00.000Z')
+    const beforeWindow = Date.parse('2026-11-18T09:59:00.000Z')
     vi.spyOn(Date, 'now').mockReturnValue(beforeWindow)
     const repository = new MemoryRepository()
     repository.scheduledBbsProgress = {
@@ -1302,7 +1269,7 @@ describe('BBS cached refresh flow', () => {
     expect(localFailure[0]?.error?.code).toBe('cache_miss')
     expect(repository.scheduledBbsProgress?.tasks[0]?.task.type).toBe('standings')
     expect(repository.scheduledBbsProgress?.tasks.at(-1)?.attempts).toBe(1)
-    const independent = await runScheduledBbsRefresh(environment, repository, fetcher, now)
+    const independent = await runScheduledBbsRefresh(environment, repository, fetcher, now + 30_000)
     expect(independent[0]?.state).toBe('up_to_date')
 
     const rollover = Date.parse('2026-11-18T16:00:00.000Z')
@@ -1506,7 +1473,7 @@ describe('BBS cached refresh flow', () => {
 
     expect(fetchedBoxUuids).toHaveLength(63)
     expect(new Set(fetchedBoxUuids).size).toBe(63)
-    expect(matchRecheckCount).toBeGreaterThanOrEqual(3)
+    expect(matchRecheckCount).toBe(0)
     expect(fetcher).toHaveBeenCalledTimes(126 + matchRecheckCount)
     expect(repository.scheduledBbsProgress?.tasks).toEqual([])
     expect(gamesByUuid.size).toBe(17 * 15)

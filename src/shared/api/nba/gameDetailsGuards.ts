@@ -120,6 +120,14 @@ function isPlayerBoxScore(value: unknown): value is PlayerBoxScore {
   )
 }
 
+export function isSettledGameResult(game: Game): boolean {
+  return (
+    game.status === 'canceled' ||
+    game.status === 'postponed' ||
+    (game.status === 'final' && game.score.home !== null && game.score.away !== null)
+  )
+}
+
 export function isSameFinalGameSnapshot(left: Game, right: Game): boolean {
   return (
     left.id === right.id &&

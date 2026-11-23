@@ -413,7 +413,7 @@ describe('scheduled BBS player refresh', () => {
       pauseUntil: null,
       tasks: [
         { task: { type: 'standings', seasonEndYear: season }, attempts: 0, retryAt: null },
-        { task: { type: 'games', date }, attempts: 1, retryAt: now + 86_400_000 },
+        { task: { type: 'games', date }, attempts: 1, retryAt: Date.parse('2026-11-19T10:00:00Z') },
       ],
     })
     const env = {
@@ -425,6 +425,10 @@ describe('scheduled BBS player refresh', () => {
     }
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input))
+      if (url.pathname === '/v1/matches') {
+        expect(url.searchParams.get('date')).toBe(date)
+        return Response.json({ data: [], pagination: { total: 0 } })
+      }
       expect(url.pathname).toMatch(/\/season-averages$/)
       return Response.json({ data: [averageRow(url.pathname.split('/').at(-2)!, 1)] })
     })
@@ -495,10 +499,10 @@ describe('scheduled BBS player refresh', () => {
       )
       .all()
     expect(days.map((day) => day.request_count)).toEqual([24])
-    now = Date.parse('2026-11-19T15:00:00Z')
-    expect((await tick())[0]?.target.type).toBe('standings')
+    now = Date.parse('2026-11-19T10:00:00Z')
+    expect((await tick())[0]?.target.type).toBe('games')
     expect((await repository.getScheduledBbsProgress())?.cycleDate).toBe('2026-11-19')
-    expect(fetcher).toHaveBeenCalledTimes(25)
+    expect(fetcher).toHaveBeenCalledTimes(26)
     d1.database.close()
   })
 })

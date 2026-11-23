@@ -12,6 +12,7 @@ import { checkCityGuide } from './pro206-city-browser.mjs'
 import { checkTeamJerseys } from './pro207-team-jerseys-browser.mjs'
 import { checkUiAudit } from './pro217-ui-browser.mjs'
 import { checkJerseyViewer } from './pro218-jersey-viewer-browser.mjs'
+import { checkYesterdayRefresh } from './pro219-yesterday-browser.mjs'
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const baselineRoot = process.env.BUZZERBOARD_VISUAL_BASELINE_ROOT
@@ -292,7 +293,10 @@ try {
     channel: process.env.PW_CHANNEL || undefined,
     executablePath: process.env.PW_EXECUTABLE_PATH || undefined,
   })
-  if (!auditOnly) await checkJerseyViewer({ browser, output })
+  if (!auditOnly) {
+    await checkJerseyViewer({ browser, output })
+    await checkYesterdayRefresh({ browser, games, meta, output })
+  }
   for (const width of viewports) {
     const context = await browser.newContext({
       viewport: { width, height: 1000 },
