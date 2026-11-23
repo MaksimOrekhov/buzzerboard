@@ -184,9 +184,6 @@
   .overview-next {
     grid-template-columns: 1fr;
   }
-  .overview-next > article {
-    flex-wrap: nowrap;
-  }
 }
 @media (max-width: 620px) {
   .overview-day-banner {

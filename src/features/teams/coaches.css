@@ -1,7 +1,7 @@
 .team-coaches,
 .coach-layout,
 .coach-stack,
-.coach-lead-copy,
+.coach-lead-details,
 .coach-portraits {
   display: grid;
   min-width: 0;
@@ -63,12 +63,23 @@
 }
 
 .coach-lead {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
   align-items: start;
-  gap: clamp(16px, 3vw, 36px);
+  gap: var(--gc-space-md);
   background: linear-gradient(145deg, var(--gc-panel-hover), var(--gc-panel) 70%);
 }
 
+.coach-lead--with-portrait {
+  grid-template-columns: minmax(0, 1fr) minmax(11rem, 16rem);
+  grid-template-rows: min-content auto;
+  column-gap: clamp(16px, 3vw, 32px);
+}
+.coach-lead--with-portrait .coach-portraits {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+.coach-lead :is(h3, dd) {
+  overflow-wrap: anywhere;
+}
 .coach-lead h3 {
   font-size: clamp(1.65rem, 4vw, 2.5rem);
   letter-spacing: -0.035em;
@@ -87,7 +98,7 @@
 .coach-facts,
 .coach-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   gap: 12px;
 }
 
@@ -108,43 +119,42 @@
   grid-column: 1 / -1;
 }
 
-.coach-portraits .media-attribution img {
-  aspect-ratio: 6 / 5;
-  object-position: 50% 20%;
-}
-
 .coach-photo-placeholder {
-  display: grid;
-  align-items: center;
-  min-height: 9rem;
-  padding: 16px;
-  border: 1px dashed var(--gc-line);
-  border-radius: var(--gc-radius);
   color: var(--gc-muted);
-  font-size: 0.875rem;
-  text-align: center;
+  font-size: var(--stat-meta);
 }
 
-.coach-controls,
+.coach-card {
+  container-type: inline-size;
+}
+
+.coach-controls {
+  display: grid;
+  gap: var(--gc-space-sm) 12px;
+}
+
+@container (min-width: 21rem) {
+  .coach-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .coach-controls:has(> :nth-child(3)) > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container (min-width: 31rem) {
+  .coach-controls:has(> :nth-child(3)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .coach-controls:has(> :nth-child(3)) > :first-child {
+    grid-column: auto;
+  }
+}
+
 .coach-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
-}
-
-.coach-controls label {
-  display: grid;
-  flex: 1 1 10rem;
-  gap: 4px;
-  color: var(--gc-secondary);
-  font-size: 0.875rem;
-}
-
-.coach-controls select {
-  width: 100%;
-  min-height: 44px;
-  padding-inline: 9px;
-  color-scheme: dark;
+  gap: var(--gc-space-xs) 12px;
 }
 
 .coach-timeline,
@@ -191,12 +201,30 @@
 }
 
 @media (max-width: 860px) {
-  .coach-lead,
   .coach-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .coach-portraits {
-    max-width: 24rem;
+  .coach-stack {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 540px) {
+  .coach-lead--with-portrait {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  .coach-lead--with-portrait .coach-portraits {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .coach-timeline li {
+    grid-template-columns: 2.6rem minmax(0, 1fr);
+    gap: 6px;
+  }
+  .coach-timeline li > div {
+    padding-inline-start: 10px;
   }
 }

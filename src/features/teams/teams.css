@@ -271,55 +271,25 @@
   border-color: #6b5a37;
   background: #2a251b;
 }
-.teams-profile-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  min-height: 146px;
-  margin: -7px 0 16px;
-  padding: 23px 27px;
-  border: 1px solid #2a394d;
-  border-radius: 13px;
-  background:
-    radial-gradient(ellipse at 8% 110%, #1c3a4d 0, transparent 46%),
-    linear-gradient(120deg, #171e2a, #121720);
+.teams-profile-heading {
+  justify-content: flex-start;
+  gap: clamp(10px, 2vw, 20px);
+  margin-bottom: var(--gc-space-sm);
 }
-.teams-profile-brand {
-  display: flex;
-  align-items: center;
-  gap: 21px;
+
+.teams-profile-heading .gc-page-heading-copy {
+  flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
-.teams-profile-brand > div {
-  display: grid;
-  gap: 2px;
-}
-.teams-profile-brand > div > span {
-  color: var(--gc-accent);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-}
-.teams-hero-separator {
-  margin-inline: 8px;
-  color: #5d7184;
-}
-.teams-profile-brand strong {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.7px;
-}
-.teams-profile-brand small {
-  color: var(--gc-muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-.teams-profile-hero-links {
+
+.teams-profile-links {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 0 var(--gc-space-md);
+  margin-bottom: var(--gc-space-sm);
 }
+
 .teams-profile-overview {
   display: grid;
   grid-template-columns: 1.25fr repeat(3, 1fr);
@@ -662,27 +632,15 @@
   .teams-toolbar-controls .gc-control {
     width: 100%;
   }
-  .teams-profile-hero {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 18px;
+  .teams-profile-heading .gc-team-logo {
+    width: 42px !important;
+    height: 42px !important;
   }
-  .teams-profile-brand {
-    gap: 14px;
+  .teams-profile-heading h1 {
+    font-size: clamp(1.375rem, 5.5vw, 1.75rem);
   }
-  .teams-profile-brand strong {
-    font-size: 20px;
-  }
-  .teams-profile-brand .gc-team-logo {
-    width: 64px !important;
-    height: 64px !important;
-  }
-  .teams-profile-hero-links {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  .teams-profile-hero-links > a {
-    flex: 1;
+  .teams-profile-heading .teams-profile-favorite {
+    height: 44px;
   }
   .teams-profile-overview {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -737,7 +695,10 @@
     grid-column: 1 / -1;
   }
   .teams-toolbar-controls {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .teams-toolbar > .ui-segmented > button {
+    padding-inline: clamp(8px, 3vw, 16px);
   }
   .teams-toolbar-controls > .gc-search {
     grid-column: auto;
@@ -778,29 +739,13 @@
 }
 
 .teams-profile-nav {
-  display: flex;
-  gap: 6px;
-  border-bottom: 1px solid var(--gc-line);
+  gap: var(--gc-space-xs);
+  margin-bottom: var(--gc-space-md);
 }
 
-.teams-profile-nav a {
-  display: grid;
+.teams-profile-nav .gc-status-tab {
+  justify-content: center;
   min-height: 44px;
-  align-items: center;
-  padding-inline: clamp(14px, 4vw, 20px);
-  border-bottom: 2px solid transparent;
-  border-radius: 8px 8px 0 0;
-  color: var(--gc-secondary);
-  font-weight: 750;
-  text-decoration: none;
-}
-
-.teams-profile-nav a:hover,
-.teams-profile-nav a[aria-current='page'] {
-  background: var(--gc-panel-hover);
-  color: var(--gc-text);
-}
-
-.teams-profile-nav a[aria-current='page'] {
-  border-bottom-color: var(--gc-accent);
+  padding: 4px clamp(12px, 4vw, 20px);
+  font-size: 0.875rem !important;
 }

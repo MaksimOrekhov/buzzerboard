@@ -61,6 +61,7 @@
   font-size: clamp(15px, 2vw, 22px);
   font-weight: 750;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 .game-detail-team-link:hover {
   color: var(--gc-accent);
@@ -439,6 +440,9 @@
 }
 
 @media (max-width: 640px) {
+  .game-details-view > .gc-page-heading {
+    margin-bottom: var(--gc-space-xs);
+  }
   .game-detail-hero {
     padding: 15px 10px;
   }
@@ -450,6 +454,7 @@
   }
   .game-detail-team-link {
     grid-row: 1;
+    align-self: start;
   }
   .game-detail-side--home .game-detail-team-link {
     grid-column: 3;

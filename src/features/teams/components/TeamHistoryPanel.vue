@@ -19,6 +19,7 @@ const nbaTitles = computed(() =>
 const otherTitles = computed(() =>
   profile.value?.titles.seasons?.filter(({ league }) => league === 'ABA' || league === 'NBL'),
 )
+const hasTitles = computed(() => Boolean(nbaTitles.value?.length || otherTitles.value?.length))
 const titleGroups = computed(() => [
   { label: 'NBA и BAA', seasons: nbaTitles.value },
   { label: 'Другие лиги', seasons: otherTitles.value },
@@ -32,7 +33,7 @@ const titleGroups = computed(() => [
       <p class="team-history-meta">Источники сверены {{ TEAM_HISTORY_AS_OF }}</p>
     </header>
     <template v-if="profile && identity">
-      <div class="team-history-top">
+      <div class="team-history-top" :class="{ 'team-history-top--without-titles': !hasTitles }">
         <section
           class="team-history-card team-history-identity"
           aria-labelledby="team-history-identity"
@@ -103,12 +104,14 @@ const titleGroups = computed(() => [
           class="team-history-card team-history-honors"
           aria-labelledby="team-history-titles"
         >
-          <h3 id="team-history-titles">Чемпионства</h3>
+          <div class="team-history-honors-heading">
+            <h3 id="team-history-titles">Чемпионства</h3>
+            <TeamHistorySource :source-id="profile.titles.source"
+              >Архив финалов NBA</TeamHistorySource
+            >
+          </div>
           <p v-if="!nbaTitles">История чемпионств NBA и BAA пока не подтверждена.</p>
           <p v-else-if="!nbaTitles.length">Франшиза ещё не выигрывала чемпионство NBA.</p>
-          <TeamHistorySource :source-id="profile.titles.source"
-            >Архив финалов NBA</TeamHistorySource
-          >
           <template v-for="group in titleGroups" :key="group.label">
             <template v-if="group.seasons?.length">
               <h4>{{ group.label }}</h4>

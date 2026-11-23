@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -55,14 +57,27 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Capture baseline from pull request base
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          baseline_dir="$RUNNER_TEMP/buzzerboard-visual-baseline"
+          if ! git cat-file -e "$BASE_SHA^{commit}"; then
+            git fetch --depth=1 origin "$BASE_SHA"
+          fi
+          git worktree add --detach "$baseline_dir" "$BASE_SHA"
+          pnpm --dir "$baseline_dir" install --frozen-lockfile --prefer-offline
+          BUZZERBOARD_VISUAL_BASELINE_ROOT="$baseline_dir" pnpm run visual:pro171
+
       - name: Check all routes, box score and responsive states
         run: pnpm run visual:pro171
 
-      - name: Upload synthetic Game Center screenshots
+      - name: Upload synthetic screenshots and comparison
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: buzzerboard-pro171-synthetic
-          path: artifacts/pro-171/synthetic/
+          path: artifacts/pro-171/
           if-no-files-found: warn
           retention-days: 30

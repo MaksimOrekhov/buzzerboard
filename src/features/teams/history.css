@@ -10,8 +10,21 @@
 
 .team-history-top,
 .team-history-body {
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   align-items: start;
+}
+
+.team-history-top {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.team-history-top--without-titles {
+  grid-template-columns: minmax(0, 1fr);
+}
+.team-history-top--without-titles .team-history-honors {
+  gap: var(--gc-space-sm);
+  padding-block: var(--gc-space-sm);
+}
+.team-history-body {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 }
 
 .team-history-heading h2,
@@ -66,8 +79,9 @@
 .team-history-source {
   display: inline-block;
   color: var(--gc-accent);
-  font-size: 0.8125rem;
+  font-size: var(--stat-meta);
   text-underline-offset: 3px;
+  overflow-wrap: anywhere;
 }
 
 .team-history-foundation {
@@ -137,28 +151,53 @@
   margin-top: 10px;
 }
 
-.team-history-titles,
-.team-history-legends {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
-  gap: 8px;
+.team-history-honors-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--gc-space-sm);
 }
 
-.team-history-titles li,
-.team-history-legends li {
+.team-history-titles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 7.75rem), 1fr));
+  gap: var(--gc-space-sm);
+}
+
+.team-history-titles li {
   display: grid;
   align-content: start;
-  gap: 4px;
-  padding: 10px;
+  gap: 2px;
+  padding: 8px 10px;
   border: 1px solid var(--gc-line);
-  border-radius: 8px;
+  border-radius: var(--gc-radius-sm);
   background: var(--gc-panel-hover);
+}
+
+.team-history-legends {
+  display: grid;
+  gap: 12px;
+}
+
+.team-history-legends li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: 8px;
+  row-gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--gc-line);
+}
+
+.team-history-legends :is(p, .team-history-inline) {
+  grid-column: 1 / -1;
 }
 
 .team-history-titles strong,
 .team-history-number {
   color: var(--gc-accent);
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -166,30 +205,25 @@
 .team-history-titles span,
 .team-history-legends p {
   color: var(--gc-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--stat-meta);
 }
 
-.team-history-controls,
+.team-history-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--gc-space-sm) 12px;
+}
+
 .team-history-inline,
 .team-history-retired {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 6px 8px;
 }
 
-.team-history-controls label {
-  display: grid;
-  gap: 4px;
-  flex: 1 1 12rem;
-  color: var(--gc-secondary);
-  font-size: 0.875rem;
-}
-
-.team-history-controls select {
-  width: 100%;
-  min-height: 44px;
-  padding-inline: 10px;
-  color-scheme: dark;
+.team-history-gallery {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  align-items: start;
 }
 
 .team-history-timeline {
@@ -212,7 +246,7 @@
 .team-history-timeline li > div {
   display: grid;
   gap: 4px;
-  padding: 11px 0 14px 16px;
+  padding: 10px 0 13px 12px;
   border-inline-start: 2px solid var(--gc-line);
 }
 
@@ -228,15 +262,6 @@
   color: var(--gc-text);
 }
 
-.team-history-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 @media (max-width: 860px) {
   .team-history-top,
   .team-history-body {
@@ -245,6 +270,10 @@
 }
 
 @media (max-width: 420px) {
+  .team-history-timeline li {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 6px;
+  }
   .team-history-eras li {
     grid-template-columns: 4.5rem minmax(0, 1fr);
   }

@@ -6,7 +6,7 @@
 }
 .news-columns .gc-state {
   height: 100%;
-  min-height: 410px;
+  min-height: 245px;
 }
 .news-quick-link {
   display: flex;
@@ -40,17 +40,14 @@
 }
 .not-found-view > .resource-state-wrap {
   max-width: 850px;
-  margin: 45px auto 60px;
+  margin: 24px auto 40px;
 }
 .not-found-view .gc-state {
-  min-height: 390px;
+  min-height: 275px;
 }
 @media (max-width: 1100px) {
   .news-columns {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .news-columns .gc-state {
-    min-height: 320px;
   }
 }
 @media (max-width: 620px) {
@@ -58,6 +55,6 @@
     gap: 18px;
   }
   .not-found-view > .resource-state-wrap {
-    margin-top: 25px;
+    margin-top: 16px;
   }
 }

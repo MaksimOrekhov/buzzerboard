@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
@@ -7,10 +7,18 @@ import { createServer } from 'vite'
 import { checkSpoilerMode } from './pro210-spoiler-browser.mjs'
 import { checkTeamHistory } from './pro203-team-history-browser.mjs'
 import { checkTeamCoaching } from './pro204-team-coaching-browser.mjs'
+import { checkUiAudit } from './pro217-ui-browser.mjs'
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const output = path.join(root, 'artifacts/pro-171/synthetic')
+const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const baselineRoot = process.env.BUZZERBOARD_VISUAL_BASELINE_ROOT
+const root = baselineRoot ? path.resolve(baselineRoot) : workspace
+const auditOnly = Boolean(baselineRoot) || process.argv.includes('--audit-only')
+const artifact = path.join(workspace, 'artifacts/pro-171')
+const baselineOutput = path.join(artifact, 'baseline')
+const output = baselineRoot ? baselineOutput : path.join(artifact, 'synthetic')
+const viewports = [320, 375, 620, 768, 1024, 1280, 1440]
 const checks = []
+const layoutFailures = []
 const today = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/New_York',
   year: 'numeric',
@@ -236,12 +244,13 @@ const server = await createServer({
 let browser
 try {
   await server.listen()
+  const { NBA_TEAMS } = await server.ssrLoadModule('/src/entities/nba/teamCatalog.ts')
   browser = await chromium.launch({
     headless: true,
     channel: process.env.PW_CHANNEL || undefined,
     executablePath: process.env.PW_EXECUTABLE_PATH || undefined,
   })
-  for (const width of [375, 620, 768, 1024, 1280, 1440]) {
+  for (const width of viewports) {
     const context = await browser.newContext({
       viewport: { width, height: 1000 },
       locale: 'ru-RU',
@@ -256,6 +265,7 @@ try {
       const url = new URL(request.url())
       if (url.hostname !== '127.0.0.1') return route.abort()
       if (!url.pathname.startsWith('/api/')) return route.continue()
+      if (request.method() !== 'GET') return route.abort()
       calls.push({ path: url.pathname, method: request.method() })
       if (mode === 'loading') await new Promise((resolve) => setTimeout(resolve, 1200))
       if (mode === 'error') return route.fulfill({ status: 503, json: error })
@@ -340,15 +350,67 @@ try {
       await page.goto(`http://127.0.0.1:4186/games?date=${today}`)
       await page.evaluate(() => document.fonts.ready)
     }
-    const capture = async (label) => {
+    const capture = async (
+      label,
+      { fullPage = !/comparison|calendar|select-open/.test(label) } = {},
+    ) => {
+      if (mode !== 'loading') await page.evaluate(() => document.fonts.ready)
       const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth)
-      assert.ok(documentWidth <= width, `${width} ${label}: overflow ${documentWidth}`)
+      assert.ok(
+        baselineRoot || documentWidth <= width,
+        `${width} ${label}: overflow ${documentWidth}`,
+      )
       await page.screenshot({
         path: path.join(output, `${width}-${label}.png`),
-        fullPage: !/comparison|calendar|select-open/.test(label),
+        fullPage,
         animations: 'disabled',
       })
     }
+    const sizes = width === 1440 ? [1000, 600] : [width === 320 ? 600 : 1000]
+    const setMode = (nextMode) => {
+      mode = nextMode
+    }
+    const auditPage = await context.newPage()
+    auditPage.on('pageerror', (error) => errors.push(error.message))
+    for (const height of sizes) {
+      await auditPage.setViewportSize({ width, height })
+      await checkUiAudit({
+        page: auditPage,
+        today,
+        game: games[0],
+        player: syntheticPlayers[0],
+        teams: NBA_TEAMS,
+        meta,
+        setMode,
+        baseline: Boolean(baselineRoot),
+        capture: async (label, { fullPage }) => {
+          if (mode !== 'loading') await auditPage.evaluate(() => document.fonts.ready)
+          const actualWidth = await auditPage.evaluate(() => document.documentElement.scrollWidth)
+          if (actualWidth > width) {
+            const elements = await auditPage.evaluate(() =>
+              [...document.querySelectorAll('main *, .gc-topbar *')]
+                .filter((node) => node.getBoundingClientRect().right > innerWidth + 1)
+                .filter((node) => !node.closest('table'))
+                .slice(0, 8)
+                .map((node) => node.getAttribute('class') || node.tagName),
+            )
+            layoutFailures.push({ width, height, label, actualWidth, elements })
+          }
+          await auditPage.screenshot({
+            path: path.join(output, width + 'x' + height + '-' + label + '.png'),
+            fullPage,
+            animations: 'disabled',
+          })
+        },
+      })
+    }
+    await auditPage.close()
+    assert.deepEqual(errors, [])
+    if (auditOnly || width === 320) {
+      await context.close()
+      continue
+    }
+    await page.bringToFront()
     await visit()
     await page.locator('.gc-score-row').last().waitFor()
     assert.equal(await page.locator('.gc-score-row').count(), 15)
@@ -454,7 +516,7 @@ try {
     for (const state of ['loading', 'empty', 'error', 'stale']) {
       mode = state
       await page.reload({ waitUntil: 'domcontentloaded' })
-      if (state === 'loading') await page.locator('[aria-busy="true"]').waitFor()
+      if (state === 'loading') await page.locator('.gc-skeleton-list').waitFor()
       else if (state === 'empty')
         await page.getByText('В этот день матчей нет', { exact: true }).waitFor()
       else if (state === 'error')
@@ -640,23 +702,63 @@ try {
         capture,
       })
     }
-    if ([375, 1440].includes(width)) {
+    if ([375, 768, 1440].includes(width)) {
       await checkTeamHistory({ page, capture })
       await checkTeamCoaching({ page, capture })
     }
     assert.deepEqual(errors, [])
     checks.push({
       width,
-      routes: 7,
+      routes: 11,
       states: 'ready,loading,empty,error,stale,ambiguous GB',
       interactions:
         'filters, sort, favorites, comparison, sticky columns, date reset, calendar keyboard, focus restoration, GET-only',
     })
     await context.close()
   }
-  await writeFile(path.join(output, 'checks.json'), JSON.stringify(checks, null, 2))
+  await writeFile(
+    path.join(output, 'checks.json'),
+    JSON.stringify({ checks, layoutFailures }, null, 2),
+  )
+  if (!baselineRoot) {
+    const before = new Set(
+      await readdir(baselineOutput).catch((error) => {
+        if (error.code !== 'ENOENT') throw error
+        return []
+      }),
+    )
+    if (before.size) {
+      const images = (await readdir(output))
+        .filter((file) => file.includes('-audit-') && file.endsWith('.png'))
+        .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))
+      const view = (label, folder, file) =>
+        `<figure><figcaption>${label}</figcaption><a href="${folder}/${file}"><img loading="lazy" src="${folder}/${file}" alt="${label}"></a></figure>`
+      const comparison = images
+        .map(
+          (file) =>
+            `<section><h2>${file.slice(0, -4)}</h2><div>${before.has(file) ? view('До', 'baseline', file) : ''}${view('После', 'synthetic', file)}</div></section>`,
+        )
+        .join('')
+      await writeFile(
+        path.join(artifact, 'comparison.html'),
+        `<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>BuzzerBoard · PRO-217 · до и после</title>
+<style>
+body { background: #0d1017; color: #f1f4fa; font: 16px system-ui; margin: 24px }
+section { border-block-start: 1px solid #272e3d; padding-block: 12px 24px }
+section > div { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 16px }
+figure { margin: 0; min-width: 0 } img { display: block; max-width: 100%; height: 350px; object-fit: contain; object-position: left top }
+</style>
+<h1>BuzzerBoard · PRO-217</h1><p>Выберите изображение для просмотра в исходном размере.</p>
+${comparison}
+</html>`,
+      )
+    }
+    assert.equal(layoutFailures.length, 0, 'Page overflow found. See checks.json.')
+  }
   console.info(
-    `BuzzerBoard: ${checks.length} viewports passed, all seven routes; only synthetic GET responses, no upstream`,
+    `BuzzerBoard UI audit: all 11 route types with synthetic GET data at ${viewports.join(', ')} px. Regression suite: ${checks.length} viewports.`,
   )
 } finally {
   await browser?.close()

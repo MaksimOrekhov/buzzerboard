@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { chooseOption } from './pro217-ui-browser.mjs'
 
 const origin = 'http://127.0.0.1:4186'
 
@@ -69,11 +70,14 @@ export async function checkTeamHistory({ page, capture }) {
   await page.reload()
   await heading.waitFor()
   const timeline = page.getByRole('region', { name: 'Хронология' })
-  await timeline.getByLabel('Категория').selectOption('identity')
+  const category = timeline.getByRole('combobox', { name: 'Категория', exact: true })
+  const order = timeline.getByRole('combobox', { name: 'Порядок', exact: true })
+  assert.equal(await timeline.locator('select').count(), 0)
+  await chooseOption(page, category, 'Переезды и имена')
   await timeline.getByRole('heading', { name: 'Los Angeles Lakers', exact: true }).waitFor()
   assert.equal(await timeline.locator('ol li').count(), 2)
-  await timeline.getByLabel('Категория').selectOption('titles')
-  await timeline.getByLabel('Порядок').selectOption('desc')
+  await chooseOption(page, category, 'Титулы')
+  await chooseOption(page, order, 'Сначала поздние')
   assert.equal(await timeline.locator('time').first().textContent(), '2020')
   assert.equal(await timeline.locator('time').last().textContent(), '1948')
   const arenaList = page.locator('details').filter({ hasText: 'Исторические арены · выборочно' })
