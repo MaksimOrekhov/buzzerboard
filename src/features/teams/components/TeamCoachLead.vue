@@ -12,18 +12,26 @@ const media = computed(() => getPersonMedia(props.appointment.personId))
 </script>
 
 <template>
-  <section v-if="person" class="coach-card coach-lead" aria-labelledby="coach-lead-heading">
-    <div class="coach-lead-copy">
-      <header>
-        <p class="coach-job">
-          {{
-            appointment.status === 'interim'
-              ? 'Исполняющий обязанности главного тренера'
-              : 'Главный тренер'
-          }}
-        </p>
-        <h3 id="coach-lead-heading">{{ person.name }}</h3>
-      </header>
+  <section
+    v-if="person"
+    class="coach-card coach-lead"
+    :class="{ 'coach-lead--with-portrait': media.length }"
+    aria-labelledby="coach-lead-heading"
+  >
+    <header>
+      <p class="coach-job">
+        {{
+          appointment.status === 'interim'
+            ? 'Исполняющий обязанности главного тренера'
+            : 'Главный тренер'
+        }}
+      </p>
+      <h3 id="coach-lead-heading">{{ person.name }}</h3>
+    </header>
+    <aside v-if="media.length" class="coach-portraits" aria-label="Портреты тренера">
+      <MediaAttribution v-for="asset in media" :key="asset.assetId" :asset="asset" portrait />
+    </aside>
+    <div class="coach-lead-details">
       <p v-if="stale" class="gc-notice gc-notice--warning">
         Последнее подтверждённое назначение. Нужна повторная сверка.
       </p>
@@ -33,6 +41,9 @@ const media = computed(() => getPersonMedia(props.appointment.personId))
         >
         <CoachSource :source-id="appointment.source">Источник должности</CoachSource>
       </div>
+      <p v-if="!media.length" class="coach-photo-placeholder">
+        Портрет с проверенной лицензией пока недоступен.
+      </p>
       <dl class="coach-facts">
         <div>
           <dt>Дата назначения</dt>
@@ -77,11 +88,5 @@ const media = computed(() => getPersonMedia(props.appointment.personId))
         </div>
       </dl>
     </div>
-    <aside class="coach-portraits" aria-label="Портреты тренера">
-      <MediaAttribution v-for="asset in media" :key="asset.assetId" :asset="asset" />
-      <div v-if="!media.length" class="coach-photo-placeholder">
-        Портрет с проверенной лицензией пока недоступен.
-      </div>
-    </aside>
   </section>
 </template>

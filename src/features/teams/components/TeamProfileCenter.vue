@@ -7,6 +7,7 @@ import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import { useTeamFavorites } from '@/features/standings/composables/useTeamFavorites'
 import PageHeading from '@/shared/components/PageHeading.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
+import AppButton from '@/shared/components/AppButton.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import TeamProfileOverview from './TeamProfileOverview.vue'
@@ -40,43 +41,37 @@ const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team
       ><span>/</span><span>{{ team.code }}</span>
     </nav>
     <PageHeading
+      class="teams-profile-heading"
       eyebrow="Профиль франшизы"
       :title="team.name"
       :description="`${team.conference === 'east' ? 'Восточная' : 'Западная'} конференция · дивизион ${team.division}`"
       :title-dot="false"
     >
-      <template #actions
-        ><button
-          class="gc-control teams-profile-favorite"
-          type="button"
+      <template #leading><TeamLogo :team="team.team" :size="64" /></template>
+      <template #actions>
+        <AppButton
+          class="teams-profile-favorite"
+          icon="star"
+          :aria-label="`Избранное: ${team.name}`"
           :aria-pressed="favorite"
           @click="toggleFavorite(team.team.id)"
         >
-          <AppIcon name="star" :size="17" />{{ favorite ? 'В избранном' : 'В избранное' }}
-        </button></template
-      >
+          {{ favorite ? 'В избранном' : 'В избранное' }}
+        </AppButton>
+      </template>
     </PageHeading>
-    <section class="teams-profile-hero" aria-label="Карточка команды">
-      <div class="teams-profile-brand">
-        <TeamLogo :team="team.team" :size="86" />
-        <div>
-          <span>{{ team.code }}<span class="teams-hero-separator">·</span>NBA</span
-          ><strong>{{ team.name }}</strong
-          ><small>{{ team.division }} division</small>
-        </div>
-      </div>
-      <div class="teams-profile-hero-links">
-        <RouterLink :to="{ path: '/players', query: { team: code } }" class="gc-control"
-          >Игроки в каталоге<AppIcon name="arrow" :size="14"
-        /></RouterLink>
-        <RouterLink to="/standings" class="gc-control"
-          >Турнирная таблица<AppIcon name="arrow" :size="14" /></RouterLink
-        ><RouterLink to="/games" class="gc-control"
-          >Матчи<AppIcon name="arrow" :size="14"
-        /></RouterLink>
-      </div>
-    </section>
-    <nav class="teams-profile-nav" aria-label="Разделы профиля">
+    <nav class="teams-profile-links" aria-label="Связанные разделы">
+      <RouterLink :to="{ path: '/players', query: { team: code } }" class="ui-text-link">
+        Игроки<AppIcon name="arrow" :size="14" />
+      </RouterLink>
+      <RouterLink to="/standings" class="ui-text-link">
+        Турнирная таблица<AppIcon name="arrow" :size="14" />
+      </RouterLink>
+      <RouterLink to="/games" class="ui-text-link">
+        Матчи<AppIcon name="arrow" :size="14" />
+      </RouterLink>
+    </nav>
+    <nav class="gc-status-tabs teams-profile-nav" aria-label="Разделы профиля">
       <RouterLink
         v-for="section in sections"
         :key="section.label"
@@ -89,6 +84,7 @@ const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team
       >
         <a
           :href="href"
+          class="gc-status-tab"
           :aria-current="section.tab === activeTab ? 'page' : undefined"
           @click="navigate"
         >

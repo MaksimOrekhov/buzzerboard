@@ -11,7 +11,7 @@ import PageHeading from '@/shared/components/PageHeading.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
-import AppIcon from '@/shared/components/AppIcon.vue'
+import AppButton from '@/shared/components/AppButton.vue'
 import StatValue from '@/shared/components/StatValue.vue'
 import AppTooltip from '@/shared/components/AppTooltip.vue'
 import {
@@ -86,14 +86,20 @@ const advancedStats = computed(() => seasonAdvancedMetrics(data.value?.player.st
     </ResourceState>
     <template v-else-if="data">
       <PageHeading
+        class="player-profile-heading"
         eyebrow="Профиль игрока · 2026/27"
         :title="data.player.name"
         :description="facts.join(' · ') || 'NBA'"
       >
         <template #actions>
-          <button class="gc-control" type="button" :aria-pressed="ids.has(id)" @click="toggle(id)">
-            <AppIcon name="star" :size="17" />{{ ids.has(id) ? 'В избранном' : 'В избранное' }}
-          </button>
+          <AppButton
+            icon="star"
+            :aria-label="`Избранное: ${data.player.name}`"
+            :aria-pressed="ids.has(id)"
+            @click="toggle(id)"
+          >
+            {{ ids.has(id) ? 'В избранном' : 'В избранное' }}
+          </AppButton>
         </template>
       </PageHeading>
       <section class="player-panel player-profile-identity" aria-label="Команды игрока">

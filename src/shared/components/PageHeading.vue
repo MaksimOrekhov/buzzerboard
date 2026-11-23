@@ -6,7 +6,8 @@ withDefaults(
 </script>
 <template>
   <header class="gc-page-heading">
-    <div>
+    <slot name="leading" />
+    <div class="gc-page-heading-copy">
       <div class="gc-page-kicker">
         <span class="gc-league-dot" />NBA<span class="gc-heading-divider">/</span>{{ eyebrow }}
       </div>

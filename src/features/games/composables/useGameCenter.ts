@@ -167,13 +167,15 @@ export function useGameCenter() {
     Array.from({ length: 7 }, (_, i) => {
       const date = shiftGameDate(selectedDate.value, i - 3)
       const value = new Date(`${date}T12:00:00Z`)
+      const weekday = new Intl.DateTimeFormat('ru-RU', {
+        weekday: 'short',
+        timeZone: 'UTC',
+      }).format(value)
       return {
         date,
         day: value.getUTCDate(),
-        label:
-          date === today
-            ? 'Сегодня'
-            : new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(value),
+        weekday,
+        label: date === today ? 'Сегодня' : weekday,
         disabled: date < minDate || date > maxDate,
       }
     }),

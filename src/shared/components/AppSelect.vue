@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends string">
+import { computed, useId } from 'vue'
 import {
   SelectRoot,
   SelectTrigger,
@@ -11,21 +12,38 @@ import {
   SelectItemIndicator,
 } from 'reka-ui'
 import AppIcon from './AppIcon.vue'
-defineProps<{
+const props = defineProps<{
   label: string
+  showLabel?: boolean
+  disabled?: boolean
+  placeholder?: string
   options: readonly { value: T; label: string; disabled?: boolean }[]
 }>()
+const id = useId()
 const model = defineModel<T>({ required: true })
+const selectedLabel = computed(
+  () =>
+    props.options.find(({ value }) => value === model.value)?.label ??
+    props.placeholder ??
+    (props.options.length ? 'Выберите…' : 'Нет вариантов'),
+)
 </script>
 <template>
-  <SelectRoot v-model="model">
-    <SelectTrigger class="gc-control gc-select" :aria-label="label"
-      ><SelectValue /><AppIcon name="down" :size="15"
-    /></SelectTrigger>
+  <SelectRoot v-model="model" :disabled="disabled || !options.length">
+    <label v-if="showLabel" :for="id" class="gc-select-caption">{{ label }}</label>
+    <SelectTrigger
+      :id="id"
+      class="gc-control gc-select"
+      :aria-label="showLabel ? undefined : label"
+    >
+      <SelectValue>{{ selectedLabel }}</SelectValue>
+      <AppIcon name="down" :size="15" />
+    </SelectTrigger>
     <SelectPortal
       ><SelectContent
         class="game-center-theme gc-popover gc-select-menu"
         position="popper"
+        :aria-label="label"
         :side-offset="8"
         :collision-padding="12"
       >

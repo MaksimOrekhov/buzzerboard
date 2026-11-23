@@ -1,10 +1,26 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 import { COACHING_DIRECTORY, type CoachingAssignment } from '@/entities/nba/coachingDirectory'
+import AppSelect from '@/shared/components/AppSelect.vue'
 import CoachSource from './CoachSource.vue'
 
 const props = defineProps<{ appointments: CoachingAssignment[]; stale: boolean }>()
-const phase = shallowRef<'all' | 'current' | 'former'>('all')
+type Phase = 'all' | 'current' | 'former'
+const phase = shallowRef<Phase>('all')
+const phases = computed<readonly { value: Phase; label: string }[]>(() => [
+  { value: 'all', label: 'Все назначения' },
+  { value: 'current', label: props.stale ? 'Последнее подтверждённое' : 'Текущее назначение' },
+  { value: 'former', label: 'Бывшие тренеры' },
+])
+const types = [
+  { value: 'all', label: 'Все типы' },
+  { value: 'permanent', label: 'Постоянные' },
+  { value: 'interim', label: 'Временные' },
+] as const
+const orders = [
+  { value: 'desc', label: 'Сначала новые' },
+  { value: 'asc', label: 'Сначала ранние' },
+] as const
 const appointmentType = shallowRef<'all' | CoachingAssignment['status']>('all')
 const order = shallowRef<'desc' | 'asc'>('desc')
 const hasInterim = computed(() => props.appointments.some(({ status }) => status === 'interim'))
@@ -33,32 +49,17 @@ const visible = computed(() =>
       <p class="coach-muted">Подборка подтверждённых назначений.</p>
     </header>
     <div class="coach-controls">
-      <label>
-        Период
-        <select v-model="phase" class="gc-control">
-          <option value="all">Все назначения</option>
-          <option value="current">
-            {{ stale ? 'Последнее подтверждённое' : 'Текущее назначение' }}
-          </option>
-          <option value="former">Бывшие тренеры</option>
-        </select>
-      </label>
-      <label v-if="hasInterim">
-        Тип назначения
-        <select v-model="appointmentType" class="gc-control">
-          <option value="all">Все типы</option>
-          <option value="permanent">Постоянные</option>
-          <option value="interim">Временные</option>
-        </select>
-      </label>
-      <label>
-        Порядок
-        <select v-model="order" class="gc-control">
-          <option value="desc">Сначала новые</option>
-          <option value="asc">Сначала ранние</option>
-        </select>
-      </label>
+      <div class="gc-select-field">
+        <AppSelect v-model="phase" label="Период" :options="phases" show-label />
+      </div>
+      <div v-if="hasInterim" class="gc-select-field">
+        <AppSelect v-model="appointmentType" label="Тип назначения" :options="types" show-label />
+      </div>
+      <div class="gc-select-field">
+        <AppSelect v-model="order" label="Порядок" :options="orders" show-label />
+      </div>
     </div>
+    <p class="visually-hidden" role="status">Назначений в выборке: {{ visible.length }}</p>
     <ol v-if="visible.length" class="coach-timeline">
       <li v-for="item in visible" :key="`${item.personId}/${item.status}/${item.validFrom}`">
         <p class="coach-timeline-year">
@@ -103,8 +104,6 @@ const visible = computed(() =>
         </div>
       </li>
     </ol>
-    <p v-else role="status" class="coach-muted">
-      В этой выборке пока нет подтверждённых назначений.
-    </p>
+    <p v-else class="coach-muted">В этой выборке пока нет подтверждённых назначений.</p>
   </section>
 </template>

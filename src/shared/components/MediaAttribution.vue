@@ -2,7 +2,7 @@
 import { computed, shallowRef, watch } from 'vue'
 import { isReviewedTeamMediaAsset, type TeamMediaAsset } from '@/entities/nba/teamMediaManifest'
 
-const props = defineProps<{ asset: TeamMediaAsset }>()
+const props = defineProps<{ asset: TeamMediaAsset; portrait?: boolean }>()
 const failed = shallowRef(false)
 const reviewedAsset = computed(() => (isReviewedTeamMediaAsset(props.asset) ? props.asset : null))
 
@@ -15,7 +15,7 @@ watch(
 </script>
 
 <template>
-  <figure class="media-attribution">
+  <figure class="media-attribution" :class="{ 'media-attribution--portrait': portrait }">
     <img
       v-if="reviewedAsset && !failed"
       :src="reviewedAsset.publicPath"
@@ -73,10 +73,25 @@ watch(
   object-fit: cover;
 }
 
+.media-attribution--portrait img {
+  width: auto;
+  max-width: 100%;
+  max-height: 15rem;
+  margin-inline: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 540px) {
+  .media-attribution--portrait img {
+    max-height: 11rem;
+  }
+}
+
 .media-attribution__caption {
   padding: var(--gc-space-sm, 8px) var(--gc-space-md, 16px) var(--gc-space-md, 16px);
   font-size: 0.8125rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .media-attribution__caption p {
@@ -97,7 +112,7 @@ watch(
 .media-attribution__links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--gc-space-sm, 8px);
+  gap: var(--gc-space-xs, 4px) var(--gc-space-sm, 8px);
   margin-top: var(--gc-space-sm, 8px) !important;
   color: var(--gc-secondary, #c4ccda);
 }

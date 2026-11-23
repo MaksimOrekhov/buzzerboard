@@ -11,29 +11,6 @@
   padding: 13px 20px;
   border-bottom: 1px solid var(--gc-line);
 }
-.gc-quick-dates {
-  display: flex;
-  gap: 3px;
-  padding: 3px;
-  background: var(--gc-bg);
-  border-radius: 7px;
-}
-.gc-quick-date {
-  min-height: 31px;
-  padding: 5px 12px;
-  border: 0;
-  border-radius: 5px;
-  background: none;
-  color: var(--gc-muted);
-  font-size: 11px !important;
-}
-.gc-quick-date:hover {
-  color: var(--gc-text);
-}
-.gc-quick-date[aria-pressed='true'] {
-  background: #293444;
-  color: var(--gc-text);
-}
 .gc-date-hint {
   margin-left: auto;
   color: var(--gc-muted);
@@ -529,13 +506,9 @@
     gap: 7px;
     flex-wrap: wrap;
   }
-  .gc-quick-dates {
-    gap: 0;
-  }
-  .gc-quick-date {
-    font-size: 9px !important;
-    padding: 4px 7px;
-    min-height: 28px;
+  .gc-quick-dates > button {
+    padding-inline: 8px;
+    font-size: 0.75rem;
   }
   .gc-date-strip {
     padding: 8px 6px;
@@ -548,14 +521,16 @@
     gap: 3px;
   }
   .gc-day {
-    min-height: 63px;
+    min-height: 56px;
+    min-width: 0;
+    padding-inline: 0;
     border-radius: 6px;
   }
   .gc-day > span:first-child {
     font-size: 9px;
   }
   .gc-day strong {
-    font-size: 21px;
+    font-size: clamp(1rem, 5.2vw, 1.3125rem);
   }
   .gc-day-heading {
     margin-bottom: 14px;
@@ -566,6 +541,15 @@
   .gc-day-heading p {
     font-size: var(--stat-meta);
     margin-top: 7px;
+  }
+  .gc-games .gc-status-tabs {
+    flex-wrap: wrap;
+    column-gap: 12px;
+    row-gap: 0;
+  }
+  .gc-games .gc-status-tab {
+    min-height: 44px;
+    padding-block: 0;
   }
   .gc-filters {
     gap: 7px;
@@ -711,6 +695,27 @@
 
 .gc-match-reveal {
   align-self: center;
+}
+
+@media (max-width: 390px) {
+  .gc-games .gc-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px;
+  }
+  .gc-games .gc-filters > .gc-search {
+    grid-column: 1 / -1;
+  }
+  .gc-games .gc-filters > .gc-select {
+    max-width: none;
+    white-space: normal;
+    text-align: start;
+  }
+  .gc-games .gc-status-tabs {
+    column-gap: 6px;
+  }
+  .gc-games .gc-status-tab {
+    font-size: 0.6875rem !important;
+  }
 }
 
 @media (max-width: 620px) {

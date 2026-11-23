@@ -6,10 +6,23 @@ import {
   type HistoryCategory,
   type TeamHistory,
 } from '@/entities/nba/teamHistory'
+import AppSelect from '@/shared/components/AppSelect.vue'
 import TeamHistorySource from './TeamHistorySource.vue'
 
 const props = defineProps<{ profile: TeamHistory }>()
-const category = ref<HistoryCategory | 'all'>('all')
+type Category = HistoryCategory | 'all'
+const categories: { value: Category; label: string }[] = [
+  { value: 'all', label: 'Все события' },
+  ...Object.entries(HISTORY_CATEGORIES).map(([value, label]) => ({
+    value: value as HistoryCategory,
+    label,
+  })),
+]
+const orders = [
+  { value: 'asc', label: 'Сначала ранние' },
+  { value: 'desc', label: 'Сначала поздние' },
+] as const
+const category = ref<Category>('all')
 const order = ref<'asc' | 'desc'>('asc')
 const events = computed(() => historyTimeline(props.profile, category.value, order.value))
 </script>
@@ -18,24 +31,14 @@ const events = computed(() => historyTimeline(props.profile, category.value, ord
   <section class="team-history-card" aria-labelledby="team-history-timeline">
     <h3 id="team-history-timeline">Хронология</h3>
     <div class="team-history-controls">
-      <label>
-        Категория
-        <select v-model="category" class="gc-control">
-          <option value="all">Все события</option>
-          <option v-for="(label, key) in HISTORY_CATEGORIES" :key="key" :value="key">
-            {{ label }}
-          </option>
-        </select>
-      </label>
-      <label>
-        Порядок
-        <select v-model="order" class="gc-control">
-          <option value="asc">Сначала ранние</option>
-          <option value="desc">Сначала поздние</option>
-        </select>
-      </label>
+      <div class="gc-select-field">
+        <AppSelect v-model="category" label="Категория" :options="categories" show-label />
+      </div>
+      <div class="gc-select-field">
+        <AppSelect v-model="order" label="Порядок" :options="orders" show-label />
+      </div>
     </div>
-    <p class="team-history-sr-only" role="status">Событий в выборке: {{ events.length }}</p>
+    <p class="visually-hidden" role="status">Событий в выборке: {{ events.length }}</p>
     <ol v-if="events.length" class="team-history-timeline">
       <li
         v-for="event in events"

@@ -100,6 +100,7 @@ const sectionIsActive = (id: string, path: string) =>
           :key="item.id"
           :to="item.to"
           active-class="gc-mobile-nav--active"
+          :aria-label="item.label"
           :class="{
             'gc-mobile-nav--active': sectionIsActive(item.id, item.to),
           }"

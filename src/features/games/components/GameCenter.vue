@@ -5,6 +5,7 @@ import GameScoreRow from './GameScoreRow.vue'
 import GameDayInsights from './GameDayInsights.vue'
 import { shiftGameDate, useGameCenter } from '../composables/useGameCenter'
 import type { GameStatus } from '@/entities/nba/model'
+import AppButton from '@/shared/components/AppButton.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import AppSelect from '@/shared/components/AppSelect.vue'
 import PageHeading from '@/shared/components/PageHeading.vue'
@@ -56,6 +57,11 @@ const labels: Partial<Record<GameStatus, string>> = {
   unknown: 'Уточняются',
   live: 'Уточняются',
 }
+const recentDates = computed(() => [
+  { label: 'Позавчера', value: shiftGameDate(today, -2) },
+  { label: 'Вчера', value: shiftGameDate(today, -1) },
+  { label: 'Сегодня', value: today },
+])
 const tabs = computed(() => [
   { value: 'all' as const, label: 'Все матчи', count: games.value.length },
   { value: 'final' as const, label: 'Завершённые', count: finalGames.value.length },
@@ -80,11 +86,9 @@ const scoredCount = computed(
       title="Game Center"
       description="Весь игровой день. Каждый результат."
       ><template #actions
-        ><button class="gc-control gc-refresh" :disabled="isFetching" @click="query.refetch()">
-          <AppIcon name="refresh" :class="{ 'gc-spinning': isFetching }" :size="17" />{{
-            isFetching ? 'Обновляем…' : 'Обновить данные'
-          }}
-        </button></template
+        ><AppButton icon="refresh" :loading="isFetching" @click="query.refetch()">
+          {{ isFetching ? 'Обновляем…' : 'Обновить данные' }}
+        </AppButton></template
       ></PageHeading
     >
     <section class="gc-date-panel" aria-label="Выбор игровой даты">
@@ -95,21 +99,13 @@ const scoredCount = computed(
           :max="maxDate"
           @update:model-value="setDate"
         />
-        <div class="gc-quick-dates">
-          <button
-            v-for="quick in [
-              { label: 'Позавчера', offset: -2 },
-              { label: 'Вчера', offset: -1 },
-              { label: 'Сегодня', offset: 0 },
-            ]"
-            :key="quick.offset"
-            class="gc-quick-date"
-            :aria-pressed="selectedDate === shiftGameDate(today, quick.offset)"
-            @click="setDate(shiftGameDate(today, quick.offset))"
-          >
-            {{ quick.label }}
-          </button>
-        </div>
+        <AppSegmented
+          class="gc-quick-dates"
+          label="Недавние игровые даты"
+          :model-value="selectedDate"
+          :options="recentDates"
+          @update:model-value="setDate"
+        />
         <span class="gc-date-hint">Игровой день · ET</span>
       </div>
       <div class="gc-date-strip">
