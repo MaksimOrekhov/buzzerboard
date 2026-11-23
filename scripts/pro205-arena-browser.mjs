@@ -142,9 +142,27 @@ export async function checkArenaGuide({ page, capture, baseline }) {
   }
 
   if (browserInteractions) {
+    const teamsEndpoint = (url) => url.pathname === '/api/teams'
+    const noTeamSnapshot = (route) =>
+      route.fulfill({
+        status: 404,
+        json: {
+          error: {
+            code: 'cache_miss',
+            message: 'Synthetic team cache miss',
+            retryable: false,
+            provider: 'bbs',
+            upstreamStatus: null,
+          },
+          requestId: null,
+        },
+      })
+    await page.route(teamsEndpoint, noTeamSnapshot)
     await visit('/teams')
+    await page.getByRole('heading', { name: 'Каталог пока не загружен' }).waitFor()
     await page.locator('main').getByRole('link', { name: 'Арены NBA' }).click()
     await heading('Арены NBA').waitFor()
+    await page.unroute(teamsEndpoint, noTeamSnapshot)
     await visit('/teams/LAC?tab=history')
     await page.getByText('Исторические арены · выборочно').click()
     await page.getByRole('link', { name: 'Staples Center / Crypto.com Arena' }).click()
