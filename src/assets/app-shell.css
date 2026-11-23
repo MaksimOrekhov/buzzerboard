@@ -319,11 +319,18 @@
   }
 }
 @media (max-height: 650px) and (min-width: 621px) {
+  .gc-sidebar {
+    padding-block-start: 20px;
+  }
   .gc-league {
-    margin-block: 24px 16px;
+    margin-block: 16px 12px;
   }
   .gc-primary-nav {
     gap: 3px;
+  }
+  .gc-primary-nav .gc-nav-link {
+    min-height: 44px;
+    padding-block: 8px;
   }
 }
 

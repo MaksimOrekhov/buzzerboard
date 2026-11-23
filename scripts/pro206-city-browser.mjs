@@ -37,13 +37,14 @@ export async function checkCityGuide({ page, capture, today, game, meta }) {
     await visit('/cities')
     await heading('Города NBA').waitFor()
     if (width === 1440 && height === 600) {
+      await page.evaluate(() => document.fonts.ready)
       const navLink = await page
         .locator('.gc-sidebar')
         .getByRole('link', { name: 'Города NBA' })
         .boundingBox()
       assert.ok(
-        navLink && navLink.y + navLink.height <= height,
-        'City navigation should fit in the short desktop sidebar',
+        navLink && navLink.y >= 0 && navLink.y + navLink.height <= height,
+        'City navigation should fit in the short desktop sidebar: ' + JSON.stringify(navLink),
       )
     }
     assert.equal(await cards.count(), 30)
