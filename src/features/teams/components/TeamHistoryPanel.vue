@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import '../history.css'
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import { arenaPath, getArena, getTeamArena } from '@/entities/nba/arenaDirectory'
 import { getTeamEncyclopediaEntry } from '@/entities/nba/teamEncyclopedia'
 import { eraAt, getTeamHistory, TEAM_HISTORY_AS_OF, titleSource } from '@/entities/nba/teamHistory'
 import { getTeamMedia } from '@/entities/nba/teamMediaManifest'
@@ -10,6 +12,13 @@ import TeamHistorySource from './TeamHistorySource.vue'
 import TeamHistoryTimeline from './TeamHistoryTimeline.vue'
 
 const props = defineProps<{ teamCode: string }>()
+const currentArena = computed(() => getTeamArena(props.teamCode))
+const historyArenas = computed(() =>
+  (profile.value?.arenas ?? []).map((period) => ({
+    ...period,
+    venue: getArena(period.arenaId),
+  })),
+)
 const identity = computed(() => getTeamEncyclopediaEntry(props.teamCode))
 const profile = computed(() => getTeamHistory(props.teamCode))
 const media = computed(() => getTeamMedia(props.teamCode))
@@ -59,7 +68,14 @@ const titleGroups = computed(() => [
             <div v-if="identity.arena.value">
               <dt>Домашняя арена</dt>
               <dd>
-                {{ identity.arena.value }}
+                <RouterLink
+                  v-if="currentArena"
+                  :to="arenaPath(currentArena)"
+                  class="team-history-source"
+                >
+                  {{ identity.arena.value }}
+                </RouterLink>
+                <template v-else>{{ identity.arena.value }}</template>
                 <TeamHistorySource
                   :source-url="identity.arena.sourceUrl"
                   :as-of="identity.arena.asOf"
@@ -86,14 +102,23 @@ const titleGroups = computed(() => [
           <details v-if="profile.arenas.length" class="team-history-venues">
             <summary>Исторические арены · выборочно</summary>
             <ol class="team-history-eras">
-              <li v-for="arena in profile.arenas" :key="`${arena.name}-${arena.from}`">
+              <li v-for="arena in historyArenas" :key="`${arena.name}-${arena.from}`">
                 <span class="team-history-meta">{{
                   arena.until === null ? `с ${arena.from}` : `${arena.from}–${arena.until}`
                 }}</span>
-                <span
-                  ><strong>{{ arena.name }}</strong
-                  ><small>{{ arena.city }}</small></span
-                >
+                <span>
+                  <strong>
+                    <RouterLink
+                      v-if="arena.venue"
+                      :to="arenaPath(arena.venue)"
+                      class="team-history-source"
+                    >
+                      {{ arena.name }}
+                    </RouterLink>
+                    <template v-else>{{ arena.name }}</template>
+                  </strong>
+                  <small>{{ arena.city }}</small>
+                </span>
                 <TeamHistorySource :source-id="arena.source" />
               </li>
             </ol>

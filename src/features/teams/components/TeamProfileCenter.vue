@@ -3,6 +3,7 @@ import '../../standings/standings.css'
 import '../teams.css'
 import { computed, defineAsyncComponent } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { arenaPath, getTeamArena } from '@/entities/nba/arenaDirectory'
 import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import { useTeamFavorites } from '@/features/standings/composables/useTeamFavorites'
 import PageHeading from '@/shared/components/PageHeading.vue'
@@ -24,6 +25,7 @@ const code = computed(() =>
   typeof route.params.teamCode === 'string' ? route.params.teamCode.toUpperCase() : '',
 )
 const team = computed(() => findNbaTeam(code.value))
+const arena = computed(() => getTeamArena(code.value))
 const activeTab = computed(() => sections.find(({ tab }) => tab === route.query.tab)?.tab ?? null)
 const overviewQuery = computed(() => {
   const query = { ...route.query }
@@ -61,6 +63,9 @@ const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team
       </template>
     </PageHeading>
     <nav class="teams-profile-links" aria-label="Связанные разделы">
+      <RouterLink v-if="arena" :to="arenaPath(arena)" class="ui-text-link">
+        Арена<AppIcon name="pin" :size="14" />
+      </RouterLink>
       <RouterLink :to="{ path: '/players', query: { team: code } }" class="ui-text-link">
         Игроки<AppIcon name="arrow" :size="14" />
       </RouterLink>

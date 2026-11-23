@@ -157,16 +157,23 @@ export function getCityMediaForTeam(teamCode: string): TeamMediaAsset | null {
   )
 }
 
+export function getArenaMedia(arenaId: string): TeamMediaAsset[] {
+  return TEAM_MEDIA_ASSETS.filter(
+    (asset) => asset.subject.kind === 'arena' && asset.subject.id === arenaId,
+  )
+}
+
 export function getTeamMedia(teamCode: string): TeamMediaAsset[] {
   const team = getTeamEncyclopediaEntry(teamCode)
   if (!team) return []
   const arenas = new Set(getTeamHistory(teamCode)?.arenas.map(({ arenaId }) => arenaId))
   arenas.add(team.arenaId)
   return TEAM_MEDIA_ASSETS.filter(
-    ({ subject }) =>
-      (subject.kind === 'team' && subject.id === team.canonicalTeamId) ||
-      (subject.kind === 'city' && subject.id === team.cityId) ||
-      (subject.kind === 'arena' && arenas.has(subject.id)),
+    ({ subject, category }) =>
+      category !== 'arena-guide' &&
+      ((subject.kind === 'team' && subject.id === team.canonicalTeamId) ||
+        (subject.kind === 'city' && subject.id === team.cityId) ||
+        (subject.kind === 'arena' && arenas.has(subject.id))),
   )
 }
 

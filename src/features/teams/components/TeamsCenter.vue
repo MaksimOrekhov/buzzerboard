@@ -68,6 +68,9 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
         <span>NBA</span><AppIcon name="basketball" :size="44" />
       </div>
     </section>
+    <RouterLink :to="{ name: 'arenas' }" class="gc-control teams-arenas-link">
+      <AppIcon name="pin" :size="16" />Арены NBA<AppIcon name="arrow" :size="15" />
+    </RouterLink>
     <div class="teams-toolbar">
       <AppSegmented
         v-model="conference"

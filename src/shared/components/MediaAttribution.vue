@@ -2,7 +2,7 @@
 import { computed, shallowRef, watch } from 'vue'
 import { isReviewedTeamMediaAsset, type TeamMediaAsset } from '@/entities/nba/teamMediaManifest'
 
-const props = defineProps<{ asset: TeamMediaAsset; portrait?: boolean }>()
+const props = defineProps<{ asset: TeamMediaAsset; portrait?: boolean; compact?: boolean }>()
 const failed = shallowRef(false)
 const reviewedAsset = computed(() => (isReviewedTeamMediaAsset(props.asset) ? props.asset : null))
 
@@ -36,7 +36,7 @@ watch(
     </div>
     <figcaption v-if="reviewedAsset" class="media-attribution__caption">
       <p class="media-attribution__title">{{ reviewedAsset.title }}</p>
-      <p class="media-attribution__description">{{ reviewedAsset.description }}</p>
+      <p v-if="!compact" class="media-attribution__description">{{ reviewedAsset.description }}</p>
       <p class="media-attribution__date">Снято: {{ reviewedAsset.capturedAt }}</p>
       <p class="media-attribution__links">
         <span>Автор: {{ reviewedAsset.author }}</span>

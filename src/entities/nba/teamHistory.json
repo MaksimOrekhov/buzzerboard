@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-11-19",
+  "asOf": "2026-11-23",
   "sources": {
     "aba": {"label": "NBA Guide 2026/27 · История ABA", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=193", "asOf": "2026-11-19"},
     "all-nba": {"label": "NBA · Символические сборные по годам", "url": "https://www.nba.com/news/history-all-nba-teams", "asOf": "2026-11-19"},
@@ -51,6 +51,7 @@
     "hou-repeat": {"label": "NBA · Итоги сезона 1994/95", "url": "https://www.nba.com/news/history-season-review-1994-95", "asOf": "2026-11-19"},
     "hou-title": {"label": "NBA · Итоги сезона 1993/94", "url": "https://www.nba.com/news/history-season-review-1993-94", "asOf": "2026-11-19"},
     "ind": {"label": "NBA Guide 2026/27 · IND, с. 70", "url": "https://cdn.nba.com/manage/2026/10/2026-27-NBA-Guide_v2.pdf#page=71", "asOf": "2026-11-19"},
+    "lac-staples": {"label": "Clippers · Домашняя арена с 1999 года", "url": "https://www.nba.com/clippers/news/staples_041028.html", "asOf": "2026-11-23"},
     "intuit": {"label": "Clippers · Открытие Intuit Dome", "url": "https://www.nba.com/clippers/intuitdomepress", "asOf": "2026-11-19"},
     "iverson": {"label": "76ers · Аллен Айверсон", "url": "https://www.nba.com/sixers/76ers-alumni/allen-iverson", "asOf": "2026-11-19"},
     "jazz": {"label": "Jazz · Хроника клуба", "url": "https://www.nba.com/jazz/history", "asOf": "2026-11-19"},
@@ -643,6 +644,7 @@
         {"year": 2021, "category": "history", "title": "Первый финал Запада", "detail": "Clippers впервые дошли до финала конференции, где уступили Phoenix.", "source": "playoffs21"}
       ],
       "arenas": [
+        {"arenaId": "nba:arena:crypto-com-arena", "name": "Staples Center / Crypto.com Arena", "city": "Лос-Анджелес", "from": 1999, "until": 2024, "source": "lac-staples"},
         {"arenaId": "nba:arena:intuit-dome", "name": "Intuit Dome", "city": "Инглвуд", "from": 2024, "until": null, "source": "intuit"}
       ],
       "legends": [
