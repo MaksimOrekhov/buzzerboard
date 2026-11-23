@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import './jerseys.css'
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import {
   formatJerseySeason,
@@ -20,8 +20,11 @@ import AppSelect from '@/shared/components/AppSelect.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import { filterJerseys, withoutJerseyFilters, type JerseyFilters } from './catalog'
 import JerseyCard from './JerseyCard.vue'
+import { jerseyPilots } from './viewer/jerseyPilots'
 
+const JerseyViewer = defineAsyncComponent(() => import('./viewer/JerseyViewer.vue'))
 const props = defineProps<{ teamCode: string }>()
+const pilot = computed(() => jerseyPilots[props.teamCode])
 const route = useRoute()
 const router = useRouter()
 const sets = computed(() => getTeamJerseys(props.teamCode))
@@ -155,6 +158,8 @@ function reset() {
         </div>
       </div>
     </header>
+
+    <JerseyViewer v-if="pilot" :key="pilot.code" :pilot="pilot" />
 
     <ResourceState
       v-if="!JERSEY_DATA_AVAILABLE"
