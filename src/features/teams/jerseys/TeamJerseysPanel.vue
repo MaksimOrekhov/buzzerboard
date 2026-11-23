@@ -69,7 +69,7 @@ const viewOptions = computed(() => [
 ])
 const seasonOptions = computed(() => [
   { value: JERSEY_CURRENT_SEASON, label: formatJerseySeason(JERSEY_CURRENT_SEASON) },
-  { value: 'all', label: 'Все сезоны архива' },
+  { value: 'all', label: 'Все сезоны' },
   ...[...new Set(archive.value.map(({ season }) => season))]
     .sort()
     .reverse()

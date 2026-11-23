@@ -117,6 +117,7 @@
 .jersey-filters .gc-select {
   width: 100%;
   min-width: 0;
+  max-width: none;
 }
 
 .jersey-filters > div {
