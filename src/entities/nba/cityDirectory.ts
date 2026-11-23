@@ -39,7 +39,7 @@ type Stats = {
   geoId: string
   population?: number
   landAreaKm2?: number
-  center?: GeoPoint & { gnisId?: string }
+  referencePoint?: GeoPoint & { gnisId?: string }
 }
 const statistics: Readonly<Record<string, Stats>> = rawStatistics
 
@@ -91,7 +91,7 @@ function cityDetails(
     'federal-district': 'https://www.census.gov/quickfacts/table/PST045215/11001',
   }
   const descriptionSource = editorial.descriptionSource ?? identitySource
-  const point = stat?.center
+  const point = stat?.referencePoint
   return {
     id: entry.cityId,
     slug: entry.cityId.slice('nba:city:'.length),
@@ -144,7 +144,7 @@ function cityDetails(
           )
         : null,
     censusId: geoId,
-    center: point
+    referencePoint: point
       ? fact(
           point,
           point.gnisId ? 'USGS GNIS · ' + point.gnisId : 'City of Toronto · географическая точка',
@@ -204,7 +204,7 @@ export function cityPath(city: Pick<City, 'slug'>) {
 }
 
 export function cityMapUrl(city: City): string {
-  const point = city.center?.value
+  const point = city.referencePoint?.value
   return point
     ? `https://www.openstreetmap.org/?mlat=${point.lat}&mlon=${point.lon}#map=12/${point.lat}/${point.lon}`
     : 'https://www.openstreetmap.org/search?query=' +

@@ -58,11 +58,19 @@ const distanceFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits
           </li>
         </ul>
         <p v-if="geo.distance !== null" class="game-geography__distance">
-          <strong>{{ distanceFormatter.format(geo.distance) }} км</strong>
-          <span>Расстояние по прямой между центрами городов команд</span>
+          <strong>≈ {{ distanceFormatter.format(geo.distance) }} км</strong>
+          <span>Приближённое расстояние по прямой между географическими ориентирами</span>
           <small
-            >{{ geo.from?.name }} — {{ geo.to?.name }} · по формуле гаверсинусов, до целого
-            км</small
+            >{{ geo.from?.name }} ·
+            {{
+              geo.from?.referencePoint?.value.gnisId ? 'USGS GNIS' : 'данные города Торонто'
+            }}</small
+          >
+          <small
+            >{{ geo.to?.name }} ·
+            {{
+              geo.to?.referencePoint?.value.gnisId ? 'USGS GNIS' : 'данные города Торонто'
+            }}</small
           >
         </p>
         <p v-else-if="geo.neutral || geo.offHomeCourt">
@@ -74,7 +82,7 @@ const distanceFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits
         <p v-else-if="!geo.currentHomes">
           Для этой даты нет подтверждённой привязки команд к домашним городам.
         </p>
-        <p v-else>Для расстояния нужны две подтверждённые точки в центрах городов.</p>
+        <p v-else>Для расчёта нужны два подтверждённых географических ориентира.</p>
       </div>
 
       <div>

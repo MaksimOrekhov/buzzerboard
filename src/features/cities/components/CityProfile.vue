@@ -126,20 +126,21 @@ const parent = computed(() => (city.value?.boroughOf ? getCity(city.value.boroug
         <div class="city-map-point">
           <AppIcon name="pin" :size="28" />
           <strong>{{ city.name }}</strong>
-          <template v-if="city.center">
+          <template v-if="city.referencePoint">
             <span
-              >{{ city.center.value.lat.toFixed(4) }}°,
-              {{ city.center.value.lon.toFixed(4) }}°</span
+              >{{ city.referencePoint.value.lat.toFixed(4) }}°,
+              {{ city.referencePoint.value.lon.toFixed(4) }}°</span
             >
-            <small
-              >Ориентир {{ city.kind === 'borough' ? 'в центре боро' : 'в центре города' }}</small
-            >
+            <small v-if="city.referencePoint.value.gnisId">
+              Опорная точка USGS GNIS для исходного места
+            </small>
+            <small v-else>Географическая точка по данным города Торонто</small>
           </template>
           <span v-else>{{ city.region }} · {{ city.countryName }}</span>
         </div>
-        <CitySourceLink v-if="city.center" :source="city.center" />
+        <CitySourceLink v-if="city.referencePoint" :source="city.referencePoint" />
         <a :href="cityMapUrl(city)" target="_blank" rel="noopener noreferrer" class="gc-control">
-          {{ city.center ? 'Открыть на OpenStreetMap' : 'Найти на OpenStreetMap' }}
+          {{ city.referencePoint ? 'Открыть на OpenStreetMap' : 'Найти на OpenStreetMap' }}
           <AppIcon name="arrow-up-right" :size="16" />
         </a>
         <a

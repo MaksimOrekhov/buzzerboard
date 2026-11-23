@@ -275,12 +275,44 @@ export const arenaCoordinates: Readonly<Record<string, { qid: string; lat: numbe
     'target-center': { qid: 'Q14456555', lat: 44.97944, lon: -93.27611 },
   }
 
-export interface ArenaNamePeriod {
-  name: string
+interface ArenaNameStart {
   from: string
-  until: string
   sourceUrl: string
+}
+
+export interface ArenaNamePeriod extends ArenaNameStart {
+  name: string
+  until: string
   asOf: string
+}
+
+const rocketRename = 'https://www.rocketarena.com/news/detail/rocket-announcement-250218'
+const cryptoRename =
+  'https://www.nba.com/news/staples-center-to-be-renamed-crypto-com-arena-beginning-december-25'
+const torontoVenueHistory = 'https://www.scotiabankarena.com/venue-information/about'
+
+export const arenaCurrentNameStarts: Readonly<Partial<Record<string, ArenaNameStart>>> = {
+  'chase-center': {
+    from: '2019-09-06',
+    sourceUrl: 'https://www.chasecenter.com/plan-your-visit.timelines',
+  },
+  'crypto-com-arena': { from: '2021-12-25', sourceUrl: cryptoRename },
+  'delta-center': {
+    from: '2023-07-01',
+    sourceUrl: 'https://www.nba.com/news/everything-to-know-about-nba-summer-league-2023',
+  },
+  'intuit-dome': {
+    from: '2024-08-15',
+    sourceUrl: 'https://www.nba.com/clippers/intuitdomepress',
+  },
+  'mortgage-matchup-center': {
+    from: '2025-10-02',
+    sourceUrl:
+      'https://www.nba.com/suns/news/phoenix-suns-and-phoenix-mercury-announce-landmark-naming-rights-partnership-with-mortgage-matchup-ushering-in-a-new-era-in-sports-and-entertainment-at-mortgage-matchup-center',
+  },
+  'rocket-arena': { from: '2025-02-18', sourceUrl: rocketRename },
+  'scotiabank-arena': { from: '2018-07-01', sourceUrl: torontoVenueHistory },
+  'united-center': { from: '1994-08-18', sourceUrl: unitedCenter },
 }
 
 export const arenaFormerNames: Readonly<Record<string, readonly ArenaNamePeriod[]>> = {
@@ -289,7 +321,7 @@ export const arenaFormerNames: Readonly<Record<string, readonly ArenaNamePeriod[
       name: 'Rocket Mortgage FieldHouse',
       from: '2019-04-09',
       until: '2025-02-18',
-      sourceUrl: 'https://www.rocketarena.com/news/detail/rocket-announcement-250218',
+      sourceUrl: rocketRename,
       asOf: ARENA_REVIEWED_AT,
     },
   ],
@@ -298,8 +330,7 @@ export const arenaFormerNames: Readonly<Record<string, readonly ArenaNamePeriod[
       name: 'Staples Center',
       from: '1999-10-17',
       until: '2021-12-25',
-      sourceUrl:
-        'https://www.nba.com/news/staples-center-to-be-renamed-crypto-com-arena-beginning-december-25',
+      sourceUrl: cryptoRename,
       asOf: ARENA_REVIEWED_AT,
     },
   ],
@@ -308,7 +339,7 @@ export const arenaFormerNames: Readonly<Record<string, readonly ArenaNamePeriod[
       name: 'Air Canada Centre',
       from: '1999-02',
       until: '2018-07-01',
-      sourceUrl: ARENA_DIRECTORY_SOURCE,
+      sourceUrl: torontoVenueHistory,
       asOf: ARENA_REVIEWED_AT,
     },
   ],

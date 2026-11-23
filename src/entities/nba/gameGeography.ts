@@ -44,8 +44,27 @@ interface VenueLocation {
   sourceUrl: string
 }
 
+function dateWithinNamePeriod(date: string, from: string, until?: string): boolean {
+  // A month-only boundary leaves that month's days ambiguous.
+  const onOrAfterStart = from.length === 7 ? date.slice(0, 7) > from : date >= from
+  const beforeEnd = !until || date.slice(0, until.length) < until
+  return onOrAfterStart && beforeEnd
+}
+
+function matchingArenaName(arena: Arena, name: string, date: string) {
+  const { from, sourceUrl } = arena.currentNameStart
+  if (normalizeVenue(arena.name) === name && dateWithinNamePeriod(date, from)) {
+    return { name: arena.name, sourceUrl }
+  }
+  return arena.formerNames.find(
+    (period) =>
+      normalizeVenue(period.name) === name && dateWithinNamePeriod(date, period.from, period.until),
+  )
+}
+
 function resolveVenue(name: string, date: string): VenueLocation | null {
-  if (name === 'moody center' && date >= '2022-04-20') {
+  if (!name) return null
+  if (name === 'moody center' && dateWithinNamePeriod(date, '2022-04-20')) {
     return {
       name: 'Moody Center',
       cityName: 'Остин, Техас',
@@ -53,21 +72,17 @@ function resolveVenue(name: string, date: string): VenueLocation | null {
       sourceUrl: 'https://moodycenteratx.com/fast-facts/',
     }
   }
-  const matching = ARENAS.filter(
-    (arena) =>
-      (!arena.opened || Number(date.slice(0, 4)) >= arena.opened.value) &&
-      (normalizeVenue(arena.name) === name ||
-        arena.formerNames.some(
-          (period) =>
-            date >= period.from && date <= period.until && normalizeVenue(period.name) === name,
-        )),
-  )
-  if (matching.length !== 1) return null
-  const arena = matching[0]!
+  const matches = ARENAS.flatMap((arena) => {
+    const period = matchingArenaName(arena, name, date)
+    return period ? [{ arena, period }] : []
+  })
+  const [match] = matches
+  if (!match || matches.length !== 1) return null
+  const { arena, period } = match
   const city = getCity(arena.cityId)
   if (!city) return null
   return {
-    name: arena.name,
+    name: period.name,
     cityName:
       city.name +
       (city.assignments[0]?.arenaLocality
@@ -75,7 +90,7 @@ function resolveVenue(name: string, date: string): VenueLocation | null {
         : ''),
     timeZone: city.timeZone.value,
     arena,
-    sourceUrl: arena.address?.sourceUrl ?? city.identity.sourceUrl,
+    sourceUrl: period.sourceUrl,
   }
 }
 
@@ -95,7 +110,7 @@ export function getGameGeography(
   const to = municipality(home)
   const distance =
     currentHomes && !neutral && !offHomeCourt && !unknownVenue
-      ? straightLineKm(from?.center?.value, to?.center?.value)
+      ? straightLineKm(from?.referencePoint?.value, to?.referencePoint?.value)
       : null
   return {
     home,

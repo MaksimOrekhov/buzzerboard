@@ -73,7 +73,7 @@ describe('City Guide sources and boundaries', () => {
         city.identity,
         city.geography,
         city.established,
-        city.center,
+        city.referencePoint,
         city.timeZone,
         city.timeRules,
         city.population,
@@ -86,11 +86,11 @@ describe('City Guide sources and boundaries', () => {
       expect(
         new Intl.DateTimeFormat('ru', { timeZone: city.timeZone.value }).format(0),
       ).toBeTruthy()
-      expect(city.center && validGeoPoint(city.center.value)).toBe(true)
-      expect(city.center?.value.lat).toBeGreaterThan(25)
-      expect(city.center?.value.lat).toBeLessThan(47)
-      expect(city.center?.value.lon).toBeLessThan(-70)
-      expect(city.center?.value.lon).toBeGreaterThan(-124)
+      expect(city.referencePoint && validGeoPoint(city.referencePoint.value)).toBe(true)
+      expect(city.referencePoint?.value.lat).toBeGreaterThan(25)
+      expect(city.referencePoint?.value.lat).toBeLessThan(47)
+      expect(city.referencePoint?.value.lon).toBeLessThan(-70)
+      expect(city.referencePoint?.value.lon).toBeGreaterThan(-124)
       expect(city.population?.value).toBeGreaterThan(0)
       expect(Number.isInteger(city.population?.value)).toBe(true)
       expect(city.landArea?.value).toBeGreaterThan(0)
@@ -100,10 +100,10 @@ describe('City Guide sources and boundaries', () => {
     expect(CITIES.filter(({ established }) => established)).toHaveLength(8)
     const chicago = getTeamCity('CHI')!
     expect(new URL(cityMapUrl(chicago)).searchParams.get('mlat')).toBe(
-      String(chicago.center!.value.lat),
+      String(chicago.referencePoint!.value.lat),
     )
-    expect(new URL(cityMapUrl({ ...chicago, center: null })).searchParams.get('query')).toBe(
-      'Chicago, Illinois, United States',
-    )
+    expect(
+      new URL(cityMapUrl({ ...chicago, referencePoint: null })).searchParams.get('query'),
+    ).toBe('Chicago, Illinois, United States')
   })
 })

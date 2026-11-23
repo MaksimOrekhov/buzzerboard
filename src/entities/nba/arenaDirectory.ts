@@ -7,6 +7,7 @@ import {
   arenaAlternateHomes,
   arenaConstruction,
   arenaCoordinates,
+  arenaCurrentNameStarts,
   arenaFacts,
   arenaFormerNames,
   arenaOccupants,
@@ -43,6 +44,10 @@ function arenaDetails(entry: TeamEncyclopediaEntry, slug: string) {
       ? fact({ lat: pin.lat, lon: pin.lon }, 'https://www.wikidata.org/wiki/' + pin.qid)
       : null,
     wikidataQid: pin?.qid ?? null,
+    currentNameStart: arenaCurrentNameStarts[slug] ?? {
+      from: entry.arena.asOf,
+      sourceUrl: entry.arena.sourceUrl,
+    },
     formerNames: arenaFormerNames[slug] ?? [],
     alternateHome: arenaAlternateHomes[slug] ?? null,
   }

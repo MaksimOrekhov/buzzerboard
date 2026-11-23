@@ -114,6 +114,16 @@ export async function checkCityGuide({ page, capture, today, game, meta }) {
       assert.ok(href.searchParams.has('mlat') && href.searchParams.has('mlon'))
       assert.equal(await main.locator('iframe').count(), 0)
       await main.getByRole('link', { name: '© OpenStreetMap contributors' }).waitFor()
+      const mapPanel = main.getByRole('region', { name: 'На карте' })
+      await mapPanel
+        .getByText(
+          slug.startsWith('toronto-')
+            ? 'Географическая точка по данным города Торонто'
+            : 'Опорная точка USGS GNIS для исходного места',
+          { exact: true },
+        )
+        .waitFor()
+      assert.equal(await mapPanel.getByText(/в центре (города|боро)/).count(), 0)
       const hero = main.locator('.city-hero')
       if (photo) {
         const image = hero.locator('img')
@@ -216,7 +226,13 @@ export async function checkCityGuide({ page, capture, today, game, meta }) {
       await visit(gamePath)
       await geo.getByRole('link', { name: 'Scotiabank Arena' }).waitFor()
       await geo.getByText('Местное время площадки · Торонто', { exact: true }).waitFor()
-      await geo.getByText('Расстояние по прямой между центрами городов команд').waitFor()
+      await geo
+        .getByText('Приближённое расстояние по прямой между географическими ориентирами')
+        .waitFor()
+      await geo.getByText('Чикаго · USGS GNIS', { exact: true }).waitFor()
+      await geo.getByText('Торонто · данные города Торонто', { exact: true }).waitFor()
+      await geo.getByText(/^≈ .* км$/).waitFor()
+      assert.equal(await geo.getByText(/между центрами/).count(), 0)
       assert.deepEqual(apiRequests.slice(requestCount).map(decodeURIComponent), [
         '/api/games/' + checkedGame.id,
       ])
@@ -237,6 +253,13 @@ export async function checkCityGuide({ page, capture, today, game, meta }) {
         await shot('game-spoiler')
         await spoiler.click()
 
+        checkedGame.venue = 'Air Canada Centre'
+        await page.reload()
+        await geo.getByText('Место указанной площадки не подтверждено.', { exact: false }).waitFor()
+        await geo.getByText('Справочное время города хозяев · Торонто').waitFor()
+        assert.equal(await geo.getByRole('link', { name: 'Air Canada Centre' }).count(), 0)
+        assert.equal(await geo.locator('.game-geography__distance').count(), 0)
+
         checkedGame.venue = 'Neutral site'
         await page.reload()
         await geo.getByText('Нейтральная площадка, город не подтверждён.').waitFor()
@@ -247,7 +270,7 @@ export async function checkCityGuide({ page, capture, today, game, meta }) {
         checkedGame.awayTeam = { ...checkedGame.awayTeam, id: 'test:team:unknown' }
         await page.reload()
         await geo
-          .getByText('Для расстояния нужны две подтверждённые точки в центрах городов.')
+          .getByText('Для расчёта нужны два подтверждённых географических ориентира.')
           .waitFor()
         assert.equal(await geo.locator('.game-geography__distance').count(), 0)
         await shot('game-unknown')
