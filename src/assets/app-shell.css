@@ -318,6 +318,15 @@
     margin-inline: 24px;
   }
 }
+@media (max-height: 650px) and (min-width: 621px) {
+  .gc-league {
+    margin-block: 24px 16px;
+  }
+  .gc-primary-nav {
+    gap: 3px;
+  }
+}
+
 @media (max-width: 620px) {
   html {
     scroll-padding-bottom: calc(74px + env(safe-area-inset-bottom));

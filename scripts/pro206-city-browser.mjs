@@ -14,7 +14,7 @@ const profiles = [
 ]
 
 export async function checkCityGuide({ page, capture, today, game, meta }) {
-  const { width } = page.viewportSize()
+  const { width, height } = page.viewportSize()
   const interactive = [320, 768, 1440].includes(width)
   const main = page.locator('main')
   const heading = (name) => main.getByRole('heading', { name, level: 1, exact: true })
@@ -36,6 +36,16 @@ export async function checkCityGuide({ page, capture, today, game, meta }) {
   try {
     await visit('/cities')
     await heading('Города NBA').waitFor()
+    if (width === 1440 && height === 600) {
+      const navLink = await page
+        .locator('.gc-sidebar')
+        .getByRole('link', { name: 'Города NBA' })
+        .boundingBox()
+      assert.ok(
+        navLink && navLink.y + navLink.height <= height,
+        'City navigation should fit in the short desktop sidebar',
+      )
+    }
     assert.equal(await cards.count(), 30)
     const introPhoto = main.locator('.city-hero img')
     await introPhoto.evaluate((image) => image.decode())
