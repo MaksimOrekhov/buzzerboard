@@ -575,6 +575,7 @@
 }
 .teams-leader-grid article {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 2px;
   padding: 10px;
   border: 1px solid var(--gc-line);
@@ -593,6 +594,11 @@
   font-size: var(--stat-cell);
   overflow-wrap: anywhere;
 }
+.teams-leader-grid .ui-text-link {
+  display: inline-block;
+  white-space: normal;
+}
+
 @media (max-width: 1150px) {
   .teams-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -705,6 +711,9 @@
   }
   .teams-profile-overview > div {
     padding: 10px;
+  }
+  .teams-leader-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
   .teams-season-facts {
     gap: 8px;

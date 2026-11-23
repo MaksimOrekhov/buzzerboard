@@ -166,6 +166,10 @@ export async function checkUiAudit({
       await visit('/teams/' + code)
       await page.locator('.teams-profile-overview').waitFor()
       await screenshot(code.toLowerCase() + '-overview')
+      if (code === 'MIN') {
+        await scrollTo('.teams-leaders')
+        await screenshot('min-overview-leaders')
+      }
       for (const [tab, panel] of [
         ['history', '.team-history'],
         ['coaches', '.team-coaches'],
