@@ -6,6 +6,7 @@ import { chromium } from 'playwright'
 import { createServer } from 'vite'
 import { checkSpoilerMode } from './pro210-spoiler-browser.mjs'
 import { checkTeamHistory } from './pro203-team-history-browser.mjs'
+import { checkTeamCoaching } from './pro204-team-coaching-browser.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const output = path.join(root, 'artifacts/pro-171/synthetic')
@@ -639,7 +640,10 @@ try {
         capture,
       })
     }
-    if ([375, 1440].includes(width)) await checkTeamHistory({ page, capture })
+    if ([375, 1440].includes(width)) {
+      await checkTeamHistory({ page, capture })
+      await checkTeamCoaching({ page, capture })
+    }
     assert.deepEqual(errors, [])
     checks.push({
       width,

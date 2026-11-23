@@ -12,16 +12,18 @@ import ResourceState from '@/shared/components/ResourceState.vue'
 import TeamProfileOverview from './TeamProfileOverview.vue'
 
 const TeamHistoryPanel = defineAsyncComponent(() => import('./TeamHistoryPanel.vue'))
+const TeamCoachesPanel = defineAsyncComponent(() => import('./TeamCoachesPanel.vue'))
 const sections = [
-  { label: 'Обзор', history: false },
-  { label: 'История', history: true },
+  { label: 'Обзор', tab: null },
+  { label: 'История', tab: 'history' },
+  { label: 'Тренеры', tab: 'coaches' },
 ]
 const route = useRoute()
 const code = computed(() =>
   typeof route.params.teamCode === 'string' ? route.params.teamCode.toUpperCase() : '',
 )
 const team = computed(() => findNbaTeam(code.value))
-const historyActive = computed(() => route.query.tab === 'history')
+const activeTab = computed(() => sections.find(({ tab }) => tab === route.query.tab)?.tab ?? null)
 const overviewQuery = computed(() => {
   const query = { ...route.query }
   delete query.tab
@@ -81,20 +83,21 @@ const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team
         v-slot="{ href, navigate }"
         :to="{
           path: route.path,
-          query: section.history ? { ...overviewQuery, tab: 'history' } : overviewQuery,
+          query: section.tab ? { ...overviewQuery, tab: section.tab } : overviewQuery,
         }"
         custom
       >
         <a
           :href="href"
-          :aria-current="section.history === historyActive ? 'page' : undefined"
+          :aria-current="section.tab === activeTab ? 'page' : undefined"
           @click="navigate"
         >
           {{ section.label }}
         </a>
       </RouterLink>
     </nav>
-    <TeamHistoryPanel v-if="historyActive" :key="team.code" :team-code="team.code" />
+    <TeamHistoryPanel v-if="activeTab === 'history'" :key="team.code" :team-code="team.code" />
+    <TeamCoachesPanel v-else-if="activeTab === 'coaches'" :key="team.code" :team-code="team.code" />
     <TeamProfileOverview v-else :code="team.code" />
   </div>
   <ResourceState

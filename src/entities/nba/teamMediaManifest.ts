@@ -1,8 +1,9 @@
+import { COACHING_PERSON_IDS } from './coachingDirectory'
 import rawManifest from './teamMediaManifest.json'
 import { getTeamHistory, NBA_TEAM_HISTORIES } from './teamHistory'
 import { getTeamEncyclopediaEntry, NBA_TEAM_ENCYCLOPEDIA } from './teamEncyclopedia'
 
-export type TeamMediaSubjectKind = 'team' | 'city' | 'arena'
+export type TeamMediaSubjectKind = 'team' | 'city' | 'arena' | 'person'
 
 export interface TeamMediaAsset {
   assetId: string
@@ -70,6 +71,8 @@ for (const profile of NBA_TEAM_HISTORIES) {
   for (const { arenaId } of profile.arenas) knownSubjects.add(`arena:${arenaId}`)
 }
 
+for (const personId of COACHING_PERSON_IDS) knownSubjects.add(`person:${personId}`)
+
 export function isReviewedTeamMediaAsset(value: unknown): value is TeamMediaAsset {
   if (!isRecord(value) || !isRecord(value.subject) || !isRecord(value.rightsReview)) return false
   const license = typeof value.license === 'string' ? value.license : ''
@@ -81,7 +84,7 @@ export function isReviewedTeamMediaAsset(value: unknown): value is TeamMediaAsse
     typeof value.assetId === 'string' &&
     /^commons:file:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.assetId) &&
     typeof value.subject.kind === 'string' &&
-    ['team', 'city', 'arena'].includes(value.subject.kind) &&
+    ['team', 'city', 'arena', 'person'].includes(value.subject.kind) &&
     typeof value.subject.id === 'string' &&
     knownSubjects.has(`${value.subject.kind}:${value.subject.id}`) &&
     typeof value.category === 'string' &&
@@ -164,6 +167,12 @@ export function getTeamMedia(teamCode: string): TeamMediaAsset[] {
       (subject.kind === 'team' && subject.id === team.canonicalTeamId) ||
       (subject.kind === 'city' && subject.id === team.cityId) ||
       (subject.kind === 'arena' && arenas.has(subject.id)),
+  )
+}
+
+export function getPersonMedia(personId: string): TeamMediaAsset[] {
+  return TEAM_MEDIA_ASSETS.filter(
+    ({ subject }) => subject.kind === 'person' && subject.id === personId,
   )
 }
 
