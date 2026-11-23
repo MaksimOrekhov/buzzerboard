@@ -18,7 +18,7 @@
       "license": "CC BY-SA 4.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "checkedAt": "2026-11-19",
-      "modifications": "Миниатюра Wikimedia Commons, уменьшена с оригинала до 1280 × 877; других изменений нет.",
+      "modifications": "Миниатюра Wikimedia Commons, уменьшена с оригинала до 1280 × 877; кадрирование при показе в City Guide.",
       "rightsReview": {
         "commonsPageReviewed": true,
         "imageinfoExtmetadataReviewed": true,
@@ -51,7 +51,7 @@
       "license": "CC BY-SA 4.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "checkedAt": "2026-11-19",
-      "modifications": "Оригинальный JPEG 960 × 720, без изменений.",
+      "modifications": "Оригинальный JPEG 960 × 720; кадрирование при показе в City Guide.",
       "rightsReview": {
         "commonsPageReviewed": true,
         "imageinfoExtmetadataReviewed": true,
@@ -84,7 +84,7 @@
       "license": "CC BY-SA 4.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "checkedAt": "2026-11-19",
-      "modifications": "Миниатюра Wikimedia Commons, уменьшена с оригинала до 1280 × 708; других изменений нет.",
+      "modifications": "Миниатюра Wikimedia Commons, уменьшена с оригинала до 1280 × 708; кадрирование при показе в City Guide.",
       "rightsReview": {
         "commonsPageReviewed": true,
         "imageinfoExtmetadataReviewed": true,
@@ -495,6 +495,138 @@
       "width": 1280,
       "height": 460,
       "bytes": 379431
+    },
+    {
+      "assetId": "commons:file:toronto-islands-skyline",
+      "subject": {
+        "kind": "city",
+        "id": "nba:city:toronto-ontario-canada"
+      },
+      "category": "city-guide",
+      "fileName": "Skyline of Toronto from viewpoint on Toronto Islands, 2026.jpg",
+      "title": "Торонто с островов",
+      "description": "Панорама центра Торонто с островов в озере Онтарио.",
+      "alt": "Си-Эн Тауэр и здания центра Торонто за водой",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Skyline_of_Toronto_from_viewpoint_on_Toronto_Islands%2C_2026.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/Skyline_of_Toronto_from_viewpoint_on_Toronto_Islands%2C_2026.jpg/1280px-Skyline_of_Toronto_from_viewpoint_on_Toronto_Islands%2C_2026.jpg",
+      "author": "Chicken4War",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Skyline_of_Toronto_from_viewpoint_on_Toronto_Islands,_2026.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "capturedAt": "2026-08-28",
+      "checkedAt": "2026-11-23",
+      "modifications": "Уменьшенная копия Wikimedia; кадрирование при показе.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Общий вид города с публичной точки. Значимые лица и отдельные охраняемые произведения не являются предметом снимка. Атрибуция и условия CC BY-SA 4.0 сохранены."
+      },
+      "publicPath": "/media/encyclopedia/cities/toronto-islands-skyline.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 852,
+      "bytes": 241968
+    },
+    {
+      "assetId": "commons:file:downtown-brooklyn-skyline",
+      "subject": {
+        "kind": "city",
+        "id": "nba:city:brooklyn-new-york-united-states"
+      },
+      "category": "city-guide",
+      "fileName": "Downtown Brooklyn.jpg",
+      "title": "Панорама Бруклина",
+      "description": "Бруклин со стороны Нижнего Манхэттена.",
+      "alt": "Здания Бруклина за Ист-Ривер",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Downtown_Brooklyn.jpg",
+      "deliverySourceUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Downtown_Brooklyn.jpg",
+      "author": "Kidfly182",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Downtown_Brooklyn.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "capturedAt": "2023-03-09",
+      "checkedAt": "2026-11-23",
+      "modifications": "Кадрирование при показе; локальный файл без изменений.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Общий вид города с публичной точки. Значимые лица и отдельные охраняемые произведения не являются предметом снимка. Атрибуция и условия CC BY-SA 4.0 сохранены. Commons помечает файл как извлечение из другого снимка того же автора."
+      },
+      "publicPath": "/media/encyclopedia/cities/downtown-brooklyn-skyline.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1017,
+      "height": 446,
+      "bytes": 317052
+    },
+    {
+      "assetId": "commons:file:lower-manhattan-skyline",
+      "subject": {
+        "kind": "city",
+        "id": "nba:city:new-york-new-york-united-states"
+      },
+      "category": "city-guide",
+      "fileName": "Lower Manhattan Seen from Jersey City.jpg",
+      "title": "Панорама Нижнего Манхэттена",
+      "description": "Панорама нью-йоркского боро Манхэттен с набережной Джерси-Сити.",
+      "alt": "Небоскрёбы Нижнего Манхэттена за рекой Гудзон",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/83/Lower_Manhattan_Seen_from_Jersey_City.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Lower_Manhattan_Seen_from_Jersey_City.jpg/1280px-Lower_Manhattan_Seen_from_Jersey_City.jpg",
+      "author": "PointsofNoReturn",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lower_Manhattan_Seen_from_Jersey_City.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "capturedAt": "2019-01-10",
+      "checkedAt": "2026-11-23",
+      "modifications": "Уменьшенная копия Wikimedia; кадрирование при показе.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Общий вид города с публичной точки. Значимые лица и отдельные охраняемые произведения не являются предметом снимка. Атрибуция и условия CC BY-SA 4.0 сохранены."
+      },
+      "publicPath": "/media/encyclopedia/cities/lower-manhattan-skyline.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 960,
+      "bytes": 259309
+    },
+    {
+      "assetId": "commons:file:san-francisco-embarcadero",
+      "subject": {
+        "kind": "city",
+        "id": "nba:city:san-francisco-california-united-states"
+      },
+      "category": "city-guide",
+      "fileName": "Ferry Building and The Embarcadero from the Bay Bridge, August 2021.jpg",
+      "title": "Набережная Сан-Франциско",
+      "description": "Эмбаркадеро и Ferry Building с моста Бэй-Бридж.",
+      "alt": "Вид на здания и причалы набережной Сан-Франциско",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Ferry_Building_and_The_Embarcadero_from_the_Bay_Bridge%2C_August_2021.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/Ferry_Building_and_The_Embarcadero_from_the_Bay_Bridge%2C_August_2021.jpg/1280px-Ferry_Building_and_The_Embarcadero_from_the_Bay_Bridge%2C_August_2021.jpg",
+      "author": "Pi.1415926535",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ferry_Building_and_The_Embarcadero_from_the_Bay_Bridge,_August_2021.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "capturedAt": "2021-08-07",
+      "checkedAt": "2026-11-23",
+      "modifications": "Уменьшенная копия Wikimedia; кадрирование при показе.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Общий вид города с публичной точки. Значимые лица и отдельные охраняемые произведения не являются предметом снимка. Атрибуция и условия CC BY-SA 4.0 сохранены."
+      },
+      "publicPath": "/media/encyclopedia/cities/san-francisco-embarcadero.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 960,
+      "bytes": 276287
     }
   ]
 }

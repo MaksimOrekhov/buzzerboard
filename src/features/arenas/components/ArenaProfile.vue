@@ -3,7 +3,8 @@ import '../arenas.css'
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { arenaMapUrl, getArena } from '@/entities/nba/arenaDirectory'
-import { getArenaMedia, getCityMediaForTeam } from '@/entities/nba/teamMediaManifest'
+import { getArenaMedia } from '@/entities/nba/teamMediaManifest'
+import { cityPath, getCity } from '@/entities/nba/cityDirectory'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import MediaAttribution from '@/shared/components/MediaAttribution.vue'
 import PageHeading from '@/shared/components/PageHeading.vue'
@@ -17,10 +18,7 @@ const arena = computed(() =>
   typeof route.params.arenaId === 'string' ? getArena(route.params.arenaId) : undefined,
 )
 const photos = computed(() => (arena.value ? getArenaMedia(arena.value.id) : []))
-const cityPhoto = computed(() => {
-  const code = arena.value?.assignments[0]?.team.code
-  return code ? getCityMediaForTeam(code) : null
-})
+const city = computed(() => (arena.value ? getCity(arena.value.cityId) : undefined))
 </script>
 
 <template>
@@ -70,10 +68,9 @@ const cityPhoto = computed(() => {
         <RouterLink :to="{ name: 'arenas', query: { city: arena.cityId } }" class="arena-city-link">
           Арены в этом городе
         </RouterLink>
-        <details v-if="cityPhoto" class="arena-city-media">
-          <summary>Фотография города</summary>
-          <MediaAttribution :key="cityPhoto.assetId" :asset="cityPhoto" />
-        </details>
+        <RouterLink v-if="city" :to="cityPath(city)" class="arena-city-link">
+          Профиль города · {{ city.name }}
+        </RouterLink>
       </section>
     </div>
 

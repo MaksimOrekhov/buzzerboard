@@ -1,0 +1,301 @@
+{
+  "nba:city:atlanta-georgia-united-states": {
+    "geoId": "1304000",
+    "population": 529110,
+    "landAreaKm2": 350.46,
+    "center": {
+      "gnisId": "351615",
+      "lat": 33.7489954,
+      "lon": -84.3879824
+    }
+  },
+  "nba:city:brooklyn-new-york-united-states": {
+    "geoId": "36047",
+    "population": 2653963,
+    "landAreaKm2": 179.68,
+    "center": {
+      "gnisId": "1783503",
+      "lat": 40.6501038,
+      "lon": -73.9495823
+    }
+  },
+  "nba:city:boston-massachusetts-united-states": {
+    "geoId": "2507000",
+    "population": 672973,
+    "landAreaKm2": 125.2,
+    "center": {
+      "gnisId": "617565",
+      "lat": 42.3584308,
+      "lon": -71.0597732
+    }
+  },
+  "nba:city:charlotte-north-carolina-united-states": {
+    "geoId": "3712000",
+    "population": 964784,
+    "landAreaKm2": 798.45,
+    "center": {
+      "gnisId": "1019610",
+      "lat": 35.2270869,
+      "lon": -80.8431268
+    }
+  },
+  "nba:city:chicago-illinois-united-states": {
+    "geoId": "1714000",
+    "population": 2731585,
+    "landAreaKm2": 589.82,
+    "center": {
+      "gnisId": "423587",
+      "lat": 41.850033,
+      "lon": -87.6500523
+    }
+  },
+  "nba:city:cleveland-ohio-united-states": {
+    "geoId": "3916000",
+    "population": 363608,
+    "landAreaKm2": 201.33,
+    "center": {
+      "gnisId": "1066654",
+      "lat": 41.4994954,
+      "lon": -81.6954088
+    }
+  },
+  "nba:city:dallas-texas-united-states": {
+    "geoId": "4819000",
+    "population": 1329491,
+    "landAreaKm2": 879.51,
+    "center": {
+      "gnisId": "1380944",
+      "lat": 32.7830556,
+      "lon": -96.8066667
+    }
+  },
+  "nba:city:denver-colorado-united-states": {
+    "geoId": "0820000",
+    "population": 740613,
+    "landAreaKm2": 396.46,
+    "center": {
+      "gnisId": "201738",
+      "lat": 39.7391536,
+      "lon": -104.9847034
+    }
+  },
+  "nba:city:detroit-michigan-united-states": {
+    "geoId": "2622000",
+    "population": 649095,
+    "landAreaKm2": 359.31,
+    "center": {
+      "gnisId": "1617959",
+      "lat": 42.331427,
+      "lon": -83.0457538
+    }
+  },
+  "nba:city:san-francisco-california-united-states": {
+    "geoId": "0667000",
+    "population": 826079,
+    "landAreaKm2": 121.51,
+    "center": {
+      "gnisId": "277593",
+      "lat": 37.775,
+      "lon": -122.4194444
+    }
+  },
+  "nba:city:houston-texas-united-states": {
+    "geoId": "4835000",
+    "population": 2397315,
+    "landAreaKm2": 1658.74,
+    "center": {
+      "gnisId": "1380948",
+      "lat": 29.7632836,
+      "lon": -95.3632715
+    }
+  },
+  "nba:city:indianapolis-indiana-united-states": {
+    "geoId": "1836003",
+    "population": 901116,
+    "landAreaKm2": 936.64,
+    "center": {
+      "gnisId": "452890",
+      "lat": 39.7683765,
+      "lon": -86.1580423
+    }
+  },
+  "nba:city:inglewood-california-united-states": {
+    "geoId": "0636546",
+    "population": 101662,
+    "landAreaKm2": 23.48,
+    "center": {
+      "gnisId": "1660799",
+      "lat": 33.9616801,
+      "lon": -118.3531311
+    }
+  },
+  "nba:city:los-angeles-california-united-states": {
+    "geoId": "0644000",
+    "population": 3869089,
+    "landAreaKm2": 1215.98,
+    "center": {
+      "gnisId": "1662328",
+      "lat": 34.0522342,
+      "lon": -118.2436849
+    }
+  },
+  "nba:city:memphis-tennessee-united-states": {
+    "geoId": "4748000",
+    "population": 609647,
+    "landAreaKm2": 769.18,
+    "center": {
+      "gnisId": "1326388",
+      "lat": 35.1495343,
+      "lon": -90.0489801
+    }
+  },
+  "nba:city:miami-florida-united-states": {
+    "geoId": "1245000",
+    "population": 489812,
+    "landAreaKm2": 93.23,
+    "center": {
+      "gnisId": "295004",
+      "lat": 25.7742658,
+      "lon": -80.1936589
+    }
+  },
+  "nba:city:milwaukee-wisconsin-united-states": {
+    "geoId": "5553000",
+    "population": 562407,
+    "landAreaKm2": 249.12,
+    "center": {
+      "gnisId": "1577901",
+      "lat": 43.0389025,
+      "lon": -87.9064736
+    }
+  },
+  "nba:city:minneapolis-minnesota-united-states": {
+    "geoId": "2743000",
+    "population": 430324,
+    "landAreaKm2": 139.86,
+    "center": {
+      "gnisId": "655030",
+      "lat": 44.9799654,
+      "lon": -93.2638361
+    }
+  },
+  "nba:city:new-orleans-louisiana-united-states": {
+    "geoId": "2255000",
+    "population": 362154,
+    "landAreaKm2": 438.98,
+    "center": {
+      "gnisId": "1629985",
+      "lat": 29.9546482,
+      "lon": -90.075072
+    }
+  },
+  "nba:city:new-york-new-york-united-states": {
+    "geoId": "3651000",
+    "population": 8584629,
+    "landAreaKm2": 778.17,
+    "center": {
+      "gnisId": "975772",
+      "lat": 40.7142691,
+      "lon": -74.0059729
+    }
+  },
+  "nba:city:oklahoma-city-oklahoma-united-states": {
+    "geoId": "4055000",
+    "population": 719849,
+    "landAreaKm2": 1570.04,
+    "center": {
+      "gnisId": "1102140",
+      "lat": 35.4675602,
+      "lon": -97.5164276
+    }
+  },
+  "nba:city:orlando-florida-united-states": {
+    "geoId": "1253000",
+    "population": 333888,
+    "landAreaKm2": 286.51,
+    "center": {
+      "gnisId": "288240",
+      "lat": 28.5383355,
+      "lon": -81.3792365
+    }
+  },
+  "nba:city:philadelphia-pennsylvania-united-states": {
+    "geoId": "4260000",
+    "population": 1574281,
+    "landAreaKm2": 347.98,
+    "center": {
+      "gnisId": "1209052",
+      "lat": 39.952335,
+      "lon": -75.163789
+    }
+  },
+  "nba:city:phoenix-arizona-united-states": {
+    "geoId": "0455000",
+    "population": 1665481,
+    "landAreaKm2": 1341.6,
+    "center": {
+      "gnisId": "44784",
+      "lat": 33.4483771,
+      "lon": -112.0740373
+    }
+  },
+  "nba:city:portland-oregon-united-states": {
+    "geoId": "4159000",
+    "population": 635109,
+    "landAreaKm2": 345.63,
+    "center": {
+      "gnisId": "1136645",
+      "lat": 45.5234515,
+      "lon": -122.6762071
+    }
+  },
+  "nba:city:sacramento-california-united-states": {
+    "geoId": "0664000",
+    "population": 536449,
+    "landAreaKm2": 255.4,
+    "center": {
+      "gnisId": "1659564",
+      "lat": 38.5815719,
+      "lon": -121.4943996
+    }
+  },
+  "nba:city:san-antonio-texas-united-states": {
+    "geoId": "4865000",
+    "population": 1548422,
+    "landAreaKm2": 1292.0,
+    "center": {
+      "gnisId": "1380951",
+      "lat": 29.4241219,
+      "lon": -98.4936282
+    }
+  },
+  "nba:city:toronto-ontario-canada": {
+    "geoId": "3520005",
+    "population": 2794356,
+    "landAreaKm2": 631.1,
+    "center": {
+      "lat": 43.6532,
+      "lon": -79.3832
+    }
+  },
+  "nba:city:salt-lake-city-utah-united-states": {
+    "geoId": "4967000",
+    "population": 218428,
+    "landAreaKm2": 285.77,
+    "center": {
+      "gnisId": "1454997",
+      "lat": 40.7607794,
+      "lon": -111.8910474
+    }
+  },
+  "nba:city:washington-district-of-columbia-united-states": {
+    "geoId": "11001",
+    "population": 693645,
+    "landAreaKm2": 158.32,
+    "center": {
+      "gnisId": "531871",
+      "lat": 38.8951118,
+      "lon": -77.0363658
+    }
+  }
+}

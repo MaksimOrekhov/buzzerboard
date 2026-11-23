@@ -82,7 +82,13 @@ function reset() {
       title="Арены NBA"
       :title-dot="false"
       description="Домашние площадки команд, адреса, фотографии и история зданий."
-    />
+    >
+      <template #actions>
+        <RouterLink :to="{ name: 'cities' }" class="gc-control">
+          <AppIcon name="globe" :size="16" /> Города NBA
+        </RouterLink>
+      </template>
+    </PageHeading>
     <section
       v-if="featured && featuredPhoto"
       class="arena-featured"

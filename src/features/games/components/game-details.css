@@ -501,3 +501,95 @@
 .game-detail-hero--schedule .game-detail-vs {
   display: inline;
 }
+
+.game-geography {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: clamp(12px, 2vw, 22px);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius);
+  background: var(--gc-panel);
+}
+
+.game-geography h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.02rem;
+}
+
+.game-geography h2 svg {
+  color: var(--gc-accent);
+}
+
+.game-geography__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.game-geography__grid > div,
+.game-geography__distance {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.game-geography :is(h2, h3, p, ul, dl, dd) {
+  margin: 0;
+}
+
+.game-geography h3,
+.game-geography p,
+.game-geography dt,
+.game-geography dd {
+  font-size: 0.875rem;
+}
+
+.game-geography p,
+.game-geography dt {
+  color: var(--gc-secondary);
+}
+
+.game-geography small {
+  color: var(--gc-muted);
+}
+
+.game-geography__teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.game-geography__teams li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 7px;
+}
+
+.game-geography__distance strong {
+  color: var(--gc-text);
+  font-size: 1.3rem;
+}
+
+.game-geography__clocks {
+  display: grid;
+  gap: 6px;
+}
+
+.game-geography__clocks dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+}
+
+@media (max-width: 620px) {
+  .game-geography__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
