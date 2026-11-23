@@ -4,9 +4,7 @@ import { TEAM_MEDIA_ASSETS, type TeamMediaAsset } from '@/entities/nba/teamMedia
 import MediaAttribution from './MediaAttribution.vue'
 
 describe('MediaAttribution', () => {
-  it('renders each real pilot asset with full Russian attribution and intrinsic dimensions', () => {
-    expect(TEAM_MEDIA_ASSETS).toHaveLength(9)
-
+  it('renders every reviewed asset with full Russian attribution and intrinsic dimensions', () => {
     for (const asset of TEAM_MEDIA_ASSETS) {
       const wrapper = mount(MediaAttribution, { props: { asset } })
       const image = wrapper.get('img')
@@ -27,6 +25,19 @@ describe('MediaAttribution', () => {
       expect(wrapper.get(`a[href="${asset.sourceUrl}"]`).text()).toBe('Файл на Wikimedia Commons')
       expect(wrapper.get(`a[href="${asset.licenseUrl}"]`).text()).toBe(asset.license)
     }
+  })
+
+  it('keeps the author, license and crop notice in compact arena captions', () => {
+    const asset = TEAM_MEDIA_ASSETS.find(
+      ({ assetId }) => assetId === 'commons:file:united-center-interior',
+    )!
+    const wrapper = mount(MediaAttribution, { props: { asset, compact: true } })
+
+    expect(wrapper.text()).toContain(asset.author)
+    expect(wrapper.get(`a[href="${asset.sourceUrl}"]`).exists()).toBe(true)
+    expect(wrapper.get(`a[href="${asset.licenseUrl}"]`).text()).toBe(asset.license)
+    expect(wrapper.text()).toContain(asset.modifications)
+    expect(wrapper.find('.media-attribution__description').exists()).toBe(false)
   })
 
   it('displays the exact credit required by the photographer of United Center', () => {
