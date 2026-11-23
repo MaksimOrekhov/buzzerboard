@@ -1,4 +1,5 @@
 import rawDirectory from './jerseyDirectory.json'
+import jerseyGameSources from './jerseyGameSources.json'
 import { findNbaTeam } from './teamCatalog'
 import { NBA_TEAM_ENCYCLOPEDIA, getTeamEncyclopediaEntry } from './teamEncyclopedia'
 import { eraAt, getTeamHistory } from './teamHistory'
@@ -92,6 +93,7 @@ type JerseyMediaClaim = Pick<
 
 const CORE_TYPES = ['association', 'icon', 'statement', 'city'] as const
 const canonicalTeams = new Set(NBA_TEAM_ENCYCLOPEDIA.map(({ canonicalTeamId }) => canonicalTeamId))
+const gameSourcesByUrl = new Map(jerseyGameSources.map((entry) => [entry.lockerVisionUrl, entry]))
 
 function record(input: unknown): input is Record<string, unknown> {
   return typeof input === 'object' && input !== null && !Array.isArray(input)
@@ -123,23 +125,40 @@ function httpsUrl(input: unknown): URL | null {
   }
 }
 
-function officialSource(input: unknown, teamCode: string, year: number): boolean {
-  const url = httpsUrl(input)
-  if (!url) return false
-  if (url.hostname === 'lockervision.nba.com') {
-    const team = findNbaTeam(teamCode)
-    const slug =
-      teamCode === 'LAC' ? 'los-angeles-clippers' : team?.name.toLowerCase().replaceAll(' ', '-')
-    const gameId = url.searchParams.get('gameid')
-    return (
-      url.pathname === '/game-outfit/' + slug &&
-      Boolean(gameId && /^002\d{7}$/.test(gameId) && gameId.slice(3, 5) === String(year).slice(-2))
-    )
-  }
+function officialPublication(url: URL): boolean {
   return (
     (url.hostname === 'www.nba.com' || url.hostname === 'nba.com') &&
     (/^\/(?:[^/]+\/)?news\/[^/]+/.test(url.pathname) ||
       /^\/gamenotes\/[a-z-]+\.pdf$/.test(url.pathname))
+  )
+}
+
+function matchesGameSource(
+  url: URL,
+  item: Record<string, unknown>,
+  teamCode: string,
+  year: number,
+): boolean {
+  const evidence = gameSourcesByUrl.get(url.href)
+  if (!evidence || evidence.teamCode !== teamCode || evidence.type !== item.type) return false
+  if (evidence.gameDate !== item.outfitDate) return false
+
+  const teamSlug =
+    teamCode === 'LAC'
+      ? 'los-angeles-clippers'
+      : findNbaTeam(teamCode)?.name.toLowerCase().replaceAll(' ', '-')
+  const gameId = url.searchParams.get('gameid')
+  const match = /^https:\/\/www\.nba\.com\/game\/([a-z]{3})-vs-([a-z]{3})-(002\d{7})$/.exec(
+    evidence.scheduleUrl,
+  )
+  return Boolean(
+    match &&
+    match[1] !== match[2] &&
+    [match[1], match[2]].includes(teamCode.toLowerCase()) &&
+    gameId &&
+    match[3] === gameId &&
+    gameId.slice(3, 5) === String(year).slice(-2) &&
+    url.pathname === '/game-outfit/' + teamSlug,
   )
 }
 
@@ -227,22 +246,31 @@ export function validateJerseyDirectory(input: unknown): string[] {
       }
       continue
     }
+    const source = httpsUrl(item.sourceUrl)
     if (
       item.status !== 'verified' ||
       !text(item.description) ||
       (item.name !== undefined && !text(item.name)) ||
       !isoDate(item.sourceAsOf) ||
       (isoDate(reviewedAt) && item.sourceAsOf > reviewedAt) ||
-      !officialSource(item.sourceUrl, code, year)
+      !source ||
+      (source.hostname === 'lockervision.nba.com'
+        ? !matchesGameSource(source, item, code, year)
+        : !officialPublication(source))
     ) {
-      errors.push(path + ': verified set requires individual provenance')
+      errors.push(
+        path + ': verified set requires individual provenance matching team, date and edition',
+      )
     }
     if (text(item.sourceUrl)) {
       if (sources.has(item.sourceUrl)) errors.push(path + ': duplicate outfit source')
       sources.add(item.sourceUrl)
     }
-    if (item.designSourceUrl !== undefined && !officialSource(item.designSourceUrl, code, year)) {
-      errors.push(path + ': invalid design source')
+    if (item.designSourceUrl !== undefined) {
+      const designSource = httpsUrl(item.designSourceUrl)
+      if (!designSource || !officialPublication(designSource)) {
+        errors.push(path + ': invalid design source')
+      }
     }
     if (
       !Array.isArray(item.palette) ||

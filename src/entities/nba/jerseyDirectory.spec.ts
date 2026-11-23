@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import raw from './jerseyDirectory.json'
+import jerseyGameSources from './jerseyGameSources.json'
 import {
   getClearedJerseyMedia,
   getTeamJerseys,
@@ -35,6 +36,69 @@ describe('jersey directory', () => {
     expect(new Set(raw.sets.map(({ sourceUrl }) => sourceUrl)).size).toBe(raw.sets.length)
     expect(new Set(raw.sets.map(({ description }) => description)).size).toBe(raw.sets.length)
     expect(getTeamJerseys('SEA')).toEqual([])
+  })
+
+  it('matches every LockerVision source to one audited edition and an official NBA game', () => {
+    const outfits = raw.sets.filter(
+      ({ sourceUrl }) => new URL(sourceUrl).hostname === 'lockervision.nba.com',
+    )
+
+    expect(jerseyGameSources.map(({ lockerVisionUrl }) => lockerVisionUrl).sort()).toEqual(
+      outfits.map(({ sourceUrl }) => sourceUrl).sort(),
+    )
+    for (const { lockerVisionUrl, teamCode, type, gameDate, scheduleUrl } of jerseyGameSources) {
+      const gameId = new URL(lockerVisionUrl).searchParams.get('gameid')
+      const schedule = new URL(scheduleUrl)
+      const [away, , home, scheduledGameId] = schedule.pathname.slice('/game/'.length).split('-')
+      expect(schedule.origin).toBe('https://www.nba.com')
+      expect(scheduledGameId).toBe(gameId)
+      expect([away, home]).toContain(teamCode.toLowerCase())
+      expect(outfits.find(({ sourceUrl }) => sourceUrl === lockerVisionUrl)).toMatchObject({
+        canonicalTeamId: 'nba:team:' + teamCode,
+        status: 'verified',
+        type,
+        outfitDate: gameDate,
+      })
+    }
+  })
+
+  it('keeps the ATL City source tied to the January 18 MLK game against Philadelphia', () => {
+    const source = 'https://lockervision.nba.com/game-outfit/atlanta-hawks?gameid=0022600078'
+    expect(jerseyGameSources.find(({ lockerVisionUrl }) => lockerVisionUrl === source)).toEqual({
+      lockerVisionUrl: source,
+      teamCode: 'ATL',
+      type: 'city',
+      gameDate: '2027-01-18',
+      scheduleUrl: 'https://www.nba.com/game/phi-vs-atl-0022600078',
+    })
+    expect(
+      getTeamJerseys('ATL').find(({ jerseyId }) => jerseyId === 'nba:jersey:atl:2026-27:city'),
+    ).toMatchObject({ sourceUrl: source, outfitDate: '2027-01-18', type: 'city' })
+  })
+
+  it.each([
+    { outfitDate: '2026-10-21' },
+    { outfitDate: undefined },
+    { type: 'icon', jerseyId: 'nba:jersey:atl:2026-27:icon' },
+    {
+      sourceUrl: 'https://lockervision.nba.com/game-outfit/atlanta-hawks?gameid=0022600321',
+      outfitDate: '2026-12-01',
+    },
+    {
+      sourceUrl: 'https://lockervision.nba.com/game-outfit/miami-heat?gameid=0022600321',
+      outfitDate: '2026-12-01',
+      type: 'icon',
+      jerseyId: 'nba:jersey:atl:2026-27:icon',
+    },
+  ])('rejects an outfit with a valid-looking URL that conflicts with the audit: %j', (changes) => {
+    const sets = raw.sets.map((set) =>
+      set.jerseyId === 'nba:jersey:atl:2026-27:city' ? { ...set, ...changes } : set,
+    )
+    expect(validateJerseyDirectory({ ...raw, sets })).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('individual provenance matching team, date and edition'),
+      ]),
+    )
   })
 
   it('keeps pilot collections and franchise eras tied to the documented season', () => {

@@ -1,0 +1,261 @@
+[
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/atlanta-hawks?gameid=0022600078",
+    "teamCode": "ATL",
+    "type": "city",
+    "gameDate": "2027-01-18",
+    "scheduleUrl": "https://www.nba.com/game/phi-vs-atl-0022600078"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/brooklyn-nets?gameid=0022600349",
+    "teamCode": "BKN",
+    "type": "icon",
+    "gameDate": "2026-12-13",
+    "scheduleUrl": "https://www.nba.com/game/bos-vs-bkn-0022600349"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/boston-celtics?gameid=0022600626",
+    "teamCode": "BOS",
+    "type": "city",
+    "gameDate": "2027-01-20",
+    "scheduleUrl": "https://www.nba.com/game/ind-vs-bos-0022600626"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/charlotte-hornets?gameid=0022600298",
+    "teamCode": "CHA",
+    "type": "icon",
+    "gameDate": "2026-11-28",
+    "scheduleUrl": "https://www.nba.com/game/bkn-vs-cha-0022600298"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/chicago-bulls?gameid=0022600588",
+    "teamCode": "CHI",
+    "type": "city",
+    "gameDate": "2027-01-14",
+    "scheduleUrl": "https://www.nba.com/game/min-vs-chi-0022600588"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/chicago-bulls?gameid=0022600292",
+    "teamCode": "CHI",
+    "type": "statement",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/cle-vs-chi-0022600292"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/chicago-bulls?gameid=0022500647",
+    "teamCode": "CHI",
+    "type": "city",
+    "gameDate": "2026-01-24",
+    "scheduleUrl": "https://www.nba.com/game/bos-vs-chi-0022500647"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/chicago-bulls?gameid=0022200227",
+    "teamCode": "CHI",
+    "type": "city",
+    "gameDate": "2022-11-18",
+    "scheduleUrl": "https://www.nba.com/game/orl-vs-chi-0022200227"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/cleveland-cavaliers?gameid=0022600305",
+    "teamCode": "CLE",
+    "type": "icon",
+    "gameDate": "2026-11-29",
+    "scheduleUrl": "https://www.nba.com/game/mia-vs-cle-0022600305"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/dallas-mavericks?gameid=0022600316",
+    "teamCode": "DAL",
+    "type": "icon",
+    "gameDate": "2026-11-30",
+    "scheduleUrl": "https://www.nba.com/game/bos-vs-dal-0022600316"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/denver-nuggets?gameid=0022600313",
+    "teamCode": "DEN",
+    "type": "icon",
+    "gameDate": "2026-11-30",
+    "scheduleUrl": "https://www.nba.com/game/den-vs-det-0022600313"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/detroit-pistons?gameid=0022600327",
+    "teamCode": "DET",
+    "type": "icon",
+    "gameDate": "2026-12-02",
+    "scheduleUrl": "https://www.nba.com/game/mem-vs-det-0022600327"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/golden-state-warriors?gameid=0022600437",
+    "teamCode": "GSW",
+    "type": "icon",
+    "gameDate": "2026-12-23",
+    "scheduleUrl": "https://www.nba.com/game/gsw-vs-lac-0022600437"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/houston-rockets?gameid=0022600294",
+    "teamCode": "HOU",
+    "type": "icon",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/lac-vs-hou-0022600294"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/indiana-pacers?gameid=0022600381",
+    "teamCode": "IND",
+    "type": "icon",
+    "gameDate": "2026-12-17",
+    "scheduleUrl": "https://www.nba.com/game/por-vs-ind-0022600381"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/los-angeles-clippers?gameid=0022600102",
+    "teamCode": "LAC",
+    "type": "association",
+    "gameDate": "2026-10-23",
+    "scheduleUrl": "https://www.nba.com/game/lac-vs-lal-0022600102"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/los-angeles-clippers?gameid=0022600335",
+    "teamCode": "LAC",
+    "type": "icon",
+    "gameDate": "2026-12-02",
+    "scheduleUrl": "https://www.nba.com/game/min-vs-lac-0022600335"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/los-angeles-lakers?gameid=0022600197",
+    "teamCode": "LAL",
+    "type": "association",
+    "gameDate": "2026-11-08",
+    "scheduleUrl": "https://www.nba.com/game/lal-vs-det-0022600197"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/los-angeles-lakers?gameid=0022600315",
+    "teamCode": "LAL",
+    "type": "icon",
+    "gameDate": "2026-11-30",
+    "scheduleUrl": "https://www.nba.com/game/lal-vs-hou-0022600315"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/los-angeles-lakers?gameid=0022500891",
+    "teamCode": "LAL",
+    "type": "city",
+    "gameDate": "2026-03-03",
+    "scheduleUrl": "https://www.nba.com/game/nop-vs-lal-0022500891"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/memphis-grizzlies?gameid=0022600287",
+    "teamCode": "MEM",
+    "type": "icon",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/mem-vs-cha-0022600287"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/miami-heat?gameid=0022600321",
+    "teamCode": "MIA",
+    "type": "icon",
+    "gameDate": "2026-12-01",
+    "scheduleUrl": "https://www.nba.com/game/atl-vs-mia-0022600321"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/milwaukee-bucks?gameid=0022600290",
+    "teamCode": "MIL",
+    "type": "icon",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/mil-vs-tor-0022600290"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/minnesota-timberwolves?gameid=0022600393",
+    "teamCode": "MIN",
+    "type": "icon",
+    "gameDate": "2026-12-18",
+    "scheduleUrl": "https://www.nba.com/game/lal-vs-min-0022600393"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/minnesota-timberwolves?gameid=0022600291",
+    "teamCode": "MIN",
+    "type": "statement",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/bkn-vs-min-0022600291"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/new-orleans-pelicans?gameid=0022600309",
+    "teamCode": "NOP",
+    "type": "icon",
+    "gameDate": "2026-11-29",
+    "scheduleUrl": "https://www.nba.com/game/nop-vs-por-0022600309"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/new-york-knicks?gameid=0022600362",
+    "teamCode": "NYK",
+    "type": "icon",
+    "gameDate": "2026-12-14",
+    "scheduleUrl": "https://www.nba.com/game/nyk-vs-hou-0022600362"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/oklahoma-city-thunder?gameid=0022600289",
+    "teamCode": "OKC",
+    "type": "icon",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/okc-vs-ind-0022600289"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/orlando-magic?gameid=0022600372",
+    "teamCode": "ORL",
+    "type": "icon",
+    "gameDate": "2026-12-16",
+    "scheduleUrl": "https://www.nba.com/game/cle-vs-orl-0022600372"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/philadelphia-76ers?gameid=0022600288",
+    "teamCode": "PHI",
+    "type": "icon",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/por-vs-phi-0022600288"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/phoenix-suns?gameid=0022600293",
+    "teamCode": "PHX",
+    "type": "icon",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/phx-vs-nop-0022600293"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/portland-trail-blazers?gameid=0022600325",
+    "teamCode": "POR",
+    "type": "icon",
+    "gameDate": "2026-12-01",
+    "scheduleUrl": "https://www.nba.com/game/min-vs-por-0022600325"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/sacramento-kings?gameid=0022600296",
+    "teamCode": "SAC",
+    "type": "icon",
+    "gameDate": "2026-11-23",
+    "scheduleUrl": "https://www.nba.com/game/sas-vs-sac-0022600296"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/san-antonio-spurs?gameid=0022600303",
+    "teamCode": "SAS",
+    "type": "icon",
+    "gameDate": "2026-11-29",
+    "scheduleUrl": "https://www.nba.com/game/bos-vs-sas-0022600303"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/toronto-raptors?gameid=0022600308",
+    "teamCode": "TOR",
+    "type": "icon",
+    "gameDate": "2026-11-29",
+    "scheduleUrl": "https://www.nba.com/game/den-vs-tor-0022600308"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/utah-jazz?gameid=0022600375",
+    "teamCode": "UTA",
+    "type": "icon",
+    "gameDate": "2026-12-16",
+    "scheduleUrl": "https://www.nba.com/game/uta-vs-chi-0022600375"
+  },
+  {
+    "lockerVisionUrl": "https://lockervision.nba.com/game-outfit/washington-wizards?gameid=0022600342",
+    "teamCode": "WAS",
+    "type": "icon",
+    "gameDate": "2026-12-12",
+    "scheduleUrl": "https://www.nba.com/game/cha-vs-was-0022600342"
+  }
+]
