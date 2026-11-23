@@ -107,7 +107,7 @@ const scoredCount = computed(
           :options="recentDates"
           @update:model-value="setDate"
         />
-        <span class="gc-date-hint">Игровой день · ET</span>
+        <span class="gc-date-hint">Вчера и сегодня — игровой день Нью-Йорка (ET)</span>
       </div>
       <div class="gc-date-strip">
         <button
@@ -153,7 +153,7 @@ const scoredCount = computed(
           <span v-if="data" class="gc-game-count">{{ games.length }} матчей</span>
         </div>
         <AppSegmented
-          v-if="!hasHiddenGames"
+          v-if="data && !hasHiddenGames"
           v-model="statusFilter"
           variant="underline"
           label="Статус матчей"
@@ -192,6 +192,7 @@ const scoredCount = computed(
             }}
           </button>
         </div>
+        <SnapshotStatus v-if="meta" :meta="meta" show-source :refresh-failed="isRefetchError" />
         <p v-if="isRefetchError" class="gc-notice gc-notice--warning" role="status">
           Не удалось обновить данные. Показаны последние загруженные результаты.
         </p>
@@ -246,7 +247,6 @@ const scoredCount = computed(
             @details="toggleDetails(game.id)"
           />
         </div>
-        <SnapshotStatus v-if="meta" :meta="meta" />
       </section>
       <GameDayInsights
         v-if="games.length && !hasHiddenGames"

@@ -141,7 +141,7 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
       status="error"
       icon="users"
       title="Каталог пока не загружен"
-      description="Сначала обновите командные данные из локального BBS cache."
+      description="Данные команд пока недоступны. Попробуйте ещё раз позже."
       ><template #action
         ><AppButton @click="query.refetch()">Повторить</AppButton></template
       ></ResourceState

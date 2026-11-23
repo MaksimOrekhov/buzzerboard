@@ -105,9 +105,9 @@ export async function checkJerseyViewer({ browser, output }) {
       }
       const viewer = getViewer(page)
       const stage = getStage(viewer)
-      const front = button(viewer, 'Front')
-      const back = button(viewer, 'Back')
-      const auto = button(viewer, 'Auto rotate')
+      const front = button(viewer, 'Спереди')
+      const back = button(viewer, 'Сзади')
+      const auto = button(viewer, 'Автоповорот')
       const capture = (name) =>
         viewer.screenshot({ path: path.join(output, 'pro218-' + name + '.png') })
 

@@ -62,6 +62,7 @@ const titleGroups = computed(() => [
                 <TeamHistorySource
                   :source-url="identity.city.sourceUrl"
                   :as-of="identity.city.asOf"
+                  :context="`город ${identity.city.value}`"
                 />
               </dd>
             </div>
@@ -79,6 +80,7 @@ const titleGroups = computed(() => [
                 <TeamHistorySource
                   :source-url="identity.arena.sourceUrl"
                   :as-of="identity.arena.asOf"
+                  :context="`домашняя арена ${identity.arena.value}`"
                 />
               </dd>
             </div>

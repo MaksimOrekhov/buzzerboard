@@ -490,11 +490,13 @@
     width: 40px !important;
     height: 40px !important;
   }
-  .gc-date-hint {
-    display: none;
-  }
   .gc-date-panel-top {
     justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .gc-date-hint {
+    flex-basis: 100%;
+    margin-left: 0;
   }
 }
 @media (max-width: 620px) {

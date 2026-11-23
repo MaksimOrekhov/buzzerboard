@@ -333,6 +333,17 @@
 .gc-data-status--stale > span:nth-child(2) {
   color: var(--gc-warning);
 }
+.gc-data-status--prominent {
+  margin-block: 10px;
+  font-size: 12px;
+}
+.gc-data-status--prominent > span:nth-child(2) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.gc-data-status--prominent .gc-source-details {
+  margin-left: 0;
+}
 .gc-source-details {
   margin-left: auto;
 }
@@ -632,8 +643,14 @@
     margin-top: 10px;
     font-size: 10px;
   }
+  .gc-data-status--prominent {
+    font-size: 12px;
+  }
   .gc-data-status > span:nth-child(2) {
     max-width: calc(100% - 70px);
+  }
+  .gc-data-status--prominent > span:nth-child(2) {
+    max-width: none;
   }
   .gc-source-details {
     margin-left: auto;
