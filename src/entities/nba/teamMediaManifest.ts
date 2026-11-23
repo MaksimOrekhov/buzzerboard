@@ -150,9 +150,16 @@ export function supportedLicenseUrl(license: string): string | null {
 export function getCityMediaForTeam(teamCode: string): TeamMediaAsset | null {
   const team = NBA_TEAM_ENCYCLOPEDIA.find((entry) => entry.code === teamCode.trim().toUpperCase())
   if (!team) return null
+  return getCityMedia(team.cityId)
+}
+
+export function getCityMedia(cityId: string): TeamMediaAsset | null {
   return (
     TEAM_MEDIA_ASSETS.find(
-      (asset) => asset.subject.kind === 'city' && asset.subject.id === team.cityId,
+      (asset) =>
+        asset.subject.kind === 'city' &&
+        asset.subject.id === cityId &&
+        isReviewedTeamMediaAsset(asset),
     ) ?? null
   )
 }
@@ -171,6 +178,7 @@ export function getTeamMedia(teamCode: string): TeamMediaAsset[] {
   return TEAM_MEDIA_ASSETS.filter(
     ({ subject, category }) =>
       category !== 'arena-guide' &&
+      category !== 'city-guide' &&
       ((subject.kind === 'team' && subject.id === team.canonicalTeamId) ||
         (subject.kind === 'city' && subject.id === team.cityId) ||
         (subject.kind === 'arena' && arenas.has(subject.id))),

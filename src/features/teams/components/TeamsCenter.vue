@@ -68,9 +68,14 @@ const { data, isPending, isError, isFetching, isRefetchError } = query
         <span>NBA</span><AppIcon name="basketball" :size="44" />
       </div>
     </section>
-    <RouterLink :to="{ name: 'arenas' }" class="gc-control teams-arenas-link">
-      <AppIcon name="pin" :size="16" />Арены NBA<AppIcon name="arrow" :size="15" />
-    </RouterLink>
+    <nav class="teams-directory-guides" aria-label="Справочники NBA">
+      <RouterLink :to="{ name: 'arenas' }" class="gc-control">
+        <AppIcon name="pin" :size="16" />Арены NBA<AppIcon name="arrow" :size="15" />
+      </RouterLink>
+      <RouterLink :to="{ name: 'cities' }" class="gc-control">
+        <AppIcon name="globe" :size="16" />Города NBA<AppIcon name="arrow" :size="15" />
+      </RouterLink>
+    </nav>
     <div class="teams-toolbar">
       <AppSegmented
         v-model="conference"

@@ -287,12 +287,6 @@
   white-space: normal;
 }
 
-.arena-city-media summary {
-  margin-bottom: var(--gc-space-sm);
-  color: var(--gc-accent);
-  cursor: pointer;
-}
-
 .arena-gallery {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 }

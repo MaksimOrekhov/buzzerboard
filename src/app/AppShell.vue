@@ -12,6 +12,10 @@ import { useSpoilerClock } from '@/features/spoilers/useSpoilerMode'
 
 useSpoilerClock()
 const route = useRoute()
+const encyclopediaLinks = [
+  { name: 'arenas', profile: 'arena-profile', label: 'Арены', icon: 'pin' },
+  { name: 'cities', profile: 'city-profile', label: 'Города', icon: 'globe' },
+] as const
 const sectionIsActive = (id: string, path: string) =>
   route.name === id || ((id === 'teams' || id === 'players') && route.path.startsWith(path + '/'))
 </script>
@@ -48,15 +52,15 @@ const sectionIsActive = (id: string, path: string) =>
             ><span v-if="sectionIsActive(item.id, item.to)" class="gc-nav-active-dot"
           /></RouterLink>
           <RouterLink
-            :to="{ name: 'arenas' }"
+            v-for="item in encyclopediaLinks"
+            :key="item.name"
+            :to="{ name: item.name }"
             class="gc-nav-link"
-            :class="{
-              'gc-nav-link--active': route.name === 'arenas' || route.name === 'arena-profile',
-            }"
+            :class="{ 'gc-nav-link--active': route.name === item.profile }"
             active-class="gc-nav-link--active"
-            aria-label="Арены NBA"
-            title="Арены NBA"
-            ><AppIcon name="pin" :size="20" /><span>Арены</span></RouterLink
+            :aria-label="item.label + ' NBA'"
+            :title="item.label + ' NBA'"
+            ><AppIcon :name="item.icon" :size="20" /><span>{{ item.label }}</span></RouterLink
           >
         </nav>
         <div class="gc-upcoming">
@@ -115,7 +119,10 @@ const sectionIsActive = (id: string, path: string) =>
           :class="{
             'gc-mobile-nav--active':
               sectionIsActive(item.id, item.to) ||
-              (item.id === 'teams' && (route.name === 'arenas' || route.name === 'arena-profile')),
+              (item.id === 'teams' &&
+                encyclopediaLinks.some(
+                  ({ name, profile }) => route.name === name || route.name === profile,
+                )),
           }"
           ><AppIcon :name="item.id === 'games' ? 'basketball' : item.icon" :size="21" /><span>{{
             item.shortLabel

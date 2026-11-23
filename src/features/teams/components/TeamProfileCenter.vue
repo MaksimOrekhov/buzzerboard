@@ -4,6 +4,8 @@ import '../teams.css'
 import { computed, defineAsyncComponent } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { arenaPath, getTeamArena } from '@/entities/nba/arenaDirectory'
+import { cityPath, getTeamCity } from '@/entities/nba/cityDirectory'
+import CityTeamSpotlight from '@/features/cities/components/CityTeamSpotlight.vue'
 import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import { useTeamFavorites } from '@/features/standings/composables/useTeamFavorites'
 import PageHeading from '@/shared/components/PageHeading.vue'
@@ -26,6 +28,7 @@ const code = computed(() =>
 )
 const team = computed(() => findNbaTeam(code.value))
 const arena = computed(() => getTeamArena(code.value))
+const city = computed(() => getTeamCity(code.value))
 const activeTab = computed(() => sections.find(({ tab }) => tab === route.query.tab)?.tab ?? null)
 const overviewQuery = computed(() => {
   const query = { ...route.query }
@@ -66,6 +69,9 @@ const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team
       <RouterLink v-if="arena" :to="arenaPath(arena)" class="ui-text-link">
         Арена<AppIcon name="pin" :size="14" />
       </RouterLink>
+      <RouterLink v-if="city" :to="cityPath(city)" class="ui-text-link">
+        Город<AppIcon name="globe" :size="14" />
+      </RouterLink>
       <RouterLink :to="{ path: '/players', query: { team: code } }" class="ui-text-link">
         Игроки<AppIcon name="arrow" :size="14" />
       </RouterLink>
@@ -99,7 +105,10 @@ const favorite = computed(() => Boolean(team.value && isFavorite(team.value.team
     </nav>
     <TeamHistoryPanel v-if="activeTab === 'history'" :key="team.code" :team-code="team.code" />
     <TeamCoachesPanel v-else-if="activeTab === 'coaches'" :key="team.code" :team-code="team.code" />
-    <TeamProfileOverview v-else :code="team.code" />
+    <template v-else>
+      <CityTeamSpotlight v-if="city" :city="city" />
+      <TeamProfileOverview :code="team.code" />
+    </template>
   </div>
   <ResourceState
     v-else

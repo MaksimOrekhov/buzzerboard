@@ -8,6 +8,7 @@ import { checkSpoilerMode } from './pro210-spoiler-browser.mjs'
 import { checkTeamHistory } from './pro203-team-history-browser.mjs'
 import { checkTeamCoaching } from './pro204-team-coaching-browser.mjs'
 import { checkArenaGuide } from './pro205-arena-browser.mjs'
+import { checkCityGuide } from './pro206-city-browser.mjs'
 import { checkUiAudit } from './pro217-ui-browser.mjs'
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -19,20 +20,24 @@ const hasArenaGuide = await access(path.join(root, 'src/pages/ArenasView.vue')).
   () => true,
   () => false,
 )
-const routeTypes = hasArenaGuide ? 13 : 11
+const hasCityGuide = await access(path.join(root, 'src/pages/CitiesView.vue')).then(
+  () => true,
+  () => false,
+)
+const routeTypes = 11 + (hasArenaGuide ? 2 : 0) + (hasCityGuide ? 2 : 0)
 const auditOnly = Boolean(baselineRoot) || process.argv.includes('--audit-only')
 const artifact = path.join(workspace, 'artifacts/pro-171')
 const baselineOutput = path.join(artifact, 'baseline')
 const output = baselineRoot ? baselineOutput : path.join(artifact, compact ? 'ci' : 'synthetic')
 const ciScreenshots = new Set([
   '320x600-audit-games-select-open.png',
-  '320x600-audit-arenas-catalog.png',
+  '320x600-audit-cities-catalog.png',
   '375x1000-audit-lal-history-filters.png',
-  '375x1000-audit-arenas-crypto-com-arena.png',
-  '768x1000-audit-arenas-target-center.png',
+  '375x1000-audit-cities-inglewood.png',
+  '768x1000-audit-cities-game-geo.png',
   '1440x600-audit-standings.png',
   '1440x600-audit-comparison-open.png',
-  '1440x600-audit-arenas-united-center.png',
+  '1440x600-audit-cities-toronto.png',
 ])
 
 async function saveScreenshot(page, filename, fullPage) {
@@ -430,6 +435,15 @@ try {
           page: auditPage,
           capture: (label, options) => auditCapture('audit-' + label, options),
           baseline,
+        })
+      }
+      if (hasCityGuide) {
+        await checkCityGuide({
+          page: auditPage,
+          today,
+          game: games[0],
+          meta,
+          capture: (label, options) => auditCapture('audit-' + label, options),
         })
       }
       auditViewports.push({ width, height })

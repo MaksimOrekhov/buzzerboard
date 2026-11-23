@@ -10,6 +10,7 @@ import PageHeading from '@/shared/components/PageHeading.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
 import GameScoreHero from './GameScoreHero.vue'
+import GameGeography from './GameGeography.vue'
 import TeamBoxScoreComparison from './TeamBoxScoreComparison.vue'
 import PlayerBoxScoreTable from './PlayerBoxScoreTable.vue'
 import StatValue from '@/shared/components/StatValue.vue'
@@ -111,6 +112,7 @@ const unavailableDetails = computed(() =>
     </ResourceState>
     <template v-else-if="game">
       <GameScoreHero :game="game" :hidden="hidden" :schedule-only="scheduleOnly" />
+      <GameGeography :game="game" />
       <template v-if="!hidden && !scheduleOnly">
         <p v-if="query.isRefetchError.value" class="gc-notice gc-notice--warning" role="status">
           Не удалось обновить данные. Показан предыдущий результат.

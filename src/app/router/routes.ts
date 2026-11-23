@@ -50,6 +50,18 @@ export const appRoutes: RouteRecordRaw[] = [
     meta: { title: 'Профиль арены' },
   },
   {
+    path: '/cities',
+    name: 'cities',
+    component: () => import('@/pages/CitiesView.vue'),
+    meta: { title: 'Города NBA' },
+  },
+  {
+    path: '/cities/:cityId',
+    name: 'city-profile',
+    component: () => import('@/pages/CityProfileView.vue'),
+    meta: { title: 'Профиль города' },
+  },
+  {
     path: '/players',
     name: 'players',
     component: () => import('@/pages/PlayersView.vue'),

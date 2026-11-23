@@ -84,7 +84,10 @@
   font-weight: 900;
   letter-spacing: 0.18em;
 }
-.teams-arenas-link {
+.teams-directory-guides {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gc-space-sm);
   margin-block-end: var(--gc-space-md);
 }
 .teams-toolbar {
