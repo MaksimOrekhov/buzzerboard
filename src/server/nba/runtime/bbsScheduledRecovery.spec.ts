@@ -211,6 +211,7 @@ function harness(initialTime: string) {
     missingReferenceDate: null as NbaGameDate | null,
     realisticBusyDays: false,
     sundayScenario: null as null | 'lag-one' | 'always-lag' | 'omit-once' | 'limit-once',
+    sundayMatches: undefined as unknown,
   }
   const matchesFetchCounts = new Map<NbaGameDate, number>()
   const findBusyMatch = (key: 'id' | 'archive_game_id', value: string) => {
@@ -251,6 +252,8 @@ function harness(initialTime: string) {
           const { matches } = busyDayMatches(nbaDate, gameCount, date < today)
           const fetchCount = (matchesFetchCounts.get(nbaDate) ?? 0) + 1
           matchesFetchCounts.set(nbaDate, fetchCount)
+          if (nbaDate === sunday && response.sundayMatches !== undefined)
+            return Response.json(response.sundayMatches)
           if (nbaDate === sunday && response.sundayScenario) {
             if (response.sundayScenario === 'limit-once' && fetchCount === 1) {
               return Response.json({}, { status: 429, headers: { 'retry-after': '2400' } })
@@ -382,8 +385,8 @@ function harness(initialTime: string) {
     retryAt: null,
     refreshError: null,
   })
-  const seedSundaySchedule = () => {
-    const { matches } = busyDayMatches(sunday, 7, false)
+  const seedSundaySchedule = (count = 7) => {
+    const { matches } = busyDayMatches(sunday, count, false)
     const base = { ...cacheBase(now + day), fetchedAt: timestamp(now - 14 * 60 * minute) }
     const snapshot = normalizeBbsGames(
       { data: { matches } },
@@ -457,6 +460,111 @@ function harness(initialTime: string) {
 }
 
 describe('production-shaped BBS queue recovery through the outer scheduler', () => {
+  it.each(['no cached snapshot', 'a fresh empty snapshot'])(
+    'fetches seven Sunday finals at noon with %s',
+    async (initialCache) => {
+      const h = harness(mondayNoon)
+      h.response.realisticBusyDays = true
+      if (initialCache === 'a fresh empty snapshot') await h.seedSundaySchedule(0)
+
+      expect((await h.tick())[0]).toMatchObject({
+        target: { type: 'games', date: sunday },
+        state: 'refreshed',
+      })
+      const { data } = await h.readGames(sunday)
+      expect(data).toHaveLength(7)
+      expect(
+        data.every(
+          ({ status, score }) => status === 'final' && score.home !== null && score.away !== null,
+        ),
+      ).toBe(true)
+      expect(h.matchesFetchCounts.get(sunday)).toBe(1)
+      expect((await h.repository.getScheduledBbsProgress())?.failedTasks).toBeUndefined()
+    },
+  )
+
+  it.each([
+    ['absent pagination', { data: [] }, false],
+    ['null total and a fresh empty cache', { data: [], pagination: { total: null } }, true],
+    ['empty string total', { data: { matches: [], pagination: { total: '' } } }, false],
+    ['false total', { data: [], pagination: { total: false } }, false],
+    ['a nonzero total', { data: [], pagination: { total: 7 } }, false],
+  ])(
+    'retries and leaves the day unconfirmed for an empty response with %s',
+    async (_, payload, hasCache) => {
+      const h = harness(mondayNoon)
+      const target = { type: 'games', date: sunday }
+      const cacheKey = gamesCacheKey('bbs', sunday)
+      h.response.realisticBusyDays = true
+      h.response.sundayMatches = payload
+      await h.seedDirectory()
+      if (hasCache) await h.seedSundaySchedule(0)
+
+      expect((await h.tick())[0]).toMatchObject({
+        target,
+        state: 'deferred',
+        error: { code: 'invalid_response' },
+      })
+      expect((await h.repository.getScheduledBbsProgress())?.tasks[0]).toMatchObject({
+        task: target,
+        finalizationAttempts: 1,
+      })
+      for (const tick of ['10:20', '10:40']) {
+        expect((await h.tick(`2026-11-23T${tick}:00Z`))[0]).toMatchObject({
+          target,
+          state: 'deferred',
+          error: { code: 'invalid_response' },
+        })
+      }
+      await h.tick('2026-11-23T11:40:00Z')
+      const cached = await h.repository.getCache(cacheKey)
+      if (hasCache) {
+        expect(cached).toMatchObject({ data: [], refreshError: { code: 'invalid_response' } })
+        expect(cached).not.toHaveProperty('emptyDayConfirmed')
+      } else {
+        expect(cached).toBeNull()
+      }
+      expect(h.matchesFetchCounts.get(sunday)).toBe(3)
+      expect((await h.repository.getScheduledBbsProgress())?.failedTasks).toContainEqual(
+        expect.objectContaining({
+          task: target,
+          errorCode: 'invalid_response',
+          diagnostic: expect.objectContaining({ phase: 'games_pagination' }),
+        }),
+      )
+    },
+  )
+
+  it('reuses an explicitly confirmed zero-game day if progress did not save after the cache write', async () => {
+    const h = harness(mondayNoon)
+    const target = { type: 'games', date: sunday }
+    h.response.realisticBusyDays = true
+    h.response.sundayMatches = { data: [], pagination: { total: 0 } }
+    await h.seedSundaySchedule(0)
+    await h.seedDirectory()
+
+    const persist = h.repository.putScheduledBbsProgressIfLockOwned.bind(h.repository)
+    vi.spyOn(h.repository, 'putScheduledBbsProgressIfLockOwned')
+      .mockImplementationOnce(persist)
+      .mockResolvedValueOnce(false)
+
+    expect((await h.tick())[0]).toMatchObject({ target, state: 'refreshed' })
+    expect(await new D1NbaRepository(h.d1).getCache(gamesCacheKey('bbs', sunday))).toMatchObject({
+      data: [],
+      emptyDayConfirmed: true,
+    })
+    expect((await h.tick('2026-11-23T10:10:00Z'))[0]).toMatchObject({
+      target,
+      state: 'up_to_date',
+    })
+    expect((await h.readGames(sunday)).data).toEqual([])
+    await h.tick('2026-11-23T10:30:00Z')
+    const progress = await h.repository.getScheduledBbsProgress()
+    expect(progress?.tasks.some(({ task }) => 'date' in task && task.date === sunday)).toBe(false)
+    expect(progress?.failedTasks).toBeUndefined()
+    expect(h.matchesFetchCounts.get(sunday)).toBe(1)
+  })
+
   it('preempts a long backlog at Cyprus noon and publishes seven Sunday finals by 12:20, including a late overtime game', async () => {
     const h = harness(mondayNoon)
     h.response.realisticBusyDays = true

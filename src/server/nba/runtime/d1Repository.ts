@@ -147,6 +147,12 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
         record.providerReferences !== null &&
         !Array.isArray(record.providerReferences) &&
         Object.values(record.providerReferences).every((value) => typeof value === 'string'))) &&
+    (record.emptyDayConfirmed === undefined ||
+      (record.capability === 'games' &&
+        record.provider === 'bbs' &&
+        Array.isArray(record.data) &&
+        record.data.length === 0 &&
+        record.emptyDayConfirmed === true)) &&
     typeof record.fetchedAt === 'string' &&
     (record.providerUpdatedAt === null || typeof record.providerUpdatedAt === 'string') &&
     typeof record.rejectedRecords === 'number' &&

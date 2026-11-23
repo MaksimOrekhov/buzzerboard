@@ -112,6 +112,8 @@ export type GamesCacheRecord =
   | (CacheRecordBase & {
       capability: 'games'
       data: readonly Game[]
+      /** BBS explicitly reported zero games during finalization. */
+      emptyDayConfirmed?: true
       /** Private provider IDs needed for BBS archive-stat routes; never returned to clients. */
       providerReferences?: Readonly<Record<string, string>>
     })

@@ -25,7 +25,11 @@ import {
   createNbaApiError,
   mapHttpStatusToNbaError,
 } from '@/server/nba/adapters/errors'
-import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
+import {
+  parseNbaGameDate,
+  parseSeasonEndYear,
+  readNumber,
+} from '@/server/nba/adapters/normalizers/primitives'
 import { getDateKeyInTimeZone, NBA_TIME_ZONE, shiftNbaGameDate } from '@/shared/utils/nbaDate'
 import type {
   BoxScoreCacheRecord,
@@ -401,6 +405,17 @@ function cacheFailure(
   return { ...previous, refreshError: error, retryAt, expiresAt: Math.min(previous.expiresAt, now) }
 }
 
+function validateMatchTotal(pagination: unknown, count: number) {
+  if (
+    !pagination ||
+    typeof pagination !== 'object' ||
+    Array.isArray(pagination) ||
+    readNumber((pagination as Record<string, unknown>).total) !== count
+  ) {
+    throw createNbaApiError('invalid_response', 'bbs')
+  }
+}
+
 function matchesPayload(payload: unknown): { root: Record<string, unknown>; matches: unknown[] } {
   const envelope =
     payload && typeof payload === 'object' && !Array.isArray(payload)
@@ -409,11 +424,7 @@ function matchesPayload(payload: unknown): { root: Record<string, unknown>; matc
   const data = envelope && 'data' in envelope ? envelope.data : payload
   if (Array.isArray(data)) {
     const pagination = envelope?.pagination
-    if (!pagination || typeof pagination !== 'object' || Array.isArray(pagination))
-      throw createNbaApiError('invalid_response', 'bbs')
-    const total = Number((pagination as Record<string, unknown>).total)
-    if (!Number.isSafeInteger(total) || total < 0 || total !== data.length)
-      throw createNbaApiError('invalid_response', 'bbs')
+    validateMatchTotal(pagination, data.length)
     return { root: { ...(envelope ?? {}), matches: data, pagination }, matches: data }
   }
   if (!data || typeof data !== 'object' || Array.isArray(data))
@@ -426,11 +437,7 @@ function matchesPayload(payload: unknown): { root: Record<string, unknown>; matc
       : null
   if (!matches) throw createNbaApiError('invalid_response', 'bbs')
   const pagination = root.pagination ?? envelope?.pagination
-  if (!pagination || typeof pagination !== 'object' || Array.isArray(pagination))
-    throw createNbaApiError('invalid_response', 'bbs')
-  const total = Number((pagination as Record<string, unknown>).total)
-  if (!Number.isSafeInteger(total) || total < 0 || total !== matches.length)
-    throw createNbaApiError('invalid_response', 'bbs')
+  validateMatchTotal(pagination, matches.length)
   return { root: { ...root, pagination }, matches }
 }
 
@@ -676,11 +683,9 @@ function canReuseGames(record: NbaCacheRecord | null, force: boolean, finalize: 
   if (!record) return false
   const fresh = Date.now() < record.expiresAt
   if (!finalize) return !force && fresh
-  return (
-    record.capability === 'games' &&
-    (fresh || (record.data.length > 0 && Date.now() < record.staleUntil)) &&
-    record.data.every(isSettledGameResult)
-  )
+  if (record.capability !== 'games') return false
+  if (record.data.length === 0) return fresh && record.emptyDayConfirmed === true
+  return (fresh || Date.now() < record.staleUntil) && record.data.every(isSettledGameResult)
 }
 
 export async function refreshBbsGames(
@@ -874,6 +879,9 @@ export async function refreshBbsGames(
         provider: 'bbs',
         data: coherentData,
         providerReferences,
+        ...(coherentData.length === 0 && (finalize || previousGames?.emptyDayConfirmed === true)
+          ? { emptyDayConfirmed: true as const }
+          : {}),
         fetchedAt: snapshot.meta.fetchedAt,
         providerUpdatedAt: snapshot.meta.providerUpdatedAt,
         rejectedRecords: snapshot.meta.rejectedRecords,
@@ -1717,7 +1725,7 @@ export async function runScheduledBbsRefresh(
         : null
     const games = snapshot?.capability === 'games' ? snapshot : null
     const missingScheduledCount =
-      isFinalization && games
+      isFinalization && games && (games.data.length > 0 || games.emptyDayConfirmed === true)
         ? games.data.filter((game) => !isSettledGameResult(game)).length
         : null
     if (skipFinalization && gamesTask && games && canReuseGames(games, false, true)) {
