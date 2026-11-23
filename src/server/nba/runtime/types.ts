@@ -36,6 +36,7 @@ export interface ScheduledBbsWorkItem {
   task: ScheduledBbsTask
   attempts: number
   retryAt: number | null
+  finalizationAttempts?: number
   lastError?: ScheduledBbsTaskDiagnostic
 }
 
@@ -65,6 +66,7 @@ export interface ScheduledBbsTaskDiagnostic {
 
 export const SCHEDULED_BBS_TASK_LIMIT = 200
 export const SCHEDULED_BBS_MAX_ATTEMPTS = 5
+export const SCHEDULED_BBS_FINALIZATION_ATTEMPTS = 3
 
 export interface ScheduledBbsFailure {
   task: ScheduledBbsTask
@@ -85,6 +87,7 @@ export interface ScheduledBbsProgress {
   tasks: readonly ScheduledBbsWorkItem[]
   cursor: number
   pauseUntil: number | null
+  lastTickAt?: number
   failedTasks?: readonly ScheduledBbsFailure[]
 }
 
@@ -109,6 +112,8 @@ export type GamesCacheRecord =
   | (CacheRecordBase & {
       capability: 'games'
       data: readonly Game[]
+      /** BBS explicitly reported zero games during finalization. */
+      emptyDayConfirmed?: true
       /** Private provider IDs needed for BBS archive-stat routes; never returned to clients. */
       providerReferences?: Readonly<Record<string, string>>
     })

@@ -1,5 +1,6 @@
 import {
   SCHEDULED_BBS_MAX_ATTEMPTS,
+  SCHEDULED_BBS_FINALIZATION_ATTEMPTS,
   SCHEDULED_BBS_TASK_LIMIT,
   scheduledBbsTaskKey,
 } from '@/server/nba/runtime/types'
@@ -146,6 +147,12 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
         record.providerReferences !== null &&
         !Array.isArray(record.providerReferences) &&
         Object.values(record.providerReferences).every((value) => typeof value === 'string'))) &&
+    (record.emptyDayConfirmed === undefined ||
+      (record.capability === 'games' &&
+        record.provider === 'bbs' &&
+        Array.isArray(record.data) &&
+        record.data.length === 0 &&
+        record.emptyDayConfirmed === true)) &&
     typeof record.fetchedAt === 'string' &&
     (record.providerUpdatedAt === null || typeof record.providerUpdatedAt === 'string') &&
     typeof record.rejectedRecords === 'number' &&
@@ -212,11 +219,26 @@ function isScheduledFailureList(value: unknown): value is readonly ScheduledBbsF
   })
 }
 
+function isFinalizationAttemptCount(task: ScheduledBbsTask, count: unknown): boolean {
+  return (
+    count === undefined ||
+    (task.type === 'games' &&
+      Number.isSafeInteger(count) &&
+      Number(count) >= 0 &&
+      Number(count) <= SCHEDULED_BBS_FINALIZATION_ATTEMPTS)
+  )
+}
+
+function isOptionalTimestamp(value: unknown): value is number | undefined {
+  return value === undefined || (Number.isSafeInteger(value) && Number(value) >= 0)
+}
+
 function serializeScheduledProgress(progress: ScheduledBbsProgress): string {
   if (
     !parseNbaGameDate(progress.cycleDate) ||
     progress.cursor !== 0 ||
     progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+    !isOptionalTimestamp(progress.lastTickAt) ||
     (progress.failedTasks !== undefined && !isScheduledFailureList(progress.failedTasks)) ||
     (progress.pauseUntil !== null &&
       (!Number.isSafeInteger(progress.pauseUntil) || progress.pauseUntil < 0))
@@ -231,6 +253,7 @@ function serializeScheduledProgress(progress: ScheduledBbsProgress): string {
         !Number.isSafeInteger(item.attempts) ||
         item.attempts < 0 ||
         item.attempts > SCHEDULED_BBS_MAX_ATTEMPTS ||
+        !isFinalizationAttemptCount(item.task, item.finalizationAttempts) ||
         (item.retryAt !== null && (!Number.isSafeInteger(item.retryAt) || item.retryAt < 0)) ||
         (item.lastError !== undefined && !isScheduledBbsTaskDiagnostic(item.lastError)),
     )
@@ -278,6 +301,7 @@ export class D1NbaRepository implements NbaRepository {
         Number(progress.cursor) < 0 ||
         !Array.isArray(progress.tasks) ||
         progress.tasks.length > SCHEDULED_BBS_TASK_LIMIT ||
+        !isOptionalTimestamp(progress.lastTickAt) ||
         (progress.failedTasks !== undefined && !isScheduledFailureList(progress.failedTasks)) ||
         !(
           progress.pauseUntil === null ||
@@ -294,6 +318,7 @@ export class D1NbaRepository implements NbaRepository {
           !Number.isSafeInteger(record.attempts) ||
           Number(record.attempts) < 0 ||
           Number(record.attempts) > SCHEDULED_BBS_MAX_ATTEMPTS ||
+          !isFinalizationAttemptCount(record.task, record.finalizationAttempts) ||
           !(
             record.retryAt === null ||
             (Number.isSafeInteger(record.retryAt) && Number(record.retryAt) >= 0)
@@ -305,6 +330,9 @@ export class D1NbaRepository implements NbaRepository {
           task: record.task,
           attempts: Number(record.attempts),
           retryAt: record.retryAt as number | null,
+          ...(record.finalizationAttempts === undefined
+            ? {}
+            : { finalizationAttempts: Number(record.finalizationAttempts) }),
           ...(record.lastError === undefined
             ? {}
             : { lastError: record.lastError as ScheduledBbsTaskDiagnostic }),
@@ -320,6 +348,7 @@ export class D1NbaRepository implements NbaRepository {
         cursor: Number(progress.cursor),
         tasks,
         pauseUntil: progress.pauseUntil as number | null,
+        ...(progress.lastTickAt === undefined ? {} : { lastTickAt: progress.lastTickAt }),
         ...(progress.failedTasks === undefined ? {} : { failedTasks: progress.failedTasks }),
       }
     } catch (error) {

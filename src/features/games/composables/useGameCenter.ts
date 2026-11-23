@@ -4,37 +4,41 @@ import type { Game, GameId, GameStatus, NbaGameDate, Team } from '@/entities/nba
 import { WorkerApiError } from '@/features/games/api'
 import { useGameFavorites } from './useGameFavorites'
 import { useGamesForDate } from './useGamesForDate'
-import { getDefaultNbaGameDate, shiftNbaGameDate } from '@/shared/utils/nbaDate'
+import { shiftNbaGameDate } from '@/shared/utils/nbaDate'
 import { gameCenterReturnTo, gameDetailsPath } from '@/features/games/gameDetailsRoute'
 
 import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import { isSettledGameResult } from '@/shared/api/nba/gameDetailsGuards'
 
 export function shiftGameDate(date: string, days: number): NbaGameDate {
   return shiftNbaGameDate(date, days) as NbaGameDate
 }
 
 export function useGameCenter() {
-  const { hideGame, isFutureSchedule } = useSpoilerMode()
+  const { enabled: spoilerMode, window: gameWindow, hideGame, isFutureSchedule } = useSpoilerMode()
   const route = useRoute()
   const router = useRouter()
-  const today = getDefaultNbaGameDate() as NbaGameDate
-  const minDate = shiftGameDate(today, -30)
-  const maxDate = shiftGameDate(today, 7)
+  const today = computed(() => gameWindow.value.today as NbaGameDate)
+  const yesterday = computed(() =>
+    route.path === '/games' ? shiftGameDate(today.value, -1) : null,
+  )
+  const minDate = computed(() => shiftGameDate(today.value, -30))
+  const maxDate = computed(() => shiftGameDate(today.value, 7))
   const selectedDate = computed(() => {
     const date = route.query.date
     if (
       typeof date !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-      date < minDate ||
-      date > maxDate
+      date < minDate.value ||
+      date > maxDate.value
     )
-      return today
+      return today.value
     const parsed = new Date(`${date}T12:00:00Z`)
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date
       ? (date as NbaGameDate)
-      : today
+      : today.value
   })
-  const query = useGamesForDate(selectedDate)
+  const query = useGamesForDate(selectedDate, yesterday)
   const { favoriteIds, isFavorite, toggleFavorite } = useGameFavorites()
   const rawStatus = route.query.status
   const validStatuses: GameStatus[] = [
@@ -59,6 +63,12 @@ export function useGameCenter() {
   const hasHiddenGames = computed(() => games.value.some(hideGame))
   const statusOf = (game: Game): GameStatus => (isFutureSchedule(game) ? 'scheduled' : game.status)
   const meta = computed(() => query.data.value?.meta ?? null)
+  const yesterdayPending = computed(
+    () =>
+      !spoilerMode.value &&
+      selectedDate.value === yesterday.value &&
+      games.value.some((game) => !isSettledGameResult(game)),
+  )
   const teamOptions = computed(() => {
     const teams = new Map<string, Team>()
     for (const game of games.value) {
@@ -175,13 +185,13 @@ export function useGameCenter() {
         date,
         day: value.getUTCDate(),
         weekday,
-        label: date === today ? 'Сегодня' : weekday,
-        disabled: date < minDate || date > maxDate,
+        label: date === today.value ? 'Сегодня' : weekday,
+        disabled: date < minDate.value || date > maxDate.value,
       }
     }),
   )
   function setDate(date: string) {
-    if (date >= minDate && date <= maxDate) {
+    if (date >= minDate.value && date <= maxDate.value) {
       const query: Record<string, string> = { date }
       if (statusFilter.value !== 'all') query.status = statusFilter.value
       if (favoriteOnly.value) query.favorites = '1'
@@ -224,6 +234,7 @@ export function useGameCenter() {
     hasHiddenGames,
     statusOf,
     meta,
+    yesterdayPending,
     visibleGames,
     teamOptions,
     statusFilter,

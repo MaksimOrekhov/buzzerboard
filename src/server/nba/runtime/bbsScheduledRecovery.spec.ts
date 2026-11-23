@@ -11,6 +11,7 @@ import type {
   TeamSeasonProfile,
   UtcTimestamp,
 } from '@/entities/nba/model'
+import { createNbaWorker } from '@/server/worker'
 import { NBA_TEAMS } from '@/entities/nba/teamCatalog'
 import { normalizeBbsGameBox, normalizeBbsGames } from '@/server/nba/adapters/bbs'
 import { getDateKeyInTimeZone, NBA_TIME_ZONE } from '@/shared/utils/nbaDate'
@@ -32,6 +33,9 @@ const day = 24 * 60 * minute
 const seasonEndYear = 2027 as SeasonEndYear
 const cycleDate = '2026-11-18' as NbaGameDate
 const previousDate = '2026-11-17' as NbaGameDate
+const sunday = '2026-11-22' as NbaGameDate
+const monday = '2026-11-23' as NbaGameDate
+const mondayNoon = '2026-11-23T10:00:00Z'
 const standingsTask = { type: 'standings', seasonEndYear } as const
 const directoryTask = { type: 'teamDirectory', seasonEndYear } as const
 const standingsKey = standingsCacheKey('bbs', seasonEndYear)
@@ -47,6 +51,8 @@ function busyGameCount(date: NbaGameDate) {
     '2026-11-14': 14,
     '2026-11-15': 15,
     '2026-11-17': 15,
+    '2026-11-22': 7,
+    '2026-11-23': 3,
   }
   return counts[date] ?? 0
 }
@@ -204,6 +210,8 @@ function harness(initialTime: string) {
     gamesMissingArchiveReferences: false,
     missingReferenceDate: null as NbaGameDate | null,
     realisticBusyDays: false,
+    sundayScenario: null as null | 'lag-one' | 'always-lag' | 'omit-once' | 'limit-once',
+    sundayMatches: undefined as unknown,
   }
   const matchesFetchCounts = new Map<NbaGameDate, number>()
   const findBusyMatch = (key: 'id' | 'archive_game_id', value: string) => {
@@ -244,6 +252,35 @@ function harness(initialTime: string) {
           const { matches } = busyDayMatches(nbaDate, gameCount, date < today)
           const fetchCount = (matchesFetchCounts.get(nbaDate) ?? 0) + 1
           matchesFetchCounts.set(nbaDate, fetchCount)
+          if (nbaDate === sunday && response.sundayMatches !== undefined)
+            return Response.json(response.sundayMatches)
+          if (nbaDate === sunday && response.sundayScenario) {
+            if (response.sundayScenario === 'limit-once' && fetchCount === 1) {
+              return Response.json({}, { status: 429, headers: { 'retry-after': '2400' } })
+            }
+            const lateGame = matches.at(-1)!
+            lateGame.kickoff_utc = '2026-11-23T03:30:00.000Z'
+            if (response.sundayScenario === 'omit-once' && fetchCount === 1) {
+              matches.pop()
+            } else if (
+              response.sundayScenario === 'always-lag' ||
+              (response.sundayScenario === 'lag-one' && fetchCount === 1)
+            ) {
+              lateGame.status = 'scheduled'
+              const home = lateGame.home as Record<string, unknown>
+              const away = lateGame.away as Record<string, unknown>
+              home.score = null
+              away.score = null
+            } else {
+              lateGame.linescore = [
+                { period: 1, home: 30, away: 25 },
+                { period: 2, home: 24, away: 26 },
+                { period: 3, home: 28, away: 29 },
+                { period: 4, home: 18, away: 20 },
+                { period: 5, home: 16, away: 6 },
+              ]
+            }
+          }
           if (response.missingReferenceDate === nbaDate && fetchCount === 1) {
             for (const match of matches.slice(-2)) {
               delete (match as Record<string, unknown>).archive_game_id
@@ -348,6 +385,29 @@ function harness(initialTime: string) {
     retryAt: null,
     refreshError: null,
   })
+  const seedSundaySchedule = (count = 7) => {
+    const { matches } = busyDayMatches(sunday, count, false)
+    const base = { ...cacheBase(now + day), fetchedAt: timestamp(now - 14 * 60 * minute) }
+    const snapshot = normalizeBbsGames(
+      { data: { matches } },
+      { fetchedAt: base.fetchedAt, stale: false },
+    )
+    return repository.putCache({
+      ...base,
+      cacheKey: gamesCacheKey('bbs', sunday),
+      capability: 'games',
+      data: snapshot.data,
+    })
+  }
+  const worker = createNbaWorker({ repository, fetcher, now: () => now })
+  const readGames = async (date: NbaGameDate) => {
+    const response = await worker.fetch(
+      new Request('https://fixture.invalid/api/games?date=' + date),
+      { ...env, NBA_GAMES_PROVIDER_ORDER: 'bbs' },
+    )
+    expect(response.ok).toBe(true)
+    return (await response.json()) as { data: Game[] }
+  }
   const seedDirectory = (options: { legacy?: boolean; expired?: boolean } = {}) =>
     repository.putCache({
       ...cacheBase(options.expired ? now - minute : now + 2 * day),
@@ -392,11 +452,319 @@ function harness(initialTime: string) {
     seedDirectory,
     seedStandings,
     seedQueue,
+    seedSundaySchedule,
+    readGames,
+    matchesFetchCounts,
     ledger,
   }
 }
 
 describe('production-shaped BBS queue recovery through the outer scheduler', () => {
+  it.each(['no cached snapshot', 'a fresh empty snapshot'])(
+    'fetches seven Sunday finals at noon with %s',
+    async (initialCache) => {
+      const h = harness(mondayNoon)
+      h.response.realisticBusyDays = true
+      if (initialCache === 'a fresh empty snapshot') await h.seedSundaySchedule(0)
+
+      expect((await h.tick())[0]).toMatchObject({
+        target: { type: 'games', date: sunday },
+        state: 'refreshed',
+      })
+      const { data } = await h.readGames(sunday)
+      expect(data).toHaveLength(7)
+      expect(
+        data.every(
+          ({ status, score }) => status === 'final' && score.home !== null && score.away !== null,
+        ),
+      ).toBe(true)
+      expect(h.matchesFetchCounts.get(sunday)).toBe(1)
+      expect((await h.repository.getScheduledBbsProgress())?.failedTasks).toBeUndefined()
+    },
+  )
+
+  it.each([
+    ['absent pagination', { data: [] }, false],
+    ['null total and a fresh empty cache', { data: [], pagination: { total: null } }, true],
+    ['empty string total', { data: { matches: [], pagination: { total: '' } } }, false],
+    ['false total', { data: [], pagination: { total: false } }, false],
+    ['a nonzero total', { data: [], pagination: { total: 7 } }, false],
+  ])(
+    'retries and leaves the day unconfirmed for an empty response with %s',
+    async (_, payload, hasCache) => {
+      const h = harness(mondayNoon)
+      const target = { type: 'games', date: sunday }
+      const cacheKey = gamesCacheKey('bbs', sunday)
+      h.response.realisticBusyDays = true
+      h.response.sundayMatches = payload
+      await h.seedDirectory()
+      if (hasCache) await h.seedSundaySchedule(0)
+
+      expect((await h.tick())[0]).toMatchObject({
+        target,
+        state: 'deferred',
+        error: { code: 'invalid_response' },
+      })
+      expect((await h.repository.getScheduledBbsProgress())?.tasks[0]).toMatchObject({
+        task: target,
+        finalizationAttempts: 1,
+      })
+      for (const tick of ['10:20', '10:40']) {
+        expect((await h.tick(`2026-11-23T${tick}:00Z`))[0]).toMatchObject({
+          target,
+          state: 'deferred',
+          error: { code: 'invalid_response' },
+        })
+      }
+      await h.tick('2026-11-23T11:40:00Z')
+      const cached = await h.repository.getCache(cacheKey)
+      if (hasCache) {
+        expect(cached).toMatchObject({ data: [], refreshError: { code: 'invalid_response' } })
+        expect(cached).not.toHaveProperty('emptyDayConfirmed')
+      } else {
+        expect(cached).toBeNull()
+      }
+      expect(h.matchesFetchCounts.get(sunday)).toBe(3)
+      expect((await h.repository.getScheduledBbsProgress())?.failedTasks).toContainEqual(
+        expect.objectContaining({
+          task: target,
+          errorCode: 'invalid_response',
+          diagnostic: expect.objectContaining({ phase: 'games_pagination' }),
+        }),
+      )
+    },
+  )
+
+  it('reuses an explicitly confirmed zero-game day if progress did not save after the cache write', async () => {
+    const h = harness(mondayNoon)
+    const target = { type: 'games', date: sunday }
+    h.response.realisticBusyDays = true
+    h.response.sundayMatches = { data: [], pagination: { total: 0 } }
+    await h.seedSundaySchedule(0)
+    await h.seedDirectory()
+
+    const persist = h.repository.putScheduledBbsProgressIfLockOwned.bind(h.repository)
+    vi.spyOn(h.repository, 'putScheduledBbsProgressIfLockOwned')
+      .mockImplementationOnce(persist)
+      .mockResolvedValueOnce(false)
+
+    expect((await h.tick())[0]).toMatchObject({ target, state: 'refreshed' })
+    expect(await new D1NbaRepository(h.d1).getCache(gamesCacheKey('bbs', sunday))).toMatchObject({
+      data: [],
+      emptyDayConfirmed: true,
+    })
+    expect((await h.tick('2026-11-23T10:10:00Z'))[0]).toMatchObject({
+      target,
+      state: 'up_to_date',
+    })
+    expect((await h.readGames(sunday)).data).toEqual([])
+    await h.tick('2026-11-23T10:30:00Z')
+    const progress = await h.repository.getScheduledBbsProgress()
+    expect(progress?.tasks.some(({ task }) => 'date' in task && task.date === sunday)).toBe(false)
+    expect(progress?.failedTasks).toBeUndefined()
+    expect(h.matchesFetchCounts.get(sunday)).toBe(1)
+  })
+
+  it('preempts a long backlog at Cyprus noon and publishes seven Sunday finals by 12:20, including a late overtime game', async () => {
+    const h = harness(mondayNoon)
+    h.response.realisticBusyDays = true
+    h.response.sundayScenario = 'lag-one'
+    await h.seedSundaySchedule()
+    await h.seedDirectory()
+    const yesterday = { type: 'games', date: sunday } as const
+    const waiting = {
+      ...work(
+        { type: 'teamSeason', seasonEndYear, teamCode: 'BOS' },
+        Date.parse('2026-11-23T15:30:00Z'),
+      ),
+      attempts: 2,
+    }
+    h.seedQueue({
+      cycleDate: sunday,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [
+        waiting,
+        ...Array.from({ length: 120 }, (_, i) =>
+          work({
+            type: 'boxScore',
+            date: '2026-11-21' as NbaGameDate,
+            gameId: `bbs:game:backlog-${i}` as GameId,
+          }),
+        ),
+        { ...work(yesterday), attempts: 1 },
+      ],
+    })
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    expect(await h.readGames(sunday)).toMatchObject({
+      data: Array.from({ length: 7 }, () => ({
+        status: 'scheduled',
+        score: { home: null, away: null },
+      })),
+    })
+    expect(h.requests).toEqual([])
+
+    expect((await h.tick())[0]?.target).toEqual(yesterday)
+    const queued = await new D1NbaRepository(h.d1).getScheduledBbsProgress()
+    expect(queued).toMatchObject({ cycleDate: monday })
+    expect(queued?.tasks[0]).toMatchObject({
+      task: yesterday,
+      attempts: 1,
+      finalizationAttempts: 1,
+    })
+    expect(queued?.tasks).toContainEqual(waiting)
+    expect(queued?.tasks.length).toBeGreaterThan(140)
+    expect(
+      (await h.readGames(sunday)).data.filter(({ status }) => status === 'final'),
+    ).toHaveLength(6)
+    expect(await h.tick()).toEqual([])
+    await h.tick('2026-11-23T10:10:00Z')
+    expect((await h.tick('2026-11-23T10:20:00Z'))[0]?.target).toEqual(yesterday)
+
+    const results = (await h.readGames(sunday)).data
+    expect(results).toHaveLength(7)
+    expect(
+      results.every(
+        ({ status, score }) => status === 'final' && score.home !== null && score.away !== null,
+      ),
+    ).toBe(true)
+    expect(results.at(-1)).toMatchObject({
+      startsAt: '2026-11-23T03:30:00.000Z',
+      score: { home: 116, away: 106 },
+      scoreByPeriod: expect.arrayContaining([{ period: 5, home: 16, away: 6 }]),
+    })
+    expect(h.requests).toEqual(['/v1/matches', '/v1/matches'])
+    expect(h.ledger()).toEqual([{ rate_key: 'bbs:utc-day:2026-11-23', request_count: 2 }])
+    const events = info.mock.calls.map(([message]) => JSON.parse(String(message)))
+    expect(events).toEqual([
+      expect.objectContaining({
+        state: 'waiting',
+        attempts: 1,
+        missingScheduledCount: 1,
+        finalCount: 6,
+      }),
+      expect.objectContaining({
+        state: 'settled',
+        attempts: 2,
+        missingScheduledCount: 0,
+        finalCount: 7,
+      }),
+    ])
+    expect(await h.repository.getCache(gameDetailsCacheKey('bbs', results[0]!.id))).toBeNull()
+    expect((await h.repository.getScheduledBbsProgress())?.tasks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          task: expect.objectContaining({ type: 'boxScore', date: sunday }),
+        }),
+      ]),
+    )
+  })
+
+  it.each(['always-lag', 'omit-once', 'limit-once'] as const)(
+    'bounds finalization work and preserves verified coverage when BBS responds with %s',
+    async (scenario) => {
+      const h = harness(mondayNoon)
+      h.response.realisticBusyDays = true
+      h.response.sundayScenario = scenario
+      await h.seedSundaySchedule()
+      await h.seedDirectory()
+
+      const initial = (await h.tick())[0]
+      if (scenario === 'omit-once') {
+        expect(initial?.error?.code).toBe('invalid_response')
+        expect((await h.readGames(sunday)).data.map(({ status }) => status)).toEqual(
+          Array(7).fill('scheduled'),
+        )
+      }
+      if (scenario === 'limit-once') {
+        expect(initial?.error?.code).toBe('rate_limited')
+        expect(await h.tick('2026-11-23T10:20:00Z')).toEqual([])
+        expect((await h.repository.getScheduledBbsProgress())?.pauseUntil).toBe(
+          Date.parse('2026-11-23T10:40:00Z'),
+        )
+        await h.tick('2026-11-23T10:40:00Z')
+      } else {
+        await h.tick('2026-11-23T10:20:00Z')
+        if (scenario === 'always-lag') await h.tick('2026-11-23T10:40:00Z')
+      }
+      await h.tick('2026-11-23T11:40:00Z')
+      expect(h.matchesFetchCounts.get(sunday)).toBe(scenario === 'always-lag' ? 3 : 2)
+      const snapshot = await h.readGames(sunday)
+      expect(snapshot.data).toHaveLength(7)
+      expect(snapshot.data.filter(({ status }) => status === 'final')).toHaveLength(
+        scenario === 'always-lag' ? 6 : 7,
+      )
+      const progress = await h.repository.getScheduledBbsProgress()
+      expect(
+        progress?.tasks.some(({ task }) => task.type === 'games' && task.date === sunday),
+      ).toBe(false)
+      if (scenario === 'always-lag') {
+        expect(progress?.failedTasks).toEqual([
+          expect.objectContaining({
+            task: { type: 'games', date: sunday },
+            diagnostic: expect.objectContaining({ phase: 'provider_fetch' }),
+          }),
+        ])
+      }
+    },
+  )
+
+  it('does not send a follow-up after the Cyprus finalization window', async () => {
+    const h = harness(mondayNoon)
+    h.response.realisticBusyDays = true
+    h.response.sundayScenario = 'always-lag'
+    await h.seedSundaySchedule()
+    await h.tick()
+    await h.tick('2026-11-23T11:40:00Z')
+    expect(h.requests).toEqual(['/v1/matches'])
+    expect((await h.repository.getScheduledBbsProgress())?.failedTasks).toEqual([
+      expect.objectContaining({
+        task: { type: 'games', date: sunday },
+        diagnostic: expect.objectContaining({ phase: 'provider_fetch' }),
+      }),
+    ])
+    expect((await h.readGames(sunday)).data.at(-1)?.status).toBe('scheduled')
+  })
+
+  it('keeps the priority read within the existing daily request allowance', async () => {
+    const h = harness(mondayNoon)
+    await h.seedSundaySchedule()
+    const now = Date.parse(mondayNoon)
+    for (let index = 150; index >= 1; index--) {
+      const result = await h.repository.reserveBbsRequest(now - index * minute, 150, 10)
+      expect(result.allowed).toBe(true)
+    }
+    expect((await h.tick())[0]?.error?.code).toBe('quota_exceeded')
+    expect(await h.tick('2026-11-23T10:10:00Z')).toEqual([])
+    expect(h.requests).toEqual([])
+    expect(h.ledger()).toEqual([{ rate_key: 'bbs:utc-day:2026-11-23', request_count: 150 }])
+    expect((await h.repository.getScheduledBbsProgress())?.failedTasks).toEqual([
+      expect.objectContaining({
+        task: { type: 'games', date: sunday },
+        errorCode: 'quota_exceeded',
+      }),
+    ])
+  })
+
+  it('keeps the next slate scheduled when refreshing its future kickoffs', async () => {
+    const h = harness(mondayNoon)
+    h.response.realisticBusyDays = true
+    h.seedQueue({
+      cycleDate: monday,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [work({ type: 'games', date: monday })],
+    })
+    await h.tick()
+    const upcoming = (await h.readGames(monday)).data
+    expect(upcoming).toHaveLength(3)
+    expect(
+      upcoming.every(
+        ({ status, score }) => status === 'scheduled' && score.home === null && score.away === null,
+      ),
+    ).toBe(true)
+  })
+
   it('loads sparse match and box-score backlog across UTC and ET rollover at Cron cadence', async () => {
     const startText = '2026-11-18T23:50:00Z'
     const start = Date.parse(startText)
@@ -517,6 +885,7 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
       )
       expect(reserved.allowed).toBe(true)
     }
+    h.seedQueue(legacyQueue(0))
     h.response.standingsStatus = 429
     const blocked = await h.tick(start)
     expect(blocked[0]?.error?.code).toBe('rate_limited')
@@ -535,7 +904,7 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
       await h.tick(tickAt)
       const progress = await h.repository.getScheduledBbsProgress()
       tickAt += 10 * minute
-      if (progress?.cycleDate === '2026-11-19' && tickAt > Date.parse('2026-11-19T15:00:00Z'))
+      if (progress?.cycleDate === '2026-11-19' && tickAt > Date.parse('2026-11-19T10:00:00Z'))
         sawEtRolloverWithBacklog ||= progress.tasks.some(
           ({ task }) => 'date' in task && task.date <= previousDate,
         )
@@ -636,6 +1005,7 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     })
     expect(await repository.getScheduledBbsProgress()).toEqual({
       ...progress,
+      lastTickAt: Date.parse('2026-11-19T00:10:00Z'),
       pauseUntil: null,
       tasks: progress.tasks.slice(1),
     })
@@ -672,25 +1042,25 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
   it.each(['missing', 'expired'])(
     'bootstraps a %s crosswalk with one standings and one directory request',
     async (kind) => {
-      const h = harness('2026-11-18T15:00:00Z')
+      const h = harness('2026-11-18T10:00:00Z')
       if (kind === 'expired') await h.seedDirectory({ expired: true })
       expect((await h.tick())[0]).toMatchObject({
-        target: standingsTask,
-        error: { code: 'cache_miss' },
+        target: { type: 'games', date: previousDate },
+        state: 'refreshed',
       })
-      expect(h.requests).toEqual([])
+      expect(h.requests).toEqual(['/v1/matches'])
       expect((await h.repository.getScheduledBbsProgress())?.pauseUntil).toBeNull()
 
-      expect((await h.tick('2026-11-18T15:10:00Z'))[0]).toMatchObject({
+      expect((await h.tick('2026-11-18T10:10:00Z'))[0]).toMatchObject({
         target: directoryTask,
         state: 'refreshed',
       })
-      expect((await h.tick('2026-11-18T15:20:00Z'))[0]).toMatchObject({
+      expect((await h.tick('2026-11-18T10:20:00Z'))[0]).toMatchObject({
         target: standingsTask,
         state: 'up_to_date',
       })
-      expect(h.requests).toEqual(['/v1/standings', '/v1/teams'])
-      expect(h.ledger()).toEqual([{ rate_key: 'bbs:utc-day:2026-11-18', request_count: 2 }])
+      expect(h.requests).toEqual(['/v1/matches', '/v1/standings', '/v1/teams'])
+      expect(h.ledger()).toEqual([{ rate_key: 'bbs:utc-day:2026-11-18', request_count: 3 }])
       expect((await h.repository.getCache(directoryKey))?.data).toEqual(references)
       expect((await h.repository.getCache(standingsKey))?.data).toHaveLength(30)
     },
@@ -700,6 +1070,12 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     const h = harness('2026-11-18T15:00:00Z')
     await h.seedDirectory({ expired: true })
     await h.seedStandings()
+    h.seedQueue({
+      cycleDate,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [work(standingsTask), work(directoryTask)],
+    })
     h.response.directoryHasStandingsAliases = false
     expect((await h.tick())[0]?.error?.code).toBe('cache_miss')
     expect((await h.tick('2026-11-18T15:10:00Z'))[0]?.state).toBe('refreshed')
@@ -791,7 +1167,12 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     ).toBe(false)
 
     h.response.malformedStandings = false
-    expect((await h.tick('2026-11-19T15:00:00Z'))[0]?.state).toBe('refreshed')
+    await h.tick('2026-11-19T15:00:00Z')
+    await h.tick('2026-11-19T15:10:00Z')
+    expect((await h.tick('2026-11-19T15:20:00Z'))[0]).toMatchObject({
+      target: standingsTask,
+      state: 'refreshed',
+    })
     expect(
       (await repository.getScheduledBbsProgress())?.failedTasks?.some(
         ({ task }) => task.type === 'standings',
@@ -912,7 +1293,9 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     expect(failed?.tasks).toEqual([])
     expect(failed?.failedTasks).toHaveLength(1)
 
-    const afterRollover = await h.tick('2026-11-19T15:00:00Z')
+    await h.tick('2026-11-19T15:00:00Z')
+    await h.tick('2026-11-19T15:10:00Z')
+    const afterRollover = await h.tick('2026-11-19T15:20:00Z')
     expect(afterRollover[0]?.error?.code).toBe('invalid_response')
     const rolloverEvent = warning.mock.calls
       .map(([message]) => (typeof message === 'string' ? JSON.parse(message) : null))
@@ -920,7 +1303,7 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     expect(rolloverEvent).toMatchObject({ event: 'scheduled_bbs_task_retry', attempts: 1 })
 
     h.response.malformedStandings = false
-    let tickAt = Date.parse('2026-11-19T15:10:00Z')
+    let tickAt = Date.parse('2026-11-19T15:30:00Z')
     let recovered = false
     for (let attempt = 0; attempt < 100; attempt += 1) {
       const result = await h.tick(tickAt)
@@ -1029,7 +1412,10 @@ describe('production-shaped BBS queue recovery through the outer scheduler', () 
     })
     vi.spyOn(repository, 'putCacheIfLockOwned').mockRejectedValueOnce(storageError)
     await expect(h.tick()).rejects.toBe(storageError)
-    expect(await repository.getScheduledBbsProgress()).toEqual(progress)
+    expect(await repository.getScheduledBbsProgress()).toEqual({
+      ...progress,
+      lastTickAt: Date.now(),
+    })
     expect(await repository.getProviderCooldown('bbs')).toMatchObject({ retryAt: 0 })
     expect(await repository.getCache(standingsKey)).toBeNull()
     expect(
