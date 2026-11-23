@@ -199,6 +199,22 @@ export async function checkUiAudit({
             assert.ok(Math.abs(display.width / display.height - image.width / image.height) < 0.02)
           }
         }
+        if (
+          !baseline &&
+          tab === 'coaches' &&
+          (await figures.count()) &&
+          page.viewportSize().width > 540
+        ) {
+          const gap = await page.locator('.coach-lead').evaluate((card) => {
+            const heading = card.querySelector('header').getBoundingClientRect()
+            const details = card.querySelector('.coach-lead-details').getBoundingClientRect()
+            return details.top - heading.bottom
+          })
+          assert.ok(
+            gap >= 0 && gap <= 20,
+            'A tall portrait must not separate the coach heading and details',
+          )
+        }
         await scrollTo(panel)
         const name = code.toLowerCase() + '-' + tab
         await screenshot(name)

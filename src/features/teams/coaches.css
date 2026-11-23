@@ -70,7 +70,7 @@
 
 .coach-lead--with-portrait {
   grid-template-columns: minmax(0, 1fr) minmax(11rem, 16rem);
-  grid-template-rows: min-content auto;
+  grid-template-rows: max-content minmax(min-content, 1fr);
   column-gap: clamp(16px, 3vw, 32px);
 }
 .coach-lead--with-portrait .coach-portraits {
