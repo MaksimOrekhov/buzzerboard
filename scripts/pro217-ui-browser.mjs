@@ -165,6 +165,16 @@ export async function checkUiAudit({
     for (const code of ['CHI', 'LAL', 'MIN', 'NYK', 'POR']) {
       await visit('/teams/' + code)
       await page.locator('.teams-profile-overview').waitFor()
+      const leader = page
+        .locator('.teams-leaders')
+        .getByRole('link', { name: player.name, exact: true })
+      await leader.waitFor()
+      if (!baseline) {
+        assert.equal(
+          await leader.evaluate((link) => link.scrollWidth <= link.parentElement.clientWidth + 1),
+          true,
+        )
+      }
       await screenshot(code.toLowerCase() + '-overview')
       if (code === 'MIN') {
         await scrollTo('.teams-leaders')
