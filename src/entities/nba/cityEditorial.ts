@@ -33,7 +33,7 @@ export const cityEditorial: Readonly<Record<string, CityEditorial>> = {
     regionRu: 'Джорджия',
     timeZone: 'America/New_York',
     description:
-      'На матч Hawks удобно приехать по железной дороге MARTA. У State Farm Arena есть соседняя станция линии восток–запад, обслуживающая и конгресс-центр Джорджии.',
+      'На матч Hawks удобно приехать по железной дороге MARTA. От станции SEC District до входа на State Farm Arena всего несколько шагов.',
   },
   BKN: {
     nameRu: 'Бруклин',
@@ -88,6 +88,7 @@ export const cityEditorial: Readonly<Record<string, CityEditorial>> = {
     timeZone: 'America/Chicago',
     description:
       'Точка притяжения болельщиков Mavericks находится на Victory Avenue. К American Airlines Center также ведёт станция Victory пригородной железной дороги.',
+    descriptionSource: 'https://www.americanairlinescenter.com/public-transportation',
   },
   DEN: {
     nameRu: 'Денвер',
@@ -174,7 +175,7 @@ export const cityEditorial: Readonly<Record<string, CityEditorial>> = {
     timeZone: 'America/Chicago',
     description:
       'Матч Grizzlies ведёт на Beale Street. FedExForum стоит рядом с кварталами, которые город связывает с историей блюза.',
-    descriptionSource: 'https://www.memphistravel.com/trip-ideas/history-beale-street',
+    descriptionSource: 'https://www.memphistravel.com/fedexforumart/bealestreet',
   },
   MIA: {
     nameRu: 'Майами',
@@ -182,7 +183,7 @@ export const cityEditorial: Readonly<Record<string, CityEditorial>> = {
     timeZone: 'America/New_York',
     description:
       'Kaseya Center стоит на Biscayne Boulevard. Вечер Heat можно начать на набережной залива Бискейн рядом с ареной.',
-    descriptionSource: 'https://www.kaseyacenter.com/arena-info',
+    descriptionSource: 'https://www.kaseyacenter.com/about',
   },
   MIL: {
     nameRu: 'Милуоки',
@@ -249,7 +250,7 @@ export const cityEditorial: Readonly<Record<string, CityEditorial>> = {
     regionRu: 'Флорида',
     timeZone: 'America/New_York',
     description:
-      'Матчи Magic проходят в центре Орландо на West Church Street. Kia Center открылся в 2010 году и выходит к кварталу Parramore.',
+      'Матчи Magic проходят в центре Орландо на West Church Street. Kia Center открылся в 2010 году. На площадке проводят и игры Orlando Solar Bears.',
     descriptionSource: 'https://www.kiacenter.com/arena-info/about-kia-center',
   },
   PHI: {
@@ -281,8 +282,8 @@ export const cityEditorial: Readonly<Record<string, CityEditorial>> = {
     regionRu: 'Калифорния',
     timeZone: 'America/Los_Angeles',
     description:
-      'Golden 1 Center в центре Сакраменто стоит на David J Stern Walk. Арена Kings открылась в 2016 году и стала спортивной площадкой квартала Downtown Commons.',
-    descriptionSource: 'https://www.golden1center.com/arena-info',
+      'Golden 1 Center в центре Сакраменто стоит на David J Stern Walk. Арена Kings находится в самом центре квартала Downtown Commons.',
+    descriptionSource: 'https://www.golden1center.com/visit/downtown-commons/',
   },
   SAS: {
     nameRu: 'Сан-Антонио',
