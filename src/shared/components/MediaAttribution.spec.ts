@@ -34,7 +34,7 @@ describe('MediaAttribution', () => {
     const wrapper = mount(MediaAttribution, { props: { asset, compact: true } })
 
     expect(wrapper.text()).toContain(asset.author)
-    expect(wrapper.get(`a[href="${asset.sourceUrl}"]`).exists()).toBe(true)
+    expect(wrapper.get(`a[href="${asset.sourceUrl}"]`).text()).toBe('Файл на Wikimedia Commons')
     expect(wrapper.get(`a[href="${asset.licenseUrl}"]`).text()).toBe(asset.license)
     expect(wrapper.text()).toContain(asset.modifications)
     expect(wrapper.find('.media-attribution__description').exists()).toBe(false)
