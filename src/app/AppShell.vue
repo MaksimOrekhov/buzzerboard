@@ -47,6 +47,17 @@ const sectionIsActive = (id: string, path: string) =>
             }}</span
             ><span v-if="sectionIsActive(item.id, item.to)" class="gc-nav-active-dot"
           /></RouterLink>
+          <RouterLink
+            :to="{ name: 'arenas' }"
+            class="gc-nav-link"
+            :class="{
+              'gc-nav-link--active': route.name === 'arenas' || route.name === 'arena-profile',
+            }"
+            active-class="gc-nav-link--active"
+            aria-label="Арены NBA"
+            title="Арены NBA"
+            ><AppIcon name="pin" :size="20" /><span>Арены</span></RouterLink
+          >
         </nav>
         <div class="gc-upcoming">
           <p>Больше о баскетболе</p>
@@ -102,7 +113,9 @@ const sectionIsActive = (id: string, path: string) =>
           active-class="gc-mobile-nav--active"
           :aria-label="item.label"
           :class="{
-            'gc-mobile-nav--active': sectionIsActive(item.id, item.to),
+            'gc-mobile-nav--active':
+              sectionIsActive(item.id, item.to) ||
+              (item.id === 'teams' && (route.name === 'arenas' || route.name === 'arena-profile')),
           }"
           ><AppIcon :name="item.id === 'games' ? 'basketball' : item.icon" :size="21" /><span>{{
             item.shortLabel

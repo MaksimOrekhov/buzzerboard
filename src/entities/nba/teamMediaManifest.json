@@ -297,6 +297,204 @@
       "width": 337,
       "height": 520,
       "bytes": 100467
+    },
+    {
+      "assetId": "commons:file:barclays-center-guide",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:barclays-center"
+      },
+      "category": "arena-guide",
+      "fileName": "Barclays Centre exterior 29.09.2012.jpg",
+      "title": "Barclays Center, 2012",
+      "description": "Фасад арены со стороны Atlantic Avenue в год её открытия.",
+      "alt": "Фасад Barclays Center с изогнутым навесом над входом.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Barclays_Centre_exterior_29.09.2012.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Barclays_Centre_exterior_29.09.2012.jpg/1280px-Barclays_Centre_exterior_29.09.2012.jpg",
+      "author": "The Eyes Of New York",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Barclays_Centre_exterior_29.09.2012.jpg",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "capturedAt": "2012-09-29",
+      "checkedAt": "2026-11-23",
+      "modifications": "Миниатюра Wikimedia Commons, 1280 × 959 пикселей.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Wide documentary view of the named building. Visible venue signs are incidental to the architectural record, with no endorsement implied. Commons file and imageinfo agree on the chosen license. Attribution and any ShareAlike terms are retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/barclays-center-guide.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 959,
+      "bytes": 265442
+    },
+    {
+      "assetId": "commons:file:united-center-interior",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:united-center"
+      },
+      "category": "arena-guide",
+      "fileName": "United Center Interior.jpg",
+      "title": "United Center изнутри, 2007",
+      "description": "Площадка Bulls и трибуны с верхнего яруса.",
+      "alt": "Паркет и трибуны United Center во время матча NBA.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7a/United_Center_Interior.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/United_Center_Interior.jpg/1280px-United_Center_Interior.jpg",
+      "author": "Gavindow",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:United_Center_Interior.jpg",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "capturedAt": "2007-12-14",
+      "checkedAt": "2026-11-23",
+      "modifications": "Миниатюра Wikimedia Commons, кадрирование до 1280 × 414 пикселей.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Wide editorial photograph of the seating bowl. Cropped out the main scoreboard display; court and signage appear incidentally in the venue context. No isolated logos or spectator portraits are used. Commons file and imageinfo agree on the chosen license. Attribution and any ShareAlike terms are retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/united-center-interior.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 414,
+      "bytes": 338895
+    },
+    {
+      "assetId": "commons:file:crypto-com-arena-guide",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:crypto-com-arena"
+      },
+      "category": "arena-guide",
+      "fileName": "Crypto.com Arena exterior 2023.jpg",
+      "title": "Crypto.com Arena, 2023",
+      "description": "Вход и вечерняя подсветка здания в Лос-Анджелесе.",
+      "alt": "Синий свет на стеклянном фасаде Crypto.com Arena.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Crypto.com_Arena_exterior_2023.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Crypto.com_Arena_exterior_2023.jpg/1280px-Crypto.com_Arena_exterior_2023.jpg",
+      "author": "Troutfarm27",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Crypto.com_Arena_exterior_2023.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "capturedAt": "2023-11-21",
+      "checkedAt": "2026-11-23",
+      "modifications": "Миниатюра Wikimedia Commons, 1280 × 756 пикселей.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Wide documentary view of the named building. Visible venue signs are incidental to the architectural record, with no endorsement implied. Commons file and imageinfo agree on the chosen license. Attribution and any ShareAlike terms are retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/crypto-com-arena-guide.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 756,
+      "bytes": 328956
+    },
+    {
+      "assetId": "commons:file:crypto-com-arena-interior",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:crypto-com-arena"
+      },
+      "category": "arena-guide",
+      "fileName": "Crypto.com Arena interior 2024.jpg",
+      "title": "Crypto.com Arena изнутри, 2024",
+      "description": "Трибуны и площадка Lakers в конфигурации NBA Cup.",
+      "alt": "Жёлтая площадка Lakers и заполненные трибуны Crypto.com Arena.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Crypto.com_Arena_interior_2024.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/Crypto.com_Arena_interior_2024.jpg/1280px-Crypto.com_Arena_interior_2024.jpg",
+      "author": "Troutfarm27",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Crypto.com_Arena_interior_2024.jpg",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "capturedAt": "2024-11-29",
+      "checkedAt": "2026-11-23",
+      "modifications": "Миниатюра Wikimedia Commons, кадрирование до 1280 × 398 пикселей.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Wide editorial photograph of the seating bowl. Cropped out the main scoreboard display; court and signage appear incidentally in the venue context. No isolated logos or spectator portraits are used. Commons file and imageinfo agree on the chosen license. Attribution and any ShareAlike terms are retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/crypto-com-arena-interior.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 398,
+      "bytes": 306908
+    },
+    {
+      "assetId": "commons:file:target-center-guide",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:target-center"
+      },
+      "category": "arena-guide",
+      "fileName": "Target Center exterior 02.jpg",
+      "title": "Target Center, 2016",
+      "description": "Фасад арены до завершения реконструкции в 2017 году.",
+      "alt": "Фасад Target Center на фоне зданий Миннеаполиса.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Target_Center_exterior_02.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Target_Center_exterior_02.jpg/1280px-Target_Center_exterior_02.jpg",
+      "author": "Runner1928",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Target_Center_exterior_02.jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "capturedAt": "2016-08-14",
+      "checkedAt": "2026-11-23",
+      "modifications": "Миниатюра Wikimedia Commons, кадрирование до 1280 × 535 пикселей.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Crop emphasizes the architecture and excludes close foreground spectators. Incidental venue signage remains part of the exterior. Commons file and imageinfo agree on the chosen license. Attribution and any ShareAlike terms are retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/target-center-guide.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 535,
+      "bytes": 218110
+    },
+    {
+      "assetId": "commons:file:target-center-interior",
+      "subject": {
+        "kind": "arena",
+        "id": "nba:arena:target-center"
+      },
+      "category": "arena-guide",
+      "fileName": "012308-TC-Twolves001.jpg",
+      "title": "Target Center изнутри, 2008",
+      "description": "Нижняя чаша и паркет перед матчем Timberwolves.",
+      "alt": "Площадка и синие трибуны Target Center во время разминки.",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fe/012308-TC-Twolves001.jpg",
+      "deliverySourceUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/012308-TC-Twolves001.jpg/1280px-012308-TC-Twolves001.jpg",
+      "author": "Bobak Ha'Eri",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:012308-TC-Twolves001.jpg",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "capturedAt": "2008-01-23",
+      "checkedAt": "2026-11-23",
+      "modifications": "Миниатюра Wikimedia Commons, кадрирование до 1280 × 460 пикселей.",
+      "rightsReview": {
+        "commonsPageReviewed": true,
+        "imageinfoExtmetadataReviewed": true,
+        "nonCopyrightRestrictionsReviewed": true,
+        "notes": "Wide editorial photograph of the seating bowl. Cropped out the main scoreboard display; court and signage appear incidentally in the venue context. No isolated logos or spectator portraits are used. Commons file and imageinfo agree on the chosen license. Attribution and any ShareAlike terms are retained."
+      },
+      "publicPath": "/media/encyclopedia/arenas/target-center-interior.jpg",
+      "delivery": "local-static",
+      "reviewStatus": "reviewed",
+      "width": 1280,
+      "height": 460,
+      "bytes": 379431
     }
   ]
 }

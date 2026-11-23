@@ -38,6 +38,18 @@ export const appRoutes: RouteRecordRaw[] = [
     meta: { title: 'Профиль команды' },
   },
   {
+    path: '/arenas',
+    name: 'arenas',
+    component: () => import('@/pages/ArenasView.vue'),
+    meta: { title: 'Арены NBA' },
+  },
+  {
+    path: '/arenas/:arenaId',
+    name: 'arena-profile',
+    component: () => import('@/pages/ArenaProfileView.vue'),
+    meta: { title: 'Профиль арены' },
+  },
+  {
     path: '/players',
     name: 'players',
     component: () => import('@/pages/PlayersView.vue'),

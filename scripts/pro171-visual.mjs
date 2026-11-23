@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdir, readdir, writeFile } from 'node:fs/promises'
+import { access, mkdir, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
@@ -7,6 +7,7 @@ import { createServer } from 'vite'
 import { checkSpoilerMode } from './pro210-spoiler-browser.mjs'
 import { checkTeamHistory } from './pro203-team-history-browser.mjs'
 import { checkTeamCoaching } from './pro204-team-coaching-browser.mjs'
+import { checkArenaGuide } from './pro205-arena-browser.mjs'
 import { checkUiAudit } from './pro217-ui-browser.mjs'
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -14,19 +15,24 @@ const baselineRoot = process.env.BUZZERBOARD_VISUAL_BASELINE_ROOT
 const compact = process.argv.includes('--compact')
 assert.ok(!baselineRoot || !compact, 'Baseline capture requires full screenshots')
 const root = baselineRoot ? path.resolve(baselineRoot) : workspace
+const hasArenaGuide = await access(path.join(root, 'src/pages/ArenasView.vue')).then(
+  () => true,
+  () => false,
+)
+const routeTypes = hasArenaGuide ? 13 : 11
 const auditOnly = Boolean(baselineRoot) || process.argv.includes('--audit-only')
 const artifact = path.join(workspace, 'artifacts/pro-171')
 const baselineOutput = path.join(artifact, 'baseline')
 const output = baselineRoot ? baselineOutput : path.join(artifact, compact ? 'ci' : 'synthetic')
 const ciScreenshots = new Set([
   '320x600-audit-games-select-open.png',
-  '320x600-audit-players-filters.png',
+  '320x600-audit-arenas-catalog.png',
   '375x1000-audit-lal-history-filters.png',
-  '375x1000-audit-min-coaches.png',
-  '768x1000-audit-teams-filters.png',
+  '375x1000-audit-arenas-crypto-com-arena.png',
+  '768x1000-audit-arenas-target-center.png',
   '1440x600-audit-standings.png',
   '1440x600-audit-comparison-open.png',
-  '1440x600-audit-chi-coaches.png',
+  '1440x600-audit-arenas-united-center.png',
 ])
 
 async function saveScreenshot(page, filename, fullPage) {
@@ -392,6 +398,22 @@ try {
     auditPage.on('pageerror', (error) => errors.push(error.message))
     for (const height of sizes) {
       await auditPage.setViewportSize({ width, height })
+      const auditCapture = async (label, { fullPage }) => {
+        if (mode !== 'loading') await auditPage.evaluate(() => document.fonts.ready)
+        const actualWidth = await auditPage.evaluate(() => document.documentElement.scrollWidth)
+        if (actualWidth > width) {
+          const elements = await auditPage.evaluate(() =>
+            [...document.querySelectorAll('main *, .gc-topbar *')]
+              .filter((node) => node.getBoundingClientRect().right > innerWidth + 1)
+              .filter((node) => !node.closest('table'))
+              .slice(0, 8)
+              .map((node) => node.getAttribute('class') || node.tagName),
+          )
+          layoutFailures.push({ width, height, label, actualWidth, elements })
+        }
+        await saveScreenshot(auditPage, width + 'x' + height + '-' + label + '.png', fullPage)
+      }
+      const baseline = Boolean(baselineRoot)
       await checkUiAudit({
         page: auditPage,
         today,
@@ -400,23 +422,16 @@ try {
         teams: NBA_TEAMS,
         meta,
         setMode,
-        baseline: Boolean(baselineRoot),
-        capture: async (label, { fullPage }) => {
-          if (mode !== 'loading') await auditPage.evaluate(() => document.fonts.ready)
-          const actualWidth = await auditPage.evaluate(() => document.documentElement.scrollWidth)
-          if (actualWidth > width) {
-            const elements = await auditPage.evaluate(() =>
-              [...document.querySelectorAll('main *, .gc-topbar *')]
-                .filter((node) => node.getBoundingClientRect().right > innerWidth + 1)
-                .filter((node) => !node.closest('table'))
-                .slice(0, 8)
-                .map((node) => node.getAttribute('class') || node.tagName),
-            )
-            layoutFailures.push({ width, height, label, actualWidth, elements })
-          }
-          await saveScreenshot(auditPage, width + 'x' + height + '-' + label + '.png', fullPage)
-        },
+        baseline,
+        capture: auditCapture,
       })
+      if (hasArenaGuide) {
+        await checkArenaGuide({
+          page: auditPage,
+          capture: (label, options) => auditCapture('audit-' + label, options),
+          baseline,
+        })
+      }
       auditViewports.push({ width, height })
     }
     await auditPage.close()
@@ -724,7 +739,7 @@ try {
     assert.deepEqual(errors, [])
     checks.push({
       width,
-      routes: 11,
+      routes: routeTypes,
       states: 'ready,loading,empty,error,stale,ambiguous GB',
       interactions:
         'filters, sort, favorites, comparison, sticky columns, date reset, calendar keyboard, focus restoration, GET-only',
@@ -773,7 +788,7 @@ ${comparison}
   }
   if (!baselineRoot) assert.equal(layoutFailures.length, 0, 'Page overflow found. See checks.json.')
   console.info(
-    `BuzzerBoard UI audit: all 11 route types with synthetic GET data at ${viewports.join(', ')} px. Regression suite: ${checks.length} viewports.`,
+    `BuzzerBoard UI audit: all ${routeTypes} route types with synthetic GET data at ${viewports.join(', ')} px. Regression suite: ${checks.length} viewports.`,
   )
 } finally {
   await browser?.close()

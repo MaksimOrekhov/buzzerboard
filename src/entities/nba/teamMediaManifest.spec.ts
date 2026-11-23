@@ -14,9 +14,8 @@ function copyManifest(): typeof rawManifest {
 }
 
 describe('team media manifest rights and subject checks', () => {
-  it('accepts the nine reviewed pilot files and exact Commons license URLs', () => {
+  it('accepts reviewed files and exact Commons license URLs', () => {
     expect(validateTeamMediaManifest(rawManifest)).toEqual([])
-    expect(rawManifest.assets).toHaveLength(9)
     for (const asset of rawManifest.assets) {
       expect(isReviewedTeamMediaAsset(asset)).toBe(true)
       expect(supportedLicenseUrl(asset.license)).toBe(asset.licenseUrl)
