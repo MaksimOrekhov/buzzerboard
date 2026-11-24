@@ -133,6 +133,29 @@ describe('Game Center', () => {
     center.resetFilters()
     expect(center.activeFilterCount.value).toBe(0)
   })
+  it('keeps live and unknown games in one neutral filter across dates, history and detail return', async () => {
+    const live = game('live', null, null, 'live')
+    const unknown = game('unknown', null, null, 'unknown')
+    const { center, router } = await setup([live, unknown, game('final', 100, 90)])
+    await router.replace({ query: { date: today, status: 'live' } })
+    expect(center.statusFilter.value).toBe('unknown')
+    expect(center.visibleGames.value.map((item) => item.id)).toEqual(['live', 'unknown'])
+    const destination = new URL(center.detailsTo(live), 'https://test.invalid')
+    const returnTo = new URL(destination.searchParams.get('from')!, 'https://test.invalid')
+    expect(returnTo.searchParams.get('status')).toBe('unknown')
+    await center.setDate(shiftGameDate(today, -1))
+    expect(router.currentRoute.value.query.status).toBe('unknown')
+    const navigated = new Promise<void>((resolve) => {
+      const remove = router.afterEach(() => {
+        remove()
+        resolve()
+      })
+    })
+    router.back()
+    await navigated
+    expect(center.statusFilter.value).toBe('unknown')
+    expect(center.visibleGames.value.map((item) => item.id)).toEqual(['live', 'unknown'])
+  })
   it('rejects invalid and out-of-window URL dates', async () => {
     const { center, router } = await setup([], '2026-02-30' as NbaGameDate)
     expect(center.selectedDate.value).toBe(today)

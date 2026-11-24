@@ -53,7 +53,6 @@ const labels: Partial<Record<GameStatus, string>> = {
   canceled: 'Отменённые',
   suspended: 'Приостановленные',
   unknown: 'Уточняются',
-  live: 'Уточняются',
 }
 const tabs = computed(() => [
   { value: 'all' as const, label: 'Все', count: games.value.length },

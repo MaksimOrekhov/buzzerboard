@@ -94,11 +94,28 @@ describe('GameScoreRow', () => {
       global: { stubs: { AppIcon: true, RouterLink: RouterLinkStub } },
     })
     expect(wrapper.findAllComponents(RouterLinkStub)).toHaveLength(3)
-    expect(wrapper.get('.gc-scoreboard-result').attributes('aria-label')).toContain('Открыть матч')
+    expect(wrapper.get('.gc-scoreboard-result').attributes('aria-label')).toContain(
+      'Счёт 110 : 105',
+    )
     expect(wrapper.get('.gc-scoreboard-status').text()).toBe('Завершён')
     expect(wrapper.findAll('.gc-winner-marker')).toHaveLength(1)
+    expect(wrapper.get('.gc-scoreboard-team--away .gc-winner-marker').text()).toContain(
+      'Победитель',
+    )
+    expect(wrapper.get('.gc-scoreboard-score--winner').text()).toBe('110')
+    expect(wrapper.get('.gc-scoreboard-score--loser').text()).toBe('105')
     await wrapper.get('.gc-scoreboard-favorite').trigger('click')
     expect(wrapper.emitted('favorite')).toHaveLength(1)
+    await wrapper.setProps({ game: { ...final, score: { away: 105, home: 110 } } })
+    expect(wrapper.find('.gc-scoreboard-team--home .gc-winner-marker').exists()).toBe(true)
+    expect(wrapper.get('.gc-scoreboard-score--winner').text()).toBe('110')
+    await wrapper.setProps({ game: { ...final, score: { away: null, home: 110 } } })
+    expect(wrapper.get('.gc-scoreboard-result').attributes('aria-label')).toContain(
+      'Счёт неизвестен : 110',
+    )
+    expect(wrapper.find('.gc-winner-marker').exists()).toBe(false)
+    await wrapper.setProps({ game: { ...final, score: { away: 110, home: 110 } } })
+    expect(wrapper.find('.gc-winner-marker').exists()).toBe(false)
     await wrapper.setProps({ game: { ...final, status: 'unknown' } })
     expect(wrapper.get('.gc-scoreboard-status').text()).toBe('Уточняется')
     expect(wrapper.find('.gc-winner-marker').exists()).toBe(false)

@@ -821,7 +821,7 @@
 }
 .gc-filter-panel {
   display: grid;
-  grid-template-columns: minmax(180px, 1.5fr) minmax(130px, 1fr) minmax(140px, 1fr) auto auto;
+  grid-template-columns: minmax(180px, 1.5fr) minmax(130px, 1fr) minmax(170px, 1.2fr) auto auto;
   gap: 9px;
   align-items: end;
   padding: 12px;
@@ -843,6 +843,9 @@
   min-height: 44px;
   width: 100%;
   max-width: none;
+}
+.gc-filter-field .gc-select {
+  min-width: 0;
 }
 .gc-filter-field .gc-search {
   background: var(--gc-bg);
@@ -932,15 +935,21 @@
   justify-items: center;
   min-width: 0;
   min-height: 58px;
-  padding: 5px;
+  padding: 5px 20px 5px 5px;
   border-radius: 7px;
-  background: var(--gc-accent-soft);
+  position: relative;
+  background: transparent;
   color: var(--gc-text);
   text-align: center;
   text-decoration: none;
 }
-.gc-scoreboard-result:hover {
-  background: #27485e;
+.gc-scoreboard-result:hover,
+.gc-scoreboard-result:focus-visible {
+  background: var(--gc-panel-hover);
+}
+.gc-scoreboard-result--hidden {
+  background: var(--gc-panel-hover);
+  padding: 5px;
 }
 .gc-scoreboard-numbers {
   display: flex;
@@ -955,7 +964,36 @@
   color: var(--gc-muted);
   font-weight: 500;
 }
-.gc-scoreboard-action,
+.gc-scoreboard-team--loser .gc-team-name {
+  color: var(--gc-secondary);
+  font-weight: 500;
+}
+.gc-scoreboard-team.gc-match-team--winner .gc-team-name {
+  color: var(--gc-text);
+  font-weight: 800;
+}
+.gc-scoreboard-winner {
+  display: inline-block;
+  margin-right: 4px;
+  color: var(--gc-accent);
+  font-size: 13px;
+  line-height: 1;
+}
+.gc-scoreboard-score--winner {
+  color: var(--gc-text);
+  font-weight: 850;
+}
+.gc-scoreboard-score--loser {
+  color: var(--gc-secondary);
+  font-weight: 550;
+}
+.gc-scoreboard-chevron {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gc-muted);
+}
 .gc-protected-details {
   color: var(--gc-accent);
   font-size: 10px;
@@ -1219,9 +1257,6 @@
 }
 .gc-view .gc-scoreboard-labels {
   display: none;
-}
-.gc-scoreboard-action {
-  white-space: nowrap;
 }
 @media (max-width: 620px) {
   .gc-view .gc-date-panel-top {

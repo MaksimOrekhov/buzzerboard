@@ -41,7 +41,6 @@ export function useGameCenter() {
   })
   const query = useGamesForDate(selectedDate, yesterday)
   const { favoriteIds, isFavorite, toggleFavorite } = useGameFavorites()
-  const rawStatus = route.query.status
   const validStatuses: GameStatus[] = [
     'final',
     'scheduled',
@@ -50,11 +49,13 @@ export function useGameCenter() {
     'suspended',
     'unknown',
   ]
-  const statusFilter = shallowRef<GameStatus | 'all'>(
-    typeof rawStatus === 'string' && validStatuses.includes(rawStatus as GameStatus)
-      ? (rawStatus as GameStatus)
-      : 'all',
-  )
+  function normalizedStatus(value: unknown): GameStatus | 'all' {
+    if (value === 'live') return 'unknown'
+    return typeof value === 'string' && validStatuses.includes(value as GameStatus)
+      ? (value as GameStatus)
+      : 'all'
+  }
+  const statusFilter = shallowRef<GameStatus | 'all'>(normalizedStatus(route.query.status))
   const teamFilter = shallowRef(typeof route.query.team === 'string' ? route.query.team : 'all')
   const search = shallowRef(typeof route.query.q === 'string' ? route.query.q : '')
   const favoriteOnly = shallowRef(route.query.favorites === '1')
@@ -62,7 +63,8 @@ export function useGameCenter() {
   const expandedGameId = shallowRef<GameId | null>(null)
   const games = computed(() => query.data.value?.data ?? [])
   const hasHiddenGames = computed(() => games.value.some(hideGame))
-  const statusOf = (game: Game): GameStatus => (isFutureSchedule(game) ? 'scheduled' : game.status)
+  const statusOf = (game: Game): GameStatus =>
+    isFutureSchedule(game) ? 'scheduled' : game.status === 'live' ? 'unknown' : game.status
   const meta = computed(() => query.data.value?.meta ?? null)
   const yesterdayPending = computed(
     () =>
@@ -109,10 +111,7 @@ export function useGameCenter() {
   watch(
     () => route.query,
     (next) => {
-      statusFilter.value =
-        typeof next.status === 'string' && validStatuses.includes(next.status as GameStatus)
-          ? (next.status as GameStatus)
-          : 'all'
+      statusFilter.value = normalizedStatus(next.status)
       teamFilter.value = typeof next.team === 'string' ? next.team : 'all'
       search.value = typeof next.q === 'string' ? next.q : ''
       favoriteOnly.value = next.favorites === '1'
