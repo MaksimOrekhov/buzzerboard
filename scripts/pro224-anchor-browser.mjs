@@ -41,10 +41,24 @@ export async function checkGameDetailsAnchors(page) {
     assert.equal(
       await target.evaluate((node) => {
         const active = document.activeElement
-        return (
-          active !== node &&
-          Boolean(node.compareDocumentPosition(active) & Node.DOCUMENT_POSITION_FOLLOWING)
-        )
+        if (active && active !== document.body)
+          return (
+            active !== node &&
+            Boolean(node.compareDocumentPosition(active) & Node.DOCUMENT_POSITION_FOLLOWING)
+          )
+        // At the end of the document Tab can move focus out to browser chrome.
+        return ![
+          ...document.querySelectorAll('a[href], button, input, select, textarea, [tabindex]'),
+        ].some((element) => {
+          const style = getComputedStyle(element)
+          return (
+            element.tabIndex >= 0 &&
+            !element.matches(':disabled') &&
+            element.getClientRects().length > 0 &&
+            style.visibility !== 'hidden' &&
+            Boolean(node.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING)
+          )
+        })
       }),
       true,
       `Tab after ${id}`,
