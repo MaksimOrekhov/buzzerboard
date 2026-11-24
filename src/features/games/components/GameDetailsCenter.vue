@@ -48,12 +48,21 @@ const fetchErrorDescription = computed(() =>
     ? 'Проверьте игровой день или вернитесь к списку матчей.'
     : 'Последний сохранённый снимок матча пока недоступен.',
 )
+const awaitingGame = computed(
+  () =>
+    game.value &&
+    ['scheduled', 'postponed', 'canceled', 'unknown'].includes(game.value.status) &&
+    game.value.score.away === null &&
+    game.value.score.home === null,
+)
 const unavailableDetails = computed(() =>
-  response.value?.boxScoreAvailability === 'snapshot_mismatch'
-    ? 'Снимки матча и статистики не совпадают. Показан текущий результат без противоречивых данных игроков.'
-    : boxScoreMeta.value?.refreshError
-      ? 'Обновление не удалось. Доступен последний сохранённый результат.'
-      : 'Пока доступен только результат матча.',
+  awaitingGame.value
+    ? 'Расписание и сведения о площадке остаются доступными.'
+    : response.value?.boxScoreAvailability === 'snapshot_mismatch'
+      ? 'Снимки матча и статистики не совпадают. Показан текущий результат без противоречивых данных игроков.'
+      : boxScoreMeta.value?.refreshError
+        ? 'Обновление не удалось. Доступен последний сохранённый результат.'
+        : 'Пока доступен только результат матча.',
 )
 </script>
 
@@ -113,7 +122,10 @@ const unavailableDetails = computed(() =>
           Не удалось обновить данные. Показан предыдущий результат.
         </p>
         <div class="game-detail-snapshots">
-          <div v-if="scoreMeta"><span>Результат</span><SnapshotStatus :meta="scoreMeta" /></div>
+          <div v-if="scoreMeta">
+            <span>{{ awaitingGame ? 'Расписание' : 'Результат' }}</span
+            ><SnapshotStatus :meta="scoreMeta" />
+          </div>
           <div v-if="boxScoreMeta">
             <span>Статистика</span><SnapshotStatus :meta="boxScoreMeta" />
           </div>
@@ -194,7 +206,11 @@ const unavailableDetails = computed(() =>
           <div class="game-detail-no-box-icon"><AppIcon name="chart" :size="20" /></div>
           <div>
             <span>BOX SCORE</span>
-            <h2 id="no-boxscore-heading">Подробная статистика пока недоступна</h2>
+            <h2 id="no-boxscore-heading">
+              {{
+                awaitingGame ? 'Статистика появится позже' : 'Подробная статистика пока недоступна'
+              }}
+            </h2>
             <p>{{ unavailableDetails }}</p>
           </div>
           <AppIcon name="database" :size="17" />
