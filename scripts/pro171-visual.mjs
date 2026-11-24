@@ -568,8 +568,18 @@ try {
     await playerTable.getByRole('button', { name: 'Сортировать по: Броски с игры, %' }).click()
     await playerTable.getByRole('button', { name: 'Основное', exact: true }).click()
     assert.equal(await playerTable.locator('tbody tr').count(), 13)
-    assert.equal(await page.locator('.player-box-score').last().locator('tbody tr').count(), 15)
+    await page
+      .getByRole('group', { name: 'Команда', exact: true })
+      .getByRole('button')
+      .last()
+      .click()
+    assert.equal(await page.locator('.player-box-score tbody tr').count(), 15)
     assert.equal(await page.getByText('Участие не подтверждено', { exact: true }).count(), 1)
+    await page
+      .getByRole('group', { name: 'Команда', exact: true })
+      .getByRole('button')
+      .first()
+      .click()
     assert.equal(await page.locator('.game-leader-card').first().locator('small').count(), 2)
     assert.equal(
       await playerTable

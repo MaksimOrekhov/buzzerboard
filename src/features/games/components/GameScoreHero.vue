@@ -59,8 +59,8 @@ const localStart = computed(() =>
       <AppBadge v-if="!hidden" tone="neutral" dot>{{
         scheduleOnly ? 'Запланирован' : gameStatus
       }}</AppBadge>
-      <span>Игровой день NBA · {{ game.nbaGameDate }}</span>
-      <span v-if="game.seasonEndYear"
+      <span>Игровой день NBA · {{ game.nbaGameDate }} ET</span>
+      <span v-if="game.seasonEndYear" class="game-detail-season"
         >Сезон {{ game.seasonEndYear - 1 }}/{{ String(game.seasonEndYear).slice(-2) }}</span
       >
     </div>
@@ -94,10 +94,6 @@ const localStart = computed(() =>
     <div class="game-detail-venue">
       <span>{{ localStart }} · {{ VIEWER_TIME_ZONE }}</span>
       <span v-if="game.venue">{{ game.venue }}</span>
-      <span v-if="winner"
-        >Победитель ·
-        {{ winner === 'home' ? game.homeTeam.displayName : game.awayTeam.displayName }}</span
-      >
     </div>
     <SpoilerGameReveal v-if="hidden" :game="game" class="game-detail-reveal" />
     <StatTable

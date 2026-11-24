@@ -35,11 +35,10 @@ const columns: Record<
   { key: PlayerSortKey; label: string; name: string; description?: string }[]
 > = {
   basic: [
+    { key: 'minutes', label: 'MIN', name: 'Минуты' },
     { key: 'points', label: 'PTS', name: 'Очки' },
     { key: 'rebounds', label: 'REB', name: 'Подборы' },
     { key: 'assists', label: 'AST', name: 'Передачи' },
-    { key: 'minutes', label: 'MIN', name: 'Минуты' },
-    { key: 'plusMinus', label: '+/−', name: 'Плюс-минус' },
   ],
   shooting: [
     { key: 'fieldGoals', label: 'FG', name: 'Броски с игры, %' },
@@ -47,6 +46,7 @@ const columns: Record<
     { key: 'freeThrows', label: 'FT', name: 'Штрафные, %' },
   ],
   other: [
+    { key: 'plusMinus', label: '+/−', name: 'Плюс-минус' },
     { key: 'steals', label: 'STL', name: 'Перехваты' },
     { key: 'blocks', label: 'BLK', name: 'Блок-шоты' },
     { key: 'turnovers', label: 'TO', name: 'Потери' },
@@ -118,6 +118,7 @@ function cell(line: PlayerBoxScore, key: PlayerSortKey) {
     <StatTable
       v-if="players.length"
       class="player-box-table-scroll"
+      :class="{ 'player-box-table-scroll--basic': group === 'basic' }"
       :label="`Статистика: ${team.displayName ?? team.abbreviation}`"
     >
       <table class="player-box-table">
