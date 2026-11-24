@@ -68,6 +68,7 @@ const unavailableDetails = computed(() =>
 
 <template>
   <div class="game-details-view">
+    <h1 class="visually-hidden">Карточка матча</h1>
     <RouterLink class="game-detail-back" :to="returnTo">
       <AppIcon name="arrow" :size="16" />{{
         returnTo.startsWith('/teams/')
@@ -113,6 +114,7 @@ const unavailableDetails = computed(() =>
     <template v-else-if="game">
       <GameScoreHero
         id="game-overview"
+        tabindex="-1"
         :game="game"
         :hidden="hidden"
         :schedule-only="scheduleOnly"
@@ -147,7 +149,7 @@ const unavailableDetails = computed(() =>
             <header class="game-detail-section-heading">
               <div>
                 <span>01 / ИГРОКИ</span>
-                <h2 id="game-leaders-heading">Лидеры среди доступных данных</h2>
+                <h2 id="game-leaders-heading" tabindex="-1">Лидеры среди доступных данных</h2>
               </div>
             </header>
             <article v-for="leader in leaders" :key="leader.key" class="game-leader-card">
@@ -172,7 +174,7 @@ const unavailableDetails = computed(() =>
             <header class="game-detail-section-heading">
               <div>
                 <span>03 / ИГРОКИ</span>
-                <h2 id="player-box-score-heading">Статистика игроков</h2>
+                <h2 id="player-box-score-heading" tabindex="-1">Статистика игроков</h2>
               </div>
               <p>Выберите набор показателей и нажмите на заголовок столбца.</p>
             </header>
@@ -221,7 +223,7 @@ const unavailableDetails = computed(() =>
           полученных строк.
         </footer>
       </template>
-      <GameGeography id="game-arena" :game="game" />
+      <GameGeography id="game-arena" tabindex="-1" :game="game" />
     </template>
   </div>
 </template>

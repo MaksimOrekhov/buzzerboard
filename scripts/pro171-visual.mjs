@@ -14,6 +14,7 @@ import { checkUiAudit } from './pro217-ui-browser.mjs'
 import { checkJerseyViewer } from './pro218-jersey-viewer-browser.mjs'
 import { checkYesterdayRefresh } from './pro219-yesterday-browser.mjs'
 import { checkFavoritesNavigation } from './pro221-favorites-browser.mjs'
+import { checkGameDetailsAnchors, checkGameDetailsHeadingStates } from './pro224-anchor-browser.mjs'
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const baselineRoot = process.env.BUZZERBOARD_VISUAL_BASELINE_ROOT
@@ -554,6 +555,13 @@ try {
     await page.getByRole('heading', { name: 'Сравнение команд' }).waitFor()
     assert.equal(await page.getByRole('heading', { name: 'Статистика игроков' }).isVisible(), true)
     assert.equal(await page.locator('.game-detail-hero').isVisible(), true)
+    if (width === 375 || width === 1440) await checkGameDetailsAnchors(page)
+    if (width === 375)
+      await checkGameDetailsHeadingStates({
+        context,
+        detailUrl: page.url(),
+        setMode: (value) => (mode = value),
+      })
     assert.equal(
       (await page.locator('.player-dnp summary').first().innerText())
         .replaceAll(/\s+/g, ' ')
