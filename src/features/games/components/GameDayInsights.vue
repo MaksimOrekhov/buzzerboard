@@ -1,70 +1,41 @@
 <script setup lang="ts">
 import type { Game } from '@/entities/nba/model'
-import TeamLogo from '@/shared/components/TeamLogo.vue'
-import AppIcon from '@/shared/components/AppIcon.vue'
+import { RouterLink } from 'vue-router'
 defineProps<{
   closest: Game | null
   highest: Game | null
-  totalPoints: number
   finalCount: number
+  detailsTo: (game: Game) => string
 }>()
 </script>
 <template>
-  <aside class="gc-insights" aria-label="Сводка игрового дня">
-    <h2>В фокусе</h2>
-    <section v-if="closest" class="gc-insight-panel">
-      <div class="gc-insight-heading">
-        <AppIcon name="basketball" :size="17" />
-        <h3>Самая близкая игра</h3>
-      </div>
-      <div class="gc-insight-match">
-        <div>
-          <TeamLogo :team="closest.awayTeam" :size="48" /><span>{{
-            closest.awayTeam.abbreviation ?? closest.awayTeam.displayName
-          }}</span>
-        </div>
-        <strong>{{ closest.score.away }}<span>:</span>{{ closest.score.home }}</strong>
-        <div>
-          <TeamLogo :team="closest.homeTeam" :size="48" /><span>{{
-            closest.homeTeam.abbreviation ?? closest.homeTeam.displayName
-          }}</span>
-        </div>
-      </div>
-      <p class="gc-insight-callout">
-        <strong>{{ Math.abs(closest.score.home! - closest.score.away!) }}</strong> очк. разницы
-      </p>
-      <p class="gc-insight-description">Минимальный отрыв среди завершённых матчей дня.</p>
-    </section>
-    <section v-if="highest" class="gc-insight-panel">
-      <div class="gc-insight-heading">
-        <AppIcon name="chart" :size="17" />
-        <h3>Самый результативный</h3>
-      </div>
-      <div class="gc-points-value">
-        {{ highest.score.home! + highest.score.away! }}<span>очков</span>
-      </div>
-      <div class="gc-insight-teams">
-        <TeamLogo :team="highest.awayTeam" :size="28" /><span>{{
-          highest.awayTeam.abbreviation ?? 'Гости'
-        }}</span
-        ><span class="gc-insight-vs">vs</span
-        ><TeamLogo :team="highest.homeTeam" :size="28" /><span>{{
-          highest.homeTeam.abbreviation ?? 'Хозяева'
-        }}</span>
-      </div>
-      <p class="gc-insight-description">Сумма очков обеих команд.</p>
-    </section>
-    <section v-if="finalCount" class="gc-day-total">
-      <span>За игровой день</span
-      ><strong>{{ totalPoints.toLocaleString('ru-RU') }} <span>очков</span></strong>
-      <p>В {{ finalCount }} завершённых матчах<br />с известным счётом</p>
-    </section>
-    <section v-if="!closest && !highest" class="gc-insight-panel">
-      <AppIcon name="clock" :size="24" />
-      <h3>День ещё впереди</h3>
-      <p class="gc-insight-description">
-        Здесь появится сводка, когда будут известны результаты матчей.
-      </p>
-    </section>
+  <aside class="gc-insights gc-insights--compact" aria-label="Сводка игрового дня">
+    <div class="gc-insights-title">
+      <span class="gc-section-kicker">Контекст дня</span>
+      <h2>В фокусе</h2>
+    </div>
+    <RouterLink v-if="closest" :to="detailsTo(closest)" class="gc-focus-card">
+      <span class="gc-focus-label">01 &nbsp; Минимальная разница</span>
+      <strong
+        >{{ Math.abs(closest.score.home! - closest.score.away!) }}
+        <small>очк. разницы</small></strong
+      >
+      <span class="gc-focus-teams"
+        >{{ closest.awayTeam.abbreviation ?? closest.awayTeam.displayName }} —
+        {{ closest.homeTeam.abbreviation ?? closest.homeTeam.displayName }}</span
+      >
+      <span class="gc-focus-caption">Самый близкий результат дня <b>↗</b></span>
+    </RouterLink>
+    <RouterLink v-if="highest" :to="detailsTo(highest)" class="gc-focus-card">
+      <span class="gc-focus-label">02 &nbsp; Самый результативный</span>
+      <strong>{{ highest.score.home! + highest.score.away! }} <small>очков</small></strong>
+      <span class="gc-focus-teams"
+        >{{ highest.awayTeam.abbreviation ?? highest.awayTeam.displayName }} —
+        {{ highest.homeTeam.abbreviation ?? highest.homeTeam.displayName }}</span
+      >
+      <span class="gc-focus-caption">Очки обеих команд <b>↗</b></span>
+    </RouterLink>
+    <p v-if="finalCount" class="gc-focus-footnote">На основе {{ finalCount }} завершённых матчей</p>
+    <p v-else class="gc-focus-footnote">Сводка появится после подтверждения результатов.</p>
   </aside>
 </template>

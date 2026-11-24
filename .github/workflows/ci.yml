@@ -58,6 +58,36 @@ jobs:
       - name: Check all routes, box score and responsive states
         run: pnpm run visual:pro171 --compact
 
+      - name: Check out original Game Center baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 265013483423ccbcda87fccf9487476703431b77
+          path: .pro223-reference/main
+
+      - name: Check out Game Center before review fixes
+        uses: actions/checkout@v4
+        with:
+          ref: a240237ce02caa50450079c7fdba082e596a09e5
+          path: .pro223-reference/before
+
+      - name: Capture full PRO-223 visual comparison
+        env:
+          PRO223_MAIN_ROOT: ${{ github.workspace }}/.pro223-reference/main
+          PRO223_BEFORE_ROOT: ${{ github.workspace }}/.pro223-reference/before
+        run: |
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$PRO223_MAIN_ROOT/node_modules"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$PRO223_BEFORE_ROOT/node_modules"
+          node scripts/pro223-visual.mjs
+
+      - name: Upload complete PRO-223 synthetic visual comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-pro223-visual-full
+          path: artifacts/pro-223/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload representative visual checks
         if: always()
         uses: actions/upload-artifact@v4

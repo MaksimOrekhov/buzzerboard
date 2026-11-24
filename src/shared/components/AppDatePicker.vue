@@ -20,14 +20,17 @@ import {
   CalendarCellTrigger,
 } from 'reka-ui'
 import AppIcon from '@/shared/components/AppIcon.vue'
-const props = defineProps<{ min: string; max: string }>()
+const props = defineProps<{ min: string; max: string; compact?: boolean }>()
 const model = defineModel<string>({ required: true })
 const open = shallowRef(false)
 const value = computed(() => parseDate(model.value))
 const label = computed(() =>
-  new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-    new Date(`${model.value}T12:00:00Z`),
-  ),
+  new Intl.DateTimeFormat(
+    'ru-RU',
+    props.compact
+      ? { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }
+      : { month: 'long', year: 'numeric', timeZone: 'UTC' },
+  ).format(new Date(`${model.value}T12:00:00Z`)),
 )
 function select(date: DateValue | undefined) {
   if (!date) return

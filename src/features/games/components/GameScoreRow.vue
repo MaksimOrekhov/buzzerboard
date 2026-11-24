@@ -15,9 +15,11 @@ const props = defineProps<{
   favorite: boolean
   expanded: boolean
   detailsTo?: string
+  scoreboard?: boolean
 }>()
 const emit = defineEmits<{ favorite: []; details: [] }>()
 const detailsId = useId()
+const winnerId = useId()
 const labels: Record<GameStatus, string> = {
   final: 'Завершён',
   scheduled: 'Ожидается',
@@ -47,6 +49,12 @@ const localDate = computed(() =>
 )
 const hidden = computed(() => hideGame(props.game))
 const scheduleOnly = computed(() => isFutureSchedule(props.game))
+const matchLabel = computed(() => {
+  const teams = `${props.game.awayTeam.displayName ?? 'Гости'} — ${props.game.homeTeam.displayName ?? 'Хозяева'}`
+  if (hidden.value) return `Открыть матч: ${teams}. Результат скрыт`
+  if (scheduleOnly.value) return `Открыть матч: ${teams}. Ожидается`
+  return `Открыть матч: ${teams}. Счёт ${props.game.score.away ?? 'неизвестен'} : ${props.game.score.home ?? 'неизвестен'}. ${labels[props.game.status]}`
+})
 const winner = computed(() =>
   !hidden.value &&
   !scheduleOnly.value &&
@@ -67,10 +75,113 @@ const winner = computed(() =>
     :class="{
       'gc-score-row--open': expanded && !hidden && !scheduleOnly,
       'gc-score-row--protected': hidden,
+      'gc-score-row--scoreboard': scoreboard,
     }"
     :aria-label="`${game.awayTeam.displayName ?? 'Гости'} — ${game.homeTeam.displayName ?? 'Хозяева'}`"
   >
-    <div class="gc-match-main">
+    <div v-if="scoreboard" class="gc-scoreboard-row">
+      <div class="gc-scoreboard-time">
+        <time v-if="game.startsAt" :datetime="game.startsAt">{{ startTime }}</time><span v-else
+          >—</span
+        >
+        <span>{{ localDate }}</span><span
+          v-if="!hidden"
+          class="gc-scoreboard-status"
+          :class="{ 'gc-match-status--final': !scheduleOnly && game.status === 'final' }"
+          >{{ labels[scheduleOnly ? 'scheduled' : game.status] }}</span
+        >
+      </div>
+      <div
+        class="gc-scoreboard-team gc-scoreboard-team--away"
+        :class="{
+          'gc-match-team--winner': winner === 'away',
+          'gc-scoreboard-team--loser': winner === 'home',
+        }"
+      >
+        <TeamLogo :team="game.awayTeam" :size="36" /><TeamProfileLink
+          :team="game.awayTeam"
+          :aria-describedby="winner === 'away' ? winnerId : undefined"
+          ><span class="gc-team-role">Гости</span
+          ><span class="gc-team-name"
+            ><span
+              v-if="winner === 'away'"
+              :id="winnerId"
+              class="gc-winner-marker gc-scoreboard-winner"
+              ><span aria-hidden="true">▸</span
+              ><span class="visually-hidden">Победитель</span></span
+            >{{ game.awayTeam.displayName ?? game.awayTeam.abbreviation ?? 'Команда гостей' }}</span
+          ></TeamProfileLink
+        >
+      </div>
+      <div v-if="hidden" class="gc-scoreboard-result gc-scoreboard-result--hidden">
+        <SpoilerGameReveal :game="game" /><RouterLink
+          v-if="detailsTo"
+          :to="detailsTo"
+          :aria-label="matchLabel"
+          class="gc-protected-details"
+          >Открыть матч</RouterLink
+        >
+      </div>
+      <RouterLink
+        v-else-if="detailsTo"
+        class="gc-scoreboard-result"
+        :to="detailsTo"
+        :aria-label="matchLabel"
+      >
+        <span
+          v-if="!scheduleOnly"
+          class="gc-scoreboard-numbers"
+          :aria-label="`Счёт ${game.score.away ?? 'неизвестен'} : ${game.score.home ?? 'неизвестен'}`"
+          ><span
+            :class="{
+              'gc-scoreboard-score--winner': winner === 'away',
+              'gc-scoreboard-score--loser': winner === 'home',
+            }"
+            >{{ game.score.away ?? '—' }}</span
+          ><span class="gc-scoreboard-colon">:</span
+          ><span
+            :class="{
+              'gc-scoreboard-score--winner': winner === 'home',
+              'gc-scoreboard-score--loser': winner === 'away',
+            }"
+            >{{ game.score.home ?? '—' }}</span
+          ></span
+        >
+        <span v-else class="gc-scoreboard-scheduled">Расписание</span
+        ><AppIcon name="chevron-right" :size="16" class="gc-scoreboard-chevron" />
+      </RouterLink>
+      <div
+        class="gc-scoreboard-team gc-scoreboard-team--home"
+        :class="{
+          'gc-match-team--winner': winner === 'home',
+          'gc-scoreboard-team--loser': winner === 'away',
+        }"
+      >
+        <TeamLogo :team="game.homeTeam" :size="36" /><TeamProfileLink
+          :team="game.homeTeam"
+          :aria-describedby="winner === 'home' ? winnerId : undefined"
+          ><span class="gc-team-role">Хозяева</span
+          ><span class="gc-team-name"
+            ><span
+              v-if="winner === 'home'"
+              :id="winnerId"
+              class="gc-winner-marker gc-scoreboard-winner"
+              ><span aria-hidden="true">▸</span
+              ><span class="visually-hidden">Победитель</span></span
+            >{{ game.homeTeam.displayName ?? game.homeTeam.abbreviation ?? 'Команда хозяев' }}</span
+          ></TeamProfileLink
+        >
+      </div>
+      <button
+        class="gc-icon-button gc-favorite gc-scoreboard-favorite"
+        :aria-pressed="favorite"
+        :aria-label="favorite ? 'Убрать матч из избранного' : 'Добавить матч в избранное'"
+        @click="emit('favorite')"
+      >
+        <AppIcon name="star" />
+      </button>
+    </div>
+    <div v-else class="gc-match-main">
       <div class="gc-match-time">
         <time v-if="game.startsAt" :datetime="game.startsAt">{{ startTime }}</time><span v-else
           >—</span

@@ -509,6 +509,7 @@ try {
         .waitFor({ state: 'hidden' })
     }
     // Search, team filter, date reset, status, sort, and persisted favorites.
+    await page.getByRole('button', { name: /^Фильтры/ }).click()
     await page.getByRole('searchbox', { name: 'Поиск команды' }).fill('exceptionally')
     assert.equal(await page.locator('.gc-score-row').count(), 1)
     await page.getByRole('button', { name: 'Сбросить', exact: true }).click()
@@ -523,26 +524,33 @@ try {
     await page.waitForURL(`**date=${shift(-1)}**`)
     assert.equal(
       await page.getByRole('combobox', { name: 'Фильтр по команде' }).innerText(),
-      'Все команды',
+      'Home Test Club 1',
     )
+    await page.getByRole('button', { name: 'Сбросить', exact: true }).click()
     await page.getByRole('button', { name: 'Сегодня', exact: true }).click()
     await page.waitForURL(`**date=${today}**`)
     await page.locator('.gc-score-row').last().waitFor()
-    await page.getByRole('button', { name: 'Предстоящие', exact: false }).click()
+    await page.getByRole('button', { name: 'Впереди', exact: false }).click()
     assert.equal(await page.locator('.gc-score-row').count(), 3)
-    await page.getByRole('button', { name: 'Все матчи', exact: false }).click()
+    await page.getByRole('button', { name: 'Все', exact: false }).click()
     const first = await page.locator('.gc-score-row').first().getAttribute('aria-label')
-    await page.getByRole('button', { name: 'Сначала ранние. Изменить порядок' }).click()
+    await page.getByRole('combobox', { name: 'Порядок матчей' }).click()
+    await page.getByRole('option', { name: 'Сначала поздние' }).click()
     assert.notEqual(await page.locator('.gc-score-row').first().getAttribute('aria-label'), first)
-    await page.getByRole('button', { name: 'Сначала поздние. Изменить порядок' }).click()
+    await page.getByRole('combobox', { name: 'Порядок матчей' }).click()
+    await page.getByRole('option', { name: 'Сначала ранние' }).click()
     await page.getByRole('button', { name: 'Добавить матч в избранное' }).first().click()
     await page.getByRole('button', { name: 'Только избранные', exact: true }).click()
     assert.equal(await page.locator('.gc-score-row').count(), 1)
     await page.reload()
+    await page.getByRole('button', { name: /^Фильтры/ }).click()
     await page.getByRole('button', { name: 'Только избранные', exact: true }).click()
     assert.equal(await page.locator('.gc-score-row').count(), 1)
     await page.getByRole('searchbox', { name: 'Поиск команды' }).fill('exceptionally')
-    await page.getByRole('link', { name: 'Открыть карточку матча' }).first().click()
+    await page
+      .getByRole('link', { name: /^Открыть матч:/ })
+      .first()
+      .click()
     await page.getByRole('heading', { name: 'Сравнение команд' }).waitFor()
     assert.equal(await page.getByRole('heading', { name: 'Статистика игроков' }).isVisible(), true)
     assert.equal(await page.locator('.game-detail-hero').isVisible(), true)
@@ -572,6 +580,7 @@ try {
     assert.equal(await page.locator('.game-leader-card').count(), 3)
     await capture('game-details')
     await page.getByRole('link', { name: 'К игровому дню' }).click()
+    await page.getByRole('button', { name: /^Фильтры/ }).click()
     await page.getByRole('searchbox', { name: 'Поиск команды' }).waitFor()
     assert.equal(
       await page.getByRole('searchbox', { name: 'Поиск команды' }).inputValue(),
@@ -580,12 +589,17 @@ try {
     assert.equal(await page.locator('.gc-score-row').count(), 1)
     boxScoreAvailable = false
     await page.reload()
+    await page.getByRole('button', { name: /^Фильтры/ }).click()
     await page.getByRole('searchbox', { name: 'Поиск команды' }).waitFor()
-    await page.getByRole('link', { name: 'Открыть карточку матча' }).first().click()
+    await page
+      .getByRole('link', { name: /^Открыть матч:/ })
+      .first()
+      .click()
     await page.getByRole('heading', { name: 'Подробная статистика пока недоступна' }).waitFor()
     await capture('game-details-no-box')
     boxScoreAvailable = true
     await page.getByRole('link', { name: 'К игровому дню' }).click()
+    await page.getByRole('button', { name: /^Фильтры/ }).click()
     await page.getByRole('searchbox', { name: 'Поиск команды' }).waitFor()
     await page.getByRole('button', { name: 'Выбрать игровую дату NBA' }).click()
     await capture('calendar-open')
@@ -620,7 +634,7 @@ try {
       } else if (state === 'empty') {
         assert.match(
           await page.getByRole('group', { name: 'Статус матчей' }).innerText(),
-          /Все матчи\s*0/,
+          /Все\s*0/,
         )
       } else {
         assert.match(
