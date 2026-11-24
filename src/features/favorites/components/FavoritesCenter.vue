@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import '../favorites.css'
-import { computed, shallowRef } from 'vue'
-import { useRoute } from 'vue-router'
-import { RouterLink } from 'vue-router'
+import { computed } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useFavoriteCollections } from '../composables/useFavoriteCollections'
 import { formatRecord, formatPercentage } from '@/features/standings/formatters'
 import GameScoreRow from '@/features/games/components/GameScoreRow.vue'
@@ -22,23 +21,38 @@ import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
 const { hideAggregate } = useSpoilerMode()
 const statsHidden = computed(() => hideAggregate('favorite-teams'))
 const route = useRoute()
+const router = useRouter()
 const { center, standings, teams, favoriteGames, favoriteGameGroups, favoriteTeams, unknownGames } =
   useFavoriteCollections()
-const tab = shallowRef<'teams' | 'games' | 'players'>(
-  route.query.tab === 'games' || route.query.tab === 'players' ? route.query.tab : 'teams',
-)
+const tab = computed<'teams' | 'games' | 'players'>({
+  get: () =>
+    route.query.tab === 'games' || route.query.tab === 'players' ? route.query.tab : 'teams',
+  set: (value) => {
+    void router.push({ path: '/favorites', query: { ...route.query, tab: value } })
+  },
+})
 const { ids: playerIds } = usePlayerFavorites()
 const {
   selectedDate,
   minDate,
   maxDate,
-  setDate,
   expandedGameId,
   toggleDetails,
   isFavorite,
   toggleFavorite,
   favoriteIds,
 } = center
+function setDate(date: string) {
+  if (date < minDate.value || date > maxDate.value) return
+  void router.push({ path: '/favorites', query: { ...route.query, tab: 'games', date } })
+}
+const gameReturnTo = computed(
+  () =>
+    router.resolve({
+      path: '/favorites',
+      query: { ...route.query, tab: 'games', date: selectedDate.value },
+    }).fullPath,
+)
 const teamIds = teams.favoriteIds
 const displayedTeams = computed(() =>
   statsHidden.value
@@ -182,7 +196,7 @@ const displayedTeams = computed(() =>
               :game="game"
               :favorite="isFavorite(game.id)"
               :expanded="expandedGameId === game.id"
-              :details-to="gameDetailsPath(game, `/favorites?tab=games&date=${selectedDate}`)"
+              :details-to="gameDetailsPath(game, gameReturnTo)"
               @favorite="toggleFavorite(game.id)"
               @details="toggleDetails(game.id)"
             />

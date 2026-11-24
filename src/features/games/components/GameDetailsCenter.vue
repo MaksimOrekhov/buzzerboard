@@ -74,7 +74,9 @@ const unavailableDetails = computed(() =>
               ? 'К профилю команды'
               : returnTo.startsWith('/players/')
                 ? 'К профилю игрока'
-                : 'К игровому дню'
+                : returnTo.startsWith('/favorites')
+                  ? 'К избранным матчам'
+                  : 'К игровому дню'
           }}</RouterLink
         ></template
       >

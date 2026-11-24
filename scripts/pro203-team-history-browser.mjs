@@ -86,9 +86,20 @@ export async function checkTeamHistory({ page, capture }) {
   const currentArena = page.locator('dd').filter({ hasText: 'Crypto.com Arena' })
   await currentArena.waitFor()
   assert.equal(
-    await currentArena.getByRole('link', { name: 'Источник' }).getAttribute('href'),
+    await currentArena
+      .getByRole('link', { name: 'Источник: домашняя арена Crypto.com Arena' })
+      .getAttribute('href'),
     'https://www.nba.com/news/all-30-nba-arenas-by-team',
   )
+  const arenaName = currentArena.getByRole('link', { name: 'Crypto.com Arena', exact: true })
+  const citation = currentArena.getByRole('link', {
+    name: 'Источник: домашняя арена Crypto.com Arena',
+  })
+  const [arenaBox, citationBox] = await Promise.all([
+    arenaName.boundingBox(),
+    citation.boundingBox(),
+  ])
+  assert.ok(citationBox.x >= arenaBox.x + arenaBox.width + 2, 'Source is separated from arena')
 
   await overview.focus()
   await page.keyboard.press('Enter')

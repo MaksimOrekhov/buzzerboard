@@ -13,6 +13,7 @@ import { checkTeamJerseys } from './pro207-team-jerseys-browser.mjs'
 import { checkUiAudit } from './pro217-ui-browser.mjs'
 import { checkJerseyViewer } from './pro218-jersey-viewer-browser.mjs'
 import { checkYesterdayRefresh } from './pro219-yesterday-browser.mjs'
+import { checkFavoritesNavigation } from './pro221-favorites-browser.mjs'
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const baselineRoot = process.env.BUZZERBOARD_VISUAL_BASELINE_ROOT
@@ -478,7 +479,35 @@ try {
     await visit()
     await page.locator('.gc-score-row').last().waitFor()
     assert.equal(await page.locator('.gc-score-row').count(), 15)
+    assert.match(await page.locator('.gc-data-status').first().innerText(), /DunkAPI/)
+    assert.equal(await page.locator('.gc-data-status').count(), 1)
+    assert.equal(
+      await page
+        .locator('.gc-data-status')
+        .evaluate((node) =>
+          Boolean(
+            node.compareDocumentPosition(document.querySelector('.gc-scoreboard')) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+          ),
+        ),
+      true,
+    )
     await capture('ready')
+    if (width === 375) {
+      mode = 'error'
+      await page.getByRole('button', { name: 'Обновить данные' }).click()
+      await page
+        .locator('.gc-data-status')
+        .getByText(/Обновление не удалось/)
+        .waitFor()
+      assert.equal(await page.locator('.gc-score-row').count(), 15)
+      mode = 'ready'
+      await page.getByRole('button', { name: 'Обновить данные' }).click()
+      await page
+        .locator('.gc-data-status')
+        .getByText(/Обновление не удалось/)
+        .waitFor({ state: 'hidden' })
+    }
     // Search, team filter, date reset, status, sort, and persisted favorites.
     await page.getByRole('searchbox', { name: 'Поиск команды' }).fill('exceptionally')
     assert.equal(await page.locator('.gc-score-row').count(), 1)
@@ -586,9 +615,28 @@ try {
       else if (state === 'error')
         await page.getByText('За этот день пока нет данных', { exact: true }).waitFor()
       else await page.getByText('Данные устарели', { exact: false }).waitFor()
+      if (state === 'loading' || state === 'error') {
+        assert.equal(await page.getByRole('group', { name: 'Статус матчей' }).count(), 0)
+      } else if (state === 'empty') {
+        assert.match(
+          await page.getByRole('group', { name: 'Статус матчей' }).innerText(),
+          /Все матчи\s*0/,
+        )
+      } else {
+        assert.match(
+          await page.locator('.gc-data-status').first().innerText(),
+          /Данные устарели.*DunkAPI/,
+        )
+      }
       await capture(state)
     }
 
+    if (width === 375) {
+      mode = 'error'
+      await page.goto('http://127.0.0.1:4186/teams')
+      await page.getByText('Данные команд пока недоступны. Попробуйте ещё раз позже.').waitFor()
+      await page.getByRole('button', { name: 'Повторить', exact: true }).waitFor()
+    }
     // All routes share the same shell, tokens and keyboard navigation.
     mode = 'ready'
     for (const [name, route] of [
@@ -679,6 +727,9 @@ try {
     await page.locator('.gc-score-row').first().waitFor()
     assert.equal(await page.locator('.gc-score-row').count(), 1)
     await capture('favorites-games')
+    if ([375, 1440].includes(width)) {
+      await checkFavoritesNavigation({ page, today, shift, capture })
+    }
     // Source errors, stale data and incomplete/ambiguous GB remain honest.
     for (const state of ['loading', 'empty', 'error', 'stale']) {
       mode = state
@@ -739,6 +790,7 @@ try {
           call.method === 'GET' &&
           (call.path === '/api/games' ||
             call.path === '/api/standings' ||
+            call.path === '/api/teams' ||
             /^\/api\/players(?:\/[^/]+)?$/.test(call.path) ||
             /^\/api\/games\/[^/]+$/.test(call.path)),
       ),

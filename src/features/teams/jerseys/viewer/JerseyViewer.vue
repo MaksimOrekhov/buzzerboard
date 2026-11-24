@@ -46,14 +46,14 @@ const stageLabel = computed(() => {
             :aria-pressed="side === 'front'"
             @click="selectSide('front')"
           >
-            Front
+            Спереди
           </AppButton>
           <AppButton
             :variant="side === 'back' ? 'primary' : 'secondary'"
             :aria-pressed="side === 'back'"
             @click="selectSide('back')"
           >
-            Back
+            Сзади
           </AppButton>
           <AppButton
             v-if="mode === '3d'"
@@ -61,7 +61,7 @@ const stageLabel = computed(() => {
             :aria-pressed="autoRotate"
             @click="toggleAutoRotate"
           >
-            Auto rotate
+            Автоповорот
           </AppButton>
         </div>
         <div v-if="mode === '3d'" class="viewer-zoom" role="group" aria-label="Масштаб">
