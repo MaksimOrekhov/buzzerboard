@@ -231,6 +231,7 @@ export async function checkSpoilerMode({
   await visit(details(first))
   await button('Показать результат').waitFor()
   const detail = page.locator('.game-details-view')
+  assert.equal(await detail.locator('h1').innerText(), 'Карточка матча')
   await noResult(detail, ['>149<', '>137<', 'Победитель', 'Synthetic scorer'])
   assert.equal(await page.evaluate(() => window.spoilerFlash), false)
   await capture('spoilers-game-detail')

@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import './game-details.css'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useGameDetails } from '@/features/games/composables/useGameDetails'
 import { useGameDetailsModel } from '@/features/games/composables/useGameDetailsModel'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import AppButton from '@/shared/components/AppButton.vue'
-import PageHeading from '@/shared/components/PageHeading.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
 import GameScoreHero from './GameScoreHero.vue'
@@ -28,6 +27,10 @@ const comparisonTeams = computed(() =>
     (team) => boxScore.value?.teams.find((row) => row.team.id === team?.id) ?? null,
   ),
 )
+const selectedSide = ref<'away' | 'home'>('away')
+const selectedTeam = computed(
+  () => game.value?.[selectedSide.value === 'away' ? 'awayTeam' : 'homeTeam'] ?? null,
+)
 const model = useGameDetailsModel(() => boxScore.value)
 const teamPlayers = (teamId: string) =>
   model.activePlayers.value.filter((line) => line.player.teamId === teamId)
@@ -45,42 +48,38 @@ const fetchErrorDescription = computed(() =>
     ? 'Проверьте игровой день или вернитесь к списку матчей.'
     : 'Последний сохранённый снимок матча пока недоступен.',
 )
+const awaitingGame = computed(
+  () =>
+    game.value &&
+    ['scheduled', 'postponed', 'canceled', 'unknown'].includes(game.value.status) &&
+    game.value.score.away === null &&
+    game.value.score.home === null,
+)
 const unavailableDetails = computed(() =>
-  response.value?.boxScoreAvailability === 'snapshot_mismatch'
-    ? 'Снимки матча и статистики не совпадают. Показан текущий результат без противоречивых данных игроков.'
-    : boxScoreMeta.value?.refreshError
-      ? 'Обновление не удалось. Доступен последний сохранённый результат.'
-      : 'Пока доступен только результат матча.',
+  awaitingGame.value
+    ? 'Расписание и сведения о площадке остаются доступными.'
+    : response.value?.boxScoreAvailability === 'snapshot_mismatch'
+      ? 'Снимки матча и статистики не совпадают. Показан текущий результат без противоречивых данных игроков.'
+      : boxScoreMeta.value?.refreshError
+        ? 'Обновление не удалось. Доступен последний сохранённый результат.'
+        : 'Пока доступен только результат матча.',
 )
 </script>
 
 <template>
   <div class="game-details-view">
-    <PageHeading
-      eyebrow="Game Center · Детали"
-      :title="
-        game
-          ? `${game.awayTeam.abbreviation ?? 'Гости'} — ${game.homeTeam.abbreviation ?? 'Хозяева'}`
-          : 'Карточка матча'
-      "
-      description="Результат, сравнение команд и статистика игроков."
-    >
-      <template #actions
-        ><RouterLink
-          class="gc-control ui-button ui-button--secondary game-detail-back"
-          :to="returnTo"
-          ><AppIcon name="arrow" :size="16" />{{
-            returnTo.startsWith('/teams/')
-              ? 'К профилю команды'
-              : returnTo.startsWith('/players/')
-                ? 'К профилю игрока'
-                : returnTo.startsWith('/favorites')
-                  ? 'К избранным матчам'
-                  : 'К игровому дню'
-          }}</RouterLink
-        ></template
-      >
-    </PageHeading>
+    <h1 class="visually-hidden">Карточка матча</h1>
+    <RouterLink class="game-detail-back" :to="returnTo">
+      <AppIcon name="arrow" :size="16" />{{
+        returnTo.startsWith('/teams/')
+          ? 'К профилю команды'
+          : returnTo.startsWith('/players/')
+            ? 'К профилю игрока'
+            : returnTo.startsWith('/favorites')
+              ? 'К избранным матчам'
+              : 'К игровому дню'
+      }}
+    </RouterLink>
 
     <ResourceState
       v-if="invalidRoute"
@@ -113,18 +112,35 @@ const unavailableDetails = computed(() =>
       ></template>
     </ResourceState>
     <template v-else-if="game">
-      <GameScoreHero :game="game" :hidden="hidden" :schedule-only="scheduleOnly" />
-      <GameGeography :game="game" />
+      <GameScoreHero
+        id="game-overview"
+        tabindex="-1"
+        :game="game"
+        :hidden="hidden"
+        :schedule-only="scheduleOnly"
+      />
       <template v-if="!hidden && !scheduleOnly">
         <p v-if="query.isRefetchError.value" class="gc-notice gc-notice--warning" role="status">
           Не удалось обновить данные. Показан предыдущий результат.
         </p>
-        <SnapshotStatus v-if="scoreMeta" :meta="scoreMeta" />
+        <div class="game-detail-snapshots">
+          <div v-if="scoreMeta">
+            <span>{{ awaitingGame ? 'Расписание' : 'Результат' }}</span><SnapshotStatus
+              :meta="scoreMeta"
+            />
+          </div>
+          <div v-if="boxScoreMeta">
+            <span>Статистика</span><SnapshotStatus :meta="boxScoreMeta" />
+          </div>
+        </div>
+        <nav class="game-detail-nav" aria-label="Разделы матча">
+          <a href="#game-overview">Обзор</a
+          ><a v-if="boxScore" href="#player-box-score-heading">Игроки</a
+          ><a v-if="boxScore && leaders.length" href="#game-leaders-heading">Лидеры</a
+          ><a v-if="boxScore" href="#team-box-score-heading">Сравнение</a
+          ><a href="#game-arena">Арена</a>
+        </nav>
         <div v-if="boxScore" class="game-detail-data">
-          <TeamBoxScoreComparison
-            :teams="comparisonTeams"
-            :match-teams="[game.awayTeam, game.homeTeam]"
-          />
           <section
             v-if="leaders.length"
             class="game-detail-leaders"
@@ -132,8 +148,8 @@ const unavailableDetails = computed(() =>
           >
             <header class="game-detail-section-heading">
               <div>
-                <span>02 / ИГРОКИ</span>
-                <h2 id="game-leaders-heading">Лидеры среди доступных данных</h2>
+                <span>01 / ИГРОКИ</span>
+                <h2 id="game-leaders-heading" tabindex="-1">Лидеры среди доступных данных</h2>
               </div>
             </header>
             <article v-for="leader in leaders" :key="leader.key" class="game-leader-card">
@@ -150,28 +166,40 @@ const unavailableDetails = computed(() =>
               </div>
             </article>
           </section>
+          <TeamBoxScoreComparison
+            :teams="comparisonTeams"
+            :match-teams="[game.awayTeam, game.homeTeam]"
+          />
           <section class="game-detail-panel" aria-labelledby="player-box-score-heading">
             <header class="game-detail-section-heading">
               <div>
-                <span>{{ leaders.length ? '03' : '02' }} / ИГРОКИ</span>
-                <h2 id="player-box-score-heading">Статистика игроков</h2>
+                <span>03 / ИГРОКИ</span>
+                <h2 id="player-box-score-heading" tabindex="-1">Статистика игроков</h2>
               </div>
               <p>Выберите набор показателей и нажмите на заголовок столбца.</p>
             </header>
-            <div class="player-box-score-grid">
-              <PlayerBoxScoreTable
-                v-for="team in [game.awayTeam, game.homeTeam]"
-                :key="team.id"
-                :team="team"
-                :players="teamPlayers(team.id)"
-                :did-not-play="teamDnp(team.id)"
-                :sort-by="model.sortBy.value"
-                :direction="model.direction.value"
-                @sort="model.setSort"
-              />
+            <div class="game-detail-team-picker" role="group" aria-label="Команда">
+              <button
+                v-for="side in ['away', 'home'] as const"
+                :key="side"
+                type="button"
+                class="gc-control"
+                :aria-pressed="selectedSide === side"
+                @click="selectedSide = side"
+              >
+                {{ (side === 'away' ? game.awayTeam : game.homeTeam).displayName }}
+              </button>
             </div>
+            <PlayerBoxScoreTable
+              v-if="selectedTeam"
+              :team="selectedTeam"
+              :players="teamPlayers(selectedTeam.id)"
+              :did-not-play="teamDnp(selectedTeam.id)"
+              :sort-by="model.sortBy.value"
+              :direction="model.direction.value"
+              @sort="model.setSort"
+            />
           </section>
-          <SnapshotStatus v-if="boxScoreMeta" :meta="boxScoreMeta" />
         </div>
         <section
           v-else
@@ -181,17 +209,21 @@ const unavailableDetails = computed(() =>
           <div class="game-detail-no-box-icon"><AppIcon name="chart" :size="20" /></div>
           <div>
             <span>BOX SCORE</span>
-            <h2 id="no-boxscore-heading">Подробная статистика пока недоступна</h2>
+            <h2 id="no-boxscore-heading">
+              {{
+                awaitingGame ? 'Статистика появится позже' : 'Подробная статистика пока недоступна'
+              }}
+            </h2>
             <p>{{ unavailableDetails }}</p>
           </div>
           <AppIcon name="database" :size="17" />
         </section>
-        <SnapshotStatus v-if="boxScoreMeta && !boxScore" :meta="boxScoreMeta" />
         <footer class="game-detail-footnote">
           Числа без значения источника показаны как «—». Проценты и лидеры рассчитаны только из
           полученных строк.
         </footer>
       </template>
+      <GameGeography id="game-arena" tabindex="-1" :game="game" />
     </template>
   </div>
 </template>

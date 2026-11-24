@@ -593,3 +593,287 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Match report */
+.game-detail-back {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--gc-secondary);
+  font-size: 14px;
+  font-weight: 700;
+}
+.game-detail-hero {
+  padding: 16px 20px;
+  background: var(--gc-panel);
+}
+.game-detail-hero-meta {
+  justify-content: flex-start;
+  text-align: left;
+}
+.game-detail-scoreline {
+  max-width: none;
+  padding-block: 20px;
+}
+.game-detail-team-link {
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-items: start;
+  text-align: left;
+  font-size: 18px;
+}
+.game-detail-team-link .gc-team-logo {
+  grid-row: span 2;
+}
+.game-detail-team-link small {
+  grid-column: 2;
+}
+.game-detail-side--home .game-detail-team-link {
+  direction: rtl;
+  text-align: right;
+}
+.game-detail-side--home .game-detail-team-link > * {
+  direction: ltr;
+}
+.game-detail-side > strong {
+  font-size: clamp(32px, 4vw, 48px);
+}
+.game-detail-side--winner > strong,
+.game-detail-side--winner .game-detail-team-link {
+  color: var(--gc-accent);
+  font-weight: 800;
+}
+.game-detail-venue {
+  justify-content: flex-start;
+  text-align: left;
+  padding-bottom: 4px;
+}
+.game-detail-periods {
+  max-width: none;
+  margin: 4px 0 0 auto;
+}
+.game-detail-periods caption {
+  padding: 0;
+}
+.game-detail-periods td,
+.game-detail-periods th {
+  padding: 4px;
+}
+.game-detail-snapshots {
+  display: grid;
+  gap: 4px;
+}
+.game-detail-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  border-bottom: 1px solid var(--gc-line);
+}
+.game-detail-nav a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--gc-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.game-detail-nav a:hover,
+.game-detail-nav a:focus-visible {
+  color: var(--gc-accent);
+}
+.game-detail-team-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 20px 0;
+}
+.game-detail-team-picker button[aria-pressed='true'] {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  border-color: var(--gc-accent);
+}
+.game-leader-card {
+  margin: 12px;
+  border: 1px solid var(--gc-line);
+  border-radius: 8px;
+  background: var(--gc-accent-soft);
+}
+.game-leader-card + .game-leader-card {
+  border-left: 1px solid var(--gc-line);
+}
+.player-box-table-scroll:not(.player-box-table-scroll--basic) .player-box-table {
+  min-width: 720px;
+}
+.player-box-table-scroll:not(.player-box-table-scroll--basic) .player-box-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--gc-panel);
+}
+.player-box-table-scroll:not(.player-box-table-scroll--basic)
+  .player-box-table
+  thead
+  th:first-child {
+  background: var(--gc-bg);
+}
+@media (max-width: 640px) {
+  .game-detail-hero {
+    padding: 12px;
+  }
+  .game-detail-scoreline {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 12px 0;
+  }
+  .game-detail-side,
+  .game-detail-hero--schedule .game-detail-side {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .game-detail-side--home {
+    flex-direction: row-reverse;
+    border-top: 1px solid var(--gc-line);
+  }
+  .game-detail-team-link,
+  .game-detail-side--home .game-detail-team-link {
+    direction: ltr;
+    grid-template-columns: auto minmax(0, 1fr);
+    text-align: left;
+    font-size: 15px;
+    gap: 2px 8px;
+  }
+  .game-detail-team-link .gc-team-logo {
+    grid-row: span 2;
+  }
+  .game-detail-side > strong {
+    font-size: 30px;
+  }
+  .game-detail-center {
+    display: none;
+  }
+  .game-detail-leaders {
+    grid-template-columns: 1fr;
+  }
+  .game-leader-card {
+    margin: 6px 12px;
+  }
+  .game-leader-card:last-child {
+    margin-bottom: 12px;
+  }
+  .game-leader-card + .game-leader-card {
+    border: 1px solid var(--gc-line);
+  }
+  .player-box-table-scroll--basic .player-box-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .player-box-table-scroll--basic .player-box-table th:first-child {
+    width: 37%;
+  }
+  .player-box-table-scroll--basic .player-box-table :is(th, td) {
+    padding-inline: 2px;
+  }
+}
+.game-detail-hero {
+  display: grid;
+  grid-template-areas: 'meta meta' 'score score' 'venue periods' 'reveal reveal';
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 36%);
+}
+.game-detail-hero-meta {
+  grid-area: meta;
+}
+.game-detail-scoreline {
+  grid-area: score;
+  width: 100%;
+}
+.game-detail-venue {
+  grid-area: venue;
+}
+.game-detail-periods {
+  grid-area: periods;
+  width: 100%;
+}
+.game-detail-reveal {
+  grid-area: reveal;
+}
+.game-detail-snapshots > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--gc-muted);
+  font-size: 12px;
+}
+.game-detail-snapshots .gc-data-status {
+  flex: 1;
+}
+@media (max-width: 640px) {
+  .game-detail-hero {
+    grid-template-areas: 'meta' 'score' 'periods' 'venue' 'reveal';
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .game-detail-season {
+    display: none;
+  }
+  .game-detail-scoreline {
+    padding: 4px 0;
+  }
+  .game-detail-side,
+  .game-detail-hero--schedule .game-detail-side {
+    padding: 4px 0;
+  }
+  .game-detail-venue {
+    padding: 8px 0 0;
+    gap: 4px 12px;
+  }
+  .game-detail-periods caption {
+    display: none;
+  }
+}
+.game-detail-side--winner .team-profile-link {
+  color: var(--gc-accent);
+}
+@media (max-width: 640px) {
+  .player-stat-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .player-stat-controls button {
+    min-height: 44px;
+    padding-inline: 4px;
+  }
+  .game-detail-team-picker {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px 12px 0;
+  }
+  .game-detail-team-picker button {
+    min-height: 44px;
+    padding-inline: 6px;
+  }
+  .player-box-score-heading {
+    padding-top: 10px;
+  }
+}
+.game-detail-team-picker button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.game-detail-side > strong {
+  font-weight: 500;
+}
+.game-detail-side--winner > strong {
+  font-weight: 800;
+}
+@media (max-width: 640px) {
+  .game-detail-hero--schedule .game-detail-side--home {
+    flex-direction: row;
+  }
+}
+.game-detail-team-picker button {
+  min-width: 0;
+}

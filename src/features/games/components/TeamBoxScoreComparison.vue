@@ -70,8 +70,8 @@ function advancedValues(
   <section class="game-detail-panel" aria-labelledby="team-box-score-heading">
     <header class="game-detail-section-heading">
       <div>
-        <span>01 / КОМАНДЫ</span>
-        <h2 id="team-box-score-heading">Сравнение команд</h2>
+        <span>02 / КОМАНДЫ</span>
+        <h2 id="team-box-score-heading" tabindex="-1">Сравнение команд</h2>
       </div>
       <p>Попадания/попытки и процент для бросков</p>
     </header>

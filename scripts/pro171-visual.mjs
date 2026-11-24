@@ -14,6 +14,7 @@ import { checkUiAudit } from './pro217-ui-browser.mjs'
 import { checkJerseyViewer } from './pro218-jersey-viewer-browser.mjs'
 import { checkYesterdayRefresh } from './pro219-yesterday-browser.mjs'
 import { checkFavoritesNavigation } from './pro221-favorites-browser.mjs'
+import { checkGameDetailsAnchors, checkGameDetailsHeadingStates } from './pro224-anchor-browser.mjs'
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const baselineRoot = process.env.BUZZERBOARD_VISUAL_BASELINE_ROOT
@@ -554,6 +555,13 @@ try {
     await page.getByRole('heading', { name: 'Сравнение команд' }).waitFor()
     assert.equal(await page.getByRole('heading', { name: 'Статистика игроков' }).isVisible(), true)
     assert.equal(await page.locator('.game-detail-hero').isVisible(), true)
+    if (width === 375 || width === 1440) await checkGameDetailsAnchors(page)
+    if (width === 375)
+      await checkGameDetailsHeadingStates({
+        context,
+        detailUrl: page.url(),
+        setMode: (value) => (mode = value),
+      })
     assert.equal(
       (await page.locator('.player-dnp summary').first().innerText())
         .replaceAll(/\s+/g, ' ')
@@ -568,8 +576,18 @@ try {
     await playerTable.getByRole('button', { name: 'Сортировать по: Броски с игры, %' }).click()
     await playerTable.getByRole('button', { name: 'Основное', exact: true }).click()
     assert.equal(await playerTable.locator('tbody tr').count(), 13)
-    assert.equal(await page.locator('.player-box-score').last().locator('tbody tr').count(), 15)
+    await page
+      .getByRole('group', { name: 'Команда', exact: true })
+      .getByRole('button')
+      .last()
+      .click()
+    assert.equal(await page.locator('.player-box-score tbody tr').count(), 15)
     assert.equal(await page.getByText('Участие не подтверждено', { exact: true }).count(), 1)
+    await page
+      .getByRole('group', { name: 'Команда', exact: true })
+      .getByRole('button')
+      .first()
+      .click()
     assert.equal(await page.locator('.game-leader-card').first().locator('small').count(), 2)
     assert.equal(
       await playerTable
