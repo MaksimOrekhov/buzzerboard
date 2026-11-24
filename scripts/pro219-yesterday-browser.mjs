@@ -64,7 +64,7 @@ export async function checkYesterdayRefresh({ browser, games, meta, output }) {
       await page.clock.setFixedTime(new Date('2026-11-23T09:55:00Z'))
       await page.goto(origin + '/games?date=' + yesterday)
       const rows = page.locator('.gc-score-row')
-      const resultLinks = rows.getByRole('link', { name: 'Открыть карточку матча' })
+      const resultLinks = rows.getByRole('link', { name: /^Открыть матч:/ })
       const spoiler = page.getByRole('button', { name: 'Без спойлеров', exact: true })
       const pending = page.getByText('Ждём подтверждённые результаты от источника.')
       await rows.nth(6).waitFor()
@@ -94,6 +94,7 @@ export async function checkYesterdayRefresh({ browser, games, meta, output }) {
         assert.equal(await pending.count(), 0)
         await page.screenshot({ path: path.join(output, 'pro219-320-yesterday-spoilers.png') })
       } else {
+        await page.getByRole('button', { name: /^Фильтры/ }).click()
         const search = page.getByRole('searchbox', { name: 'Поиск команды' })
         await search.fill(finals[0].homeTeam.abbreviation)
         await returnFocus(page)

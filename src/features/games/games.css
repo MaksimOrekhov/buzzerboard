@@ -736,3 +736,544 @@
     grid-template-columns: 31px minmax(0, 1fr);
   }
 }
+
+/* PRO-223: compact Game Center scoreboard. Other uses of GameScoreRow retain their layout. */
+.gc-view .gc-page-heading {
+  margin-bottom: 20px;
+}
+.gc-view .gc-date-panel {
+  margin-bottom: 26px;
+}
+.gc-view .gc-date-panel-top {
+  min-height: 72px;
+  padding: 10px 14px;
+  border: 0;
+  gap: 14px;
+}
+.gc-date-selector {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.gc-date-selector .gc-date-trigger {
+  padding: 5px 4px;
+  gap: 5px;
+}
+.gc-date-step {
+  width: 30px;
+  min-height: 44px;
+}
+.gc-view .gc-date-hint {
+  text-align: right;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.gc-date-hint span {
+  margin-inline: 5px;
+}
+.gc-view .gc-games {
+  position: relative;
+}
+.gc-view .gc-day-heading {
+  min-height: 43px;
+  margin: 0 0 10px;
+  padding-right: 130px;
+}
+.gc-section-kicker {
+  display: block;
+  color: var(--gc-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.gc-view .gc-day-heading h2 {
+  margin-top: 3px;
+}
+.gc-view .gc-game-count {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 5px;
+  padding: 3px 7px;
+}
+.gc-filter-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-height: 44px;
+}
+.gc-filter-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 50%;
+  color: var(--gc-bg);
+  background: var(--gc-accent);
+  font-size: 11px;
+}
+.gc-view .gc-status-tabs {
+  min-height: 44px;
+}
+.gc-view .gc-status-tab {
+  padding-bottom: 0;
+}
+.gc-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) minmax(130px, 1fr) minmax(140px, 1fr) auto auto;
+  gap: 9px;
+  align-items: end;
+  padding: 12px;
+  margin-top: 10px;
+  border: 1px solid var(--gc-line);
+  border-radius: 9px;
+  background: var(--gc-panel);
+}
+.gc-filter-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--gc-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+.gc-filter-field .gc-search,
+.gc-filter-field .gc-select {
+  min-height: 44px;
+  width: 100%;
+  max-width: none;
+}
+.gc-filter-field .gc-search {
+  background: var(--gc-bg);
+}
+.gc-filter-panel .gc-control {
+  min-height: 44px;
+}
+.gc-filter-panel .gc-favorites-filter > span {
+  display: initial;
+}
+.gc-filter-summary {
+  margin-top: 8px;
+  color: var(--gc-secondary);
+  font-size: 12px;
+}
+.gc-view .gc-data-status--prominent {
+  margin-block: 6px;
+}
+.gc-view .gc-notice {
+  padding: 3px 0;
+  margin: 0 0 7px;
+  line-height: 1.4;
+}
+.gc-view .gc-notice--warning {
+  padding: 7px 10px;
+}
+.gc-view .gc-scoreboard-labels {
+  min-height: 26px;
+  grid-template-columns: 66px minmax(0, 1fr) 128px minmax(0, 1fr) 44px;
+}
+.gc-scoreboard-row {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr) 128px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  min-height: 78px;
+  padding: 8px 12px;
+}
+.gc-scoreboard-time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 5px;
+  color: var(--gc-text);
+  font-size: 12px;
+  font-weight: 750;
+}
+.gc-scoreboard-time > span {
+  color: var(--gc-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+.gc-scoreboard-time .gc-scoreboard-status {
+  flex-basis: 100%;
+  color: var(--gc-secondary);
+}
+.gc-scoreboard-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.gc-scoreboard-team > a {
+  min-width: 0;
+  text-decoration: none;
+}
+.gc-scoreboard-team > a:hover .gc-team-name {
+  color: var(--gc-accent);
+}
+.gc-scoreboard-team--home {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+.gc-team-role {
+  display: block;
+  color: var(--gc-muted);
+  font-size: 10px;
+  line-height: 1.2;
+}
+.gc-scoreboard-team .gc-team-name {
+  font-size: 13px;
+  line-height: 1.3;
+}
+.gc-scoreboard-result {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-width: 0;
+  min-height: 58px;
+  padding: 5px;
+  border-radius: 7px;
+  background: var(--gc-accent-soft);
+  color: var(--gc-text);
+  text-align: center;
+  text-decoration: none;
+}
+.gc-scoreboard-result:hover {
+  background: #27485e;
+}
+.gc-scoreboard-numbers {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.gc-scoreboard-colon {
+  color: var(--gc-muted);
+  font-weight: 500;
+}
+.gc-scoreboard-action,
+.gc-protected-details {
+  color: var(--gc-accent);
+  font-size: 10px;
+  font-weight: 700;
+}
+.gc-scoreboard-scheduled {
+  font-size: 12px;
+  font-weight: 700;
+}
+.gc-scoreboard-favorite {
+  width: 44px;
+  height: 44px;
+}
+.gc-scoreboard-result--hidden .spoiler-game-reveal {
+  font-size: 11px;
+}
+.gc-protected-details {
+  display: block;
+  padding: 3px;
+}
+.gc-insights--compact .gc-insights-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 43px;
+  margin-bottom: 10px;
+}
+.gc-insights-title h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.gc-focus-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  margin-bottom: 10px;
+  border: 1px solid #33485d;
+  border-radius: 10px;
+  background: linear-gradient(140deg, #1c2b3b, var(--gc-panel));
+  color: var(--gc-text);
+  text-decoration: none;
+}
+.gc-focus-card:hover {
+  border-color: var(--gc-accent);
+}
+.gc-focus-label {
+  color: var(--gc-accent);
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gc-focus-card strong {
+  color: #d5efff;
+  font-size: 32px;
+  line-height: 1;
+}
+.gc-focus-card small {
+  color: var(--gc-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+.gc-focus-teams {
+  color: var(--gc-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+.gc-focus-caption,
+.gc-focus-footnote {
+  color: var(--gc-muted);
+  font-size: 11px;
+}
+.gc-focus-caption {
+  display: flex;
+  justify-content: space-between;
+}
+.gc-focus-caption b {
+  color: var(--gc-accent);
+  font-size: 17px;
+}
+.gc-focus-footnote {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+@media (max-width: 1270px) {
+  .gc-filter-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gc-filter-search {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 1100px) {
+  .gc-insights--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gc-insights--compact .gc-insights-title,
+  .gc-insights--compact .gc-focus-footnote {
+    grid-column: 1 / -1;
+  }
+  .gc-view .gc-date-panel-top {
+    flex-wrap: wrap;
+  }
+  .gc-view .gc-date-hint {
+    flex-basis: 100%;
+    text-align: left;
+  }
+}
+@media (max-width: 620px) {
+  .gc-view .gc-page-heading {
+    margin-bottom: 14px;
+  }
+  .gc-view .gc-page-heading p {
+    display: none;
+  }
+  .gc-view .gc-date-panel {
+    margin-bottom: 19px;
+  }
+  .gc-view .gc-date-panel-top {
+    min-height: 0;
+    padding: 8px;
+    gap: 4px;
+    justify-content: space-between;
+  }
+  .gc-date-selector .gc-date-trigger {
+    font-size: 11px !important;
+  }
+  .gc-date-step {
+    width: 24px;
+  }
+  .gc-view .gc-quick-dates {
+    gap: 0;
+  }
+  .gc-view .gc-quick-dates > button {
+    padding-inline: 6px;
+    font-size: 10px;
+  }
+  .gc-view .gc-date-hint {
+    font-size: 9px;
+  }
+  .gc-view .gc-day-heading {
+    margin-bottom: 5px;
+  }
+  .gc-view .gc-day-heading h2 {
+    font-size: 19px;
+  }
+  .gc-view .gc-status-tabs {
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+  .gc-view .gc-status-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    font-size: 11px !important;
+  }
+  .gc-view .gc-data-status--prominent {
+    margin-block: 3px;
+    font-size: 11px;
+  }
+  .gc-view .gc-notice {
+    font-size: 11px;
+  }
+  .gc-view .gc-scoreboard-labels {
+    display: none;
+  }
+  .gc-scoreboard-row {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) 86px 44px;
+    grid-template-rows: 28px minmax(36px, auto) minmax(36px, auto);
+    gap: 0 5px;
+    min-height: 128px;
+    padding: 7px 7px 8px 10px;
+  }
+  .gc-scoreboard-time {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    white-space: nowrap;
+  }
+  .gc-scoreboard-time .gc-scoreboard-status {
+    flex-basis: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gc-scoreboard-team {
+    grid-column: 1;
+    gap: 7px;
+  }
+  .gc-scoreboard-team--away {
+    grid-row: 2;
+  }
+  .gc-scoreboard-team--home {
+    grid-row: 3;
+    flex-direction: row;
+    text-align: left;
+  }
+  .gc-scoreboard-team .gc-team-logo {
+    width: 30px !important;
+    height: 30px !important;
+    flex: 0 0 30px;
+  }
+  .gc-scoreboard-team .gc-team-name {
+    font-size: 12px;
+  }
+  .gc-team-role {
+    font-size: 9px;
+  }
+  .gc-scoreboard-result {
+    grid-column: 2;
+    grid-row: 2 / 4;
+    align-self: stretch;
+    min-height: 76px;
+  }
+  .gc-scoreboard-numbers {
+    display: grid;
+    gap: 2px;
+    font-size: 20px;
+  }
+  .gc-scoreboard-colon {
+    display: none;
+  }
+  .gc-scoreboard-favorite {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: start;
+  }
+  .gc-scoreboard-result--hidden .spoiler-game-reveal .ui-button {
+    padding: 3px;
+    font-size: 10px;
+  }
+  .gc-protected-details {
+    font-size: 9px;
+  }
+  .gc-insights--compact {
+    grid-template-columns: 1fr;
+  }
+  .gc-insights--compact .gc-insights-title {
+    min-height: 0;
+    margin: 0;
+  }
+}
+@media (max-width: 370px) {
+  .gc-view .gc-quick-dates > button {
+    padding-inline: 4px;
+    font-size: 9px;
+  }
+  .gc-date-selector .gc-date-trigger {
+    font-size: 10px !important;
+  }
+  .gc-view .gc-status-tabs {
+    gap: 7px;
+  }
+  .gc-view .gc-status-tab {
+    font-size: 10px !important;
+  }
+  .gc-scoreboard-row {
+    grid-template-columns: minmax(0, 1fr) 75px 44px;
+  }
+}
+.gc-view .gc-scoreboard-labels {
+  display: none;
+}
+.gc-scoreboard-action {
+  white-space: nowrap;
+}
+@media (max-width: 620px) {
+  .gc-view .gc-date-panel-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .gc-date-selector {
+    justify-content: space-between;
+  }
+  .gc-view .gc-date-hint {
+    grid-column: 1 / -1;
+  }
+  .gc-view .gc-quick-dates > button {
+    min-height: 38px;
+  }
+}
+.gc-view .gc-filter-panel .gc-favorites-filter {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 8px;
+}
+.gc-view .gc-filter-panel .gc-filter-reset {
+  min-width: 0;
+  white-space: normal;
+}
+.gc-date-step {
+  width: 44px;
+}
+@media (max-width: 620px) {
+  .gc-date-step {
+    width: 44px;
+  }
+  .gc-view .gc-quick-dates > button {
+    min-height: 44px;
+  }
+}
+@media (max-width: 370px) {
+  .gc-view .gc-date-panel-top {
+    grid-template-columns: 1fr;
+  }
+  .gc-date-selector {
+    justify-content: flex-start;
+  }
+  .gc-view .gc-date-hint {
+    grid-column: 1;
+  }
+}
+@media (max-width: 370px) {
+  .gc-view .gc-day-heading .gc-section-kicker {
+    display: none;
+  }
+  .gc-view .gc-date-panel {
+    margin-bottom: 12px;
+  }
+}

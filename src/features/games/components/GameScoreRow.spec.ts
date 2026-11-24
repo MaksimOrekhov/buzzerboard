@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { mount, RouterLinkStub } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import GameScoreRow from './GameScoreRow.vue'
@@ -74,5 +74,38 @@ describe('GameScoreRow', () => {
     expect(wrapper.emitted('favorite')).toHaveLength(1)
     expect(wrapper.emitted('details')).toHaveLength(1)
     expect(wrapper.text()).toContain('Счёт по четвертям недоступен.')
+  })
+  it('keeps the scoreboard match, teams and favorite as separate controls and only marks confirmed winners', async () => {
+    const final = {
+      ...game,
+      status: 'final' as const,
+      score: { away: 110, home: 105 },
+      awayTeam: { ...game.awayTeam, id: 'nba:team:BOS' as TeamId },
+      homeTeam: { ...game.homeTeam, id: 'nba:team:NYK' as TeamId },
+    }
+    const wrapper = mount(GameScoreRow, {
+      props: {
+        game: final,
+        favorite: false,
+        expanded: false,
+        detailsTo: '/games/example',
+        scoreboard: true,
+      },
+      global: { stubs: { AppIcon: true, RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.findAllComponents(RouterLinkStub)).toHaveLength(3)
+    expect(wrapper.get('.gc-scoreboard-result').attributes('aria-label')).toContain('Открыть матч')
+    expect(wrapper.get('.gc-scoreboard-status').text()).toBe('Завершён')
+    expect(wrapper.findAll('.gc-winner-marker')).toHaveLength(1)
+    await wrapper.get('.gc-scoreboard-favorite').trigger('click')
+    expect(wrapper.emitted('favorite')).toHaveLength(1)
+    await wrapper.setProps({ game: { ...final, status: 'unknown' } })
+    expect(wrapper.get('.gc-scoreboard-status').text()).toBe('Уточняется')
+    expect(wrapper.find('.gc-winner-marker').exists()).toBe(false)
+    await wrapper.setProps({
+      game: { ...final, status: 'postponed', score: { away: null, home: null } },
+    })
+    expect(wrapper.get('.gc-scoreboard-status').text()).toBe('Перенесён')
+    expect(wrapper.find('.gc-winner-marker').exists()).toBe(false)
   })
 })

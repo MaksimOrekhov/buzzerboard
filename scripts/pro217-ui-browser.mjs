@@ -153,6 +153,7 @@ export async function checkUiAudit({
     if (!baseline) await assertInViewport(page, calendar, 'Calendar')
     await screenshot('calendar-open')
     await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: /^Фильтры/ }).click()
     const gameSelect = page.getByRole('combobox', { name: 'Фильтр по команде' })
     await gameSelect.click()
     const longOption = page.getByRole('option', { name: game.awayTeam.displayName })

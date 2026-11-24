@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import AppDatePicker from '@/shared/components/AppDatePicker.vue'
+import GameCenterDatePanel from './GameCenterDatePanel.vue'
+import GameCenterFilters from './GameCenterFilters.vue'
 import GameScoreRow from './GameScoreRow.vue'
 import GameDayInsights from './GameDayInsights.vue'
-import { shiftGameDate, useGameCenter } from '../composables/useGameCenter'
+import { useGameCenter } from '../composables/useGameCenter'
 import type { GameStatus } from '@/entities/nba/model'
 import AppButton from '@/shared/components/AppButton.vue'
-import AppIcon from '@/shared/components/AppIcon.vue'
-import AppSelect from '@/shared/components/AppSelect.vue'
+
 import PageHeading from '@/shared/components/PageHeading.vue'
-import AppSearch from '@/shared/components/AppSearch.vue'
-import AppSegmented from '@/shared/components/AppSegmented.vue'
+
 import ResourceState from '@/shared/components/ResourceState.vue'
 import SnapshotStatus from '@/shared/components/SnapshotStatus.vue'
-import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
+
 const {
   today,
   minDate,
@@ -37,12 +36,10 @@ const {
   scheduledCount,
   closestGame,
   highestGame,
-  totalPoints,
   activeFilters,
-  displayDate,
+  activeFilterCount,
   errorTitle,
   errorDescription,
-  weekDates,
   setDate,
   resetFilters,
   toggleDetails,
@@ -58,15 +55,10 @@ const labels: Partial<Record<GameStatus, string>> = {
   unknown: 'Уточняются',
   live: 'Уточняются',
 }
-const recentDates = computed(() => [
-  { label: 'Позавчера', value: shiftGameDate(today.value, -2) },
-  { label: 'Вчера', value: shiftGameDate(today.value, -1) },
-  { label: 'Сегодня', value: today.value },
-])
 const tabs = computed(() => [
-  { value: 'all' as const, label: 'Все матчи', count: games.value.length },
-  { value: 'final' as const, label: 'Завершённые', count: finalGames.value.length },
-  { value: 'scheduled' as const, label: 'Предстоящие', count: scheduledCount.value },
+  { value: 'all' as const, label: 'Все', count: games.value.length },
+  { value: 'final' as const, label: 'Завершены', count: finalGames.value.length },
+  { value: 'scheduled' as const, label: 'Впереди', count: scheduledCount.value },
   ...Object.entries(labels)
     .filter(([status]) => games.value.some((game) => statusOf(game) === status))
     .map(([value, label]) => ({
@@ -87,110 +79,51 @@ const scoredCount = computed(
       title="Game Center"
       description="Весь игровой день. Каждый результат."
       ><template #actions
-        ><AppButton icon="refresh" :loading="isFetching" @click="query.refetch()">
+        ><AppButton
+          class="gc-refresh"
+          icon="refresh"
+          aria-label="Обновить данные"
+          :loading="isFetching"
+          @click="query.refetch()"
+        >
           {{ isFetching ? 'Обновляем…' : 'Обновить данные' }}
         </AppButton></template
       ></PageHeading
     >
-    <section class="gc-date-panel" aria-label="Выбор игровой даты">
-      <div class="gc-date-panel-top">
-        <AppDatePicker
-          :model-value="selectedDate"
-          :min="minDate"
-          :max="maxDate"
-          @update:model-value="setDate"
-        />
-        <AppSegmented
-          class="gc-quick-dates"
-          label="Недавние игровые даты"
-          :model-value="selectedDate"
-          :options="recentDates"
-          @update:model-value="setDate"
-        />
-        <span class="gc-date-hint">Вчера и сегодня — игровой день Нью-Йорка (ET)</span>
-      </div>
-      <div class="gc-date-strip">
-        <button
-          class="gc-icon-button gc-week-arrow"
-          aria-label="Предыдущий день"
-          :disabled="selectedDate <= minDate"
-          @click="setDate(shiftGameDate(selectedDate, -1))"
-        >
-          <AppIcon name="chevron-left" />
-        </button>
-        <div class="gc-week-days">
-          <button
-            v-for="day in weekDates"
-            :key="day.date"
-            class="gc-day"
-            :class="{ 'gc-day--selected': day.date === selectedDate }"
-            :aria-label="`${day.label}, ${day.date}`"
-            :aria-pressed="day.date === selectedDate"
-            :disabled="day.disabled"
-            @click="setDate(day.date)"
-          >
-            <span>{{ day.label }}</span><strong>{{ day.day }}</strong
-            ><span class="gc-day-indicator" />
-          </button>
-        </div>
-        <button
-          class="gc-icon-button gc-week-arrow"
-          aria-label="Следующий день"
-          :disabled="selectedDate >= maxDate"
-          @click="setDate(shiftGameDate(selectedDate, 1))"
-        >
-          <AppIcon name="chevron-right" />
-        </button>
-      </div>
-    </section>
+    <GameCenterDatePanel
+      :date="selectedDate"
+      :today="today"
+      :min="minDate"
+      :max="maxDate"
+      @select="setDate"
+    />
     <div class="gc-workspace">
       <section class="gc-games" aria-labelledby="gc-day-heading">
         <div class="gc-day-heading">
           <div>
-            <h2 id="gc-day-heading">{{ displayDate }}</h2>
-            <p><AppIcon name="clock" :size="14" />Время матчей · {{ VIEWER_TIME_ZONE }}</p>
+            <span class="gc-section-kicker">Результаты и расписание</span>
+            <h2 id="gc-day-heading">
+              Матчи дня
+              <span v-if="data && !hasHiddenGames" class="gc-game-count">{{ games.length }}</span>
+            </h2>
           </div>
-          <span v-if="data" class="gc-game-count">{{ games.length }} матчей</span>
         </div>
-        <AppSegmented
-          v-if="data && !hasHiddenGames"
-          v-model="statusFilter"
-          variant="underline"
-          label="Статус матчей"
-          :options="tabs"
+        <GameCenterFilters
+          v-show="!!data"
+          v-model:status="statusFilter"
+          v-model:team="teamFilter"
+          v-model:search="search"
+          v-model:favorite="favoriteOnly"
+          v-model:sort="sortDirection"
+          :tabs="tabs"
+          :team-options="teamOptions"
+          :show-status="!hasHiddenGames"
+          :active-count="activeFilterCount"
+          @reset="resetFilters"
         />
-        <div v-if="data" class="gc-filters" aria-label="Фильтры матчей">
-          <AppSearch v-model="search" label="Поиск команды" placeholder="Найти команду" />
-          <AppSelect v-model="teamFilter" label="Фильтр по команде" :options="teamOptions" /><button
-            class="gc-control gc-favorites-filter"
-            :aria-pressed="favoriteOnly"
-            aria-label="Только избранные"
-            title="Только избранные"
-            @click="favoriteOnly = !favoriteOnly"
-          >
-            <AppIcon name="star" :size="17" /><span>Избранные</span>
-          </button>
-        </div>
-        <div v-if="data" class="gc-list-toolbar">
-          <span aria-live="polite"
-            >{{
-              activeFilters ? `${visibleGames.length} из ${games.length} матчей` : 'Все матчи дня'
-            }}<button v-if="activeFilters" class="gc-reset" @click="resetFilters">
-              Сбросить
-            </button></span
-          ><button
-            class="gc-sort"
-            :aria-label="
-              sortDirection === 'asc'
-                ? 'Сначала ранние. Изменить порядок'
-                : 'Сначала поздние. Изменить порядок'
-            "
-            @click="sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'"
-          >
-            <AppIcon name="sort" :size="14" />{{
-              sortDirection === 'asc' ? 'По времени' : 'Сначала поздние'
-            }}
-          </button>
+        <div v-if="data && activeFilters" class="gc-filter-summary" aria-live="polite">
+          {{ visibleGames.length }} из {{ games.length }} матчей
+          <button class="gc-reset" @click="resetFilters">Сбросить</button>
         </div>
         <SnapshotStatus v-if="meta" :meta="meta" show-source :refresh-failed="isRefetchError" />
         <p v-if="isRefetchError" class="gc-notice gc-notice--warning" role="status">
@@ -243,6 +176,7 @@ const scoredCount = computed(
             :favorite="isFavorite(game.id)"
             :expanded="expandedGameId === game.id"
             :details-to="detailsTo(game)"
+            scoreboard
             @favorite="toggleFavorite(game.id)"
             @details="toggleDetails(game.id)"
           />
@@ -252,8 +186,8 @@ const scoredCount = computed(
         v-if="games.length && !hasHiddenGames"
         :closest="closestGame"
         :highest="highestGame"
-        :total-points="totalPoints"
         :final-count="scoredCount"
+        :details-to="detailsTo"
       />
     </div>
   </div>

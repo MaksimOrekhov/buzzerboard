@@ -102,6 +102,37 @@ describe('Game Center', () => {
     expect(center.expandedGameId.value).toBeNull()
     expect(center.games.value).toEqual([])
   })
+  it('preserves active filters and restores them through date navigation and browser history', async () => {
+    const { center, router } = await setup([game('one', 110, 100)])
+    center.teamFilter.value = 'home-one'
+    center.search.value = 'home'
+    center.favoriteOnly.value = true
+    center.sortDirection.value = 'desc'
+    await center.setDate(shiftGameDate(today, -1))
+    expect(center.teamFilter.value).toBe('home-one')
+    expect(center.teamOptions.value).toContainEqual({ value: 'home-one', label: 'home-one' })
+    expect(router.currentRoute.value.query).toMatchObject({
+      team: 'home-one',
+      q: 'home',
+      favorites: '1',
+      sort: 'desc',
+    })
+    const navigated = new Promise<void>((resolve) => {
+      const remove = router.afterEach(() => {
+        remove()
+        resolve()
+      })
+    })
+    router.back()
+    await navigated
+    expect(center.selectedDate.value).toBe(today)
+    expect(center.teamFilter.value).toBe('home-one')
+    expect(center.search.value).toBe('home')
+    expect(center.favoriteOnly.value).toBe(true)
+    expect(center.sortDirection.value).toBe('desc')
+    center.resetFilters()
+    expect(center.activeFilterCount.value).toBe(0)
+  })
   it('rejects invalid and out-of-window URL dates', async () => {
     const { center, router } = await setup([], '2026-02-30' as NbaGameDate)
     expect(center.selectedDate.value).toBe(today)

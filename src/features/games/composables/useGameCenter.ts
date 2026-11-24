@@ -1,6 +1,7 @@
 import { computed, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Game, GameId, GameStatus, NbaGameDate, Team } from '@/entities/nba/model'
+import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import { WorkerApiError } from '@/features/games/api'
 import { useGameFavorites } from './useGameFavorites'
 import { useGamesForDate } from './useGamesForDate'
@@ -69,23 +70,55 @@ export function useGameCenter() {
       selectedDate.value === yesterday.value &&
       games.value.some((game) => !isSettledGameResult(game)),
   )
+  const knownTeams = new Map<string, Team>()
+  watch(
+    games,
+    (currentGames) => {
+      for (const game of currentGames) {
+        knownTeams.set(game.homeTeam.id, game.homeTeam)
+        knownTeams.set(game.awayTeam.id, game.awayTeam)
+      }
+    },
+    { immediate: true, flush: 'sync' },
+  )
   const teamOptions = computed(() => {
     const teams = new Map<string, Team>()
     for (const game of games.value) {
       teams.set(game.homeTeam.id, game.homeTeam)
       teams.set(game.awayTeam.id, game.awayTeam)
     }
+    const selected =
+      knownTeams.get(teamFilter.value) ??
+      (teamFilter.value.startsWith('nba:team:')
+        ? findNbaTeam(teamFilter.value.slice(9))?.team
+        : null)
+    if (selected && !teams.has(selected.id)) teams.set(selected.id, selected)
     return [
       { value: 'all', label: 'Все команды' },
+      ...(teamFilter.value !== 'all' && !selected
+        ? [{ value: teamFilter.value, label: 'Выбранная команда' }]
+        : []),
       ...[...teams.values()]
         .sort((a, b) => teamName(a).localeCompare(teamName(b)))
         .map((team) => ({ value: team.id, label: teamName(team) })),
     ]
   })
   watch(selectedDate, () => {
-    teamFilter.value = 'all'
     expandedGameId.value = null
   })
+  watch(
+    () => route.query,
+    (next) => {
+      statusFilter.value =
+        typeof next.status === 'string' && validStatuses.includes(next.status as GameStatus)
+          ? (next.status as GameStatus)
+          : 'all'
+      teamFilter.value = typeof next.team === 'string' ? next.team : 'all'
+      search.value = typeof next.q === 'string' ? next.q : ''
+      favoriteOnly.value = next.favorites === '1'
+      sortDirection.value = next.sort === 'desc' ? 'desc' : 'asc'
+    },
+  )
   const visibleGames = computed(() =>
     games.value
       .filter((game) => {
@@ -148,7 +181,16 @@ export function useGameCenter() {
       (!hasHiddenGames.value && statusFilter.value !== 'all') ||
       teamFilter.value !== 'all' ||
       favoriteOnly.value ||
-      search.value.trim() !== '',
+      search.value.trim() !== '' ||
+      sortDirection.value !== 'asc',
+  )
+  const activeFilterCount = computed(
+    () =>
+      Number(!hasHiddenGames.value && statusFilter.value !== 'all') +
+      Number(teamFilter.value !== 'all') +
+      Number(favoriteOnly.value) +
+      Number(search.value.trim() !== '') +
+      Number(sortDirection.value !== 'asc'),
   )
   const displayDate = computed(() =>
     new Intl.DateTimeFormat('ru-RU', {
@@ -190,14 +232,16 @@ export function useGameCenter() {
       }
     }),
   )
-  function setDate(date: string) {
+  async function setDate(date: string) {
     if (date >= minDate.value && date <= maxDate.value) {
       const query: Record<string, string> = { date }
       if (statusFilter.value !== 'all') query.status = statusFilter.value
+      if (teamFilter.value !== 'all') query.team = teamFilter.value
       if (favoriteOnly.value) query.favorites = '1'
       if (search.value.trim()) query.q = search.value
       if (sortDirection.value !== 'asc') query.sort = sortDirection.value
-      void router.replace({ path: '/games', query })
+      await router.replace({ path: '/games', query: { ...query, date: selectedDate.value } })
+      await router.push({ path: '/games', query })
     }
   }
   function resetFilters() {
@@ -205,6 +249,7 @@ export function useGameCenter() {
     teamFilter.value = 'all'
     favoriteOnly.value = false
     search.value = ''
+    sortDirection.value = 'asc'
     void router.replace({ path: '/games', query: { date: selectedDate.value } })
   }
   function toggleDetails(id: GameId) {
@@ -249,6 +294,7 @@ export function useGameCenter() {
     highestGame,
     totalPoints,
     activeFilters,
+    activeFilterCount,
     displayDate,
     errorTitle,
     errorDescription,
