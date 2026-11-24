@@ -123,8 +123,9 @@ const unavailableDetails = computed(() =>
         </p>
         <div class="game-detail-snapshots">
           <div v-if="scoreMeta">
-            <span>{{ awaitingGame ? 'Расписание' : 'Результат' }}</span
-            ><SnapshotStatus :meta="scoreMeta" />
+            <span>{{ awaitingGame ? 'Расписание' : 'Результат' }}</span><SnapshotStatus
+              :meta="scoreMeta"
+            />
           </div>
           <div v-if="boxScoreMeta">
             <span>Статистика</span><SnapshotStatus :meta="boxScoreMeta" />
