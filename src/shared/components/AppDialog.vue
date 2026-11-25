@@ -10,7 +10,12 @@ import {
 } from 'reka-ui'
 import { watch } from 'vue'
 import AppIcon from './AppIcon.vue'
-defineProps<{ title: string; description: string }>()
+const props = defineProps<{
+  title: string
+  description: string
+  contentClass?: string
+  fallbackFocus?: () => void
+}>()
 const open = defineModel<boolean>('open', { required: true })
 let opener: HTMLElement | null = null
 watch(
@@ -23,7 +28,15 @@ watch(
 )
 function restoreFocus(event: Event) {
   event.preventDefault()
-  if (opener?.isConnected) opener.focus()
+  if (
+    opener?.isConnected &&
+    (!props.fallbackFocus || (opener.getClientRects().length && !opener.matches(':disabled')))
+  ) {
+    opener.focus()
+  } else {
+    props.fallbackFocus?.()
+  }
+  opener = null
 }
 </script>
 <template>
@@ -31,6 +44,7 @@ function restoreFocus(event: Event) {
     ><DialogPortal
       ><DialogOverlay class="ui-dialog-overlay" /><DialogContent
         class="game-center-theme ui-dialog"
+        :class="contentClass"
         @close-auto-focus="restoreFocus"
         ><header class="ui-dialog-header">
           <div>

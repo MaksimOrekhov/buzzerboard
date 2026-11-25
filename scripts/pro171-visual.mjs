@@ -718,13 +718,15 @@ try {
     assert.equal(await page.locator('.standings-table tbody tr').count(), 1)
     await page.getByRole('button', { name: 'Сбросить фильтры', exact: true }).click()
     const scroll = page.locator('.standings-scroll')
-    await scroll.evaluate((node) => {
-      node.scrollLeft = node.scrollWidth
-    })
+    await page.getByRole('button', { name: 'Режим сравнения', exact: true }).click()
     const checkboxes = page.getByRole('checkbox', { name: /Сравнить/ })
     await checkboxes.nth(0).check()
     await checkboxes.nth(1).check()
     assert.equal(await checkboxes.nth(2).isDisabled(), true)
+    assert.equal(await scroll.evaluate((node) => node.scrollLeft), 0)
+    await scroll.evaluate((node) => {
+      node.scrollLeft = node.scrollWidth
+    })
     // A sticky team column remains visible while other metrics scroll.
     const sticky = await page.locator('.team-cell').first().boundingBox()
     const region = await scroll.boundingBox()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useTemplateRef, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 import TeamLogo from './TeamLogo.vue'
 import TeamProfileLink from './TeamProfileLink.vue'
@@ -24,12 +24,16 @@ const props = withDefaults(
     sortDirection?: SortDirection
     compareIds?: ReadonlySet<TeamId>
     compareEnabled?: boolean
+    showOfficialRank?: boolean | null
+    gamesBehindDescription?: string | null
   }>(),
   {
     gamesBehindByTeamId: () => new Map(),
     favoriteIds: () => new Set(),
     compareIds: () => new Set(),
     compareEnabled: false,
+    showOfficialRank: null,
+    gamesBehindDescription: null,
     sortBy: 'winPercentage',
     sortDirection: 'descending',
   },
@@ -39,7 +43,14 @@ const emit = defineEmits<{
   toggleFavorite: [teamId: TeamId]
   toggleCompare: [teamId: TeamId]
 }>()
-const showRank = computed(() => props.rows.some((row) => row.officialRank !== null))
+const showRank = computed(
+  () => props.showOfficialRank ?? props.rows.some((row) => row.officialRank !== null),
+)
+const tableScroll = useTemplateRef('tableScroll')
+watch(
+  () => props.conference,
+  () => tableScroll.value?.scrollTo(0, 0),
+)
 const conferenceLabel = computed(() =>
   props.conference === 'east' ? 'Восточная конференция' : 'Западная конференция',
 )
@@ -60,6 +71,7 @@ function teamName(row: StandingsRow) {
 <template>
   <div class="standings-table-shell">
     <div
+      ref="tableScroll"
       class="standings-scroll"
       role="region"
       :aria-label="`Турнирная таблица NBA: ${conferenceLabel}`"
@@ -72,24 +84,40 @@ function teamName(row: StandingsRow) {
             conferenceLabel
           }}. В–П: победы и поражения; PCT: доля побед.
         </caption>
+        <colgroup>
+          <col class="standings-col-team" />
+          <col class="standings-col-record" />
+          <col class="standings-col-pct" />
+          <col class="standings-col-gb" />
+          <col v-if="showRank" class="standings-col-rank" />
+          <col
+            v-for="column in columns.slice(3)"
+            :key="column.field"
+            class="standings-col-detail"
+          />
+        </colgroup>
         <thead>
           <tr>
-            <th v-if="showRank" scope="col" class="rank-heading">Место</th>
             <th scope="col" class="team-heading">Команда</th>
-            <SortHeader
-              v-for="column in columns"
-              :key="column.field"
-              :field="column.field"
-              :label="column.label"
-              :description="column.description"
-              :sort-by="sortBy"
-              :direction="sortDirection"
-              :disabled="column.field === 'gamesBehind' && gamesBehindByTeamId.size === 0"
-              @sort="emit('sort', $event)"
-            />
-            <th v-if="compareEnabled" scope="col" class="compare-heading">
-              <span class="visually-hidden">Сравнить</span><AppIcon name="chart" :size="16" />
-            </th>
+            <template v-for="column in columns" :key="column.field">
+              <SortHeader
+                :field="column.field"
+                :label="column.label"
+                :description="column.description"
+                :sort-by="sortBy"
+                :direction="sortDirection"
+                :disabled="column.field === 'gamesBehind' && gamesBehindByTeamId.size === 0"
+                :described-by="column.field === 'gamesBehind' ? gamesBehindDescription : null"
+                @sort="emit('sort', $event)"
+              />
+              <th
+                v-if="showRank && column.field === 'gamesBehind'"
+                scope="col"
+                class="rank-heading"
+              >
+                Место
+              </th>
+            </template>
           </tr>
         </thead>
         <tbody>
@@ -97,26 +125,35 @@ function teamName(row: StandingsRow) {
             v-for="row in rows"
             :key="row.team.id"
             :class="{
-              'standings-row--favorite': favoriteIds.has(row.team.id),
-              'standings-row--compared': compareIds.has(row.team.id),
+              'standings-row--favorite': favoriteIds.has(row.team.id) && !compareEnabled,
+              'standings-row--compared': compareEnabled && compareIds.has(row.team.id),
             }"
           >
-            <td v-if="showRank" class="rank-cell">{{ formatNumber(row.officialRank) }}</td>
             <th scope="row" class="team-cell">
               <div class="table-team">
+                <label v-if="compareEnabled" class="standings-row-pick">
+                  <input
+                    type="checkbox"
+                    class="ui-checkbox"
+                    :checked="compareIds.has(row.team.id)"
+                    :disabled="compareIds.size >= 2 && !compareIds.has(row.team.id)"
+                    :aria-label="`Сравнить ${teamName(row)}`"
+                    @change="emit('toggleCompare', row.team.id)"
+                  />
+                  <AppIcon v-if="compareIds.has(row.team.id)" name="check" :size="14" />
+                </label>
                 <button
+                  v-else
                   class="gc-icon-button favorite-button"
                   type="button"
                   :aria-pressed="favoriteIds.has(row.team.id)"
-                  :aria-label="`${favoriteIds.has(row.team.id) ? 'Убрать' : 'Добавить'} ${teamName(row)} ${favoriteIds.has(row.team.id) ? 'из' : 'в'} избранное`"
+                  :aria-label="`${favoriteIds.has(row.team.id) ? 'Убрать' : 'Добавить'} ${teamName(row)} ${favoriteIds.has(row.team.id) ? 'из избранного' : 'в избранное'}`"
                   @click="emit('toggleFavorite', row.team.id)"
                 >
                   <AppIcon name="star" :size="16" /></button
-                ><TeamLogo :team="row.team" :size="34" />
+                ><TeamLogo :team="row.team" :size="30" class="standings-team-mark" />
                 <TeamProfileLink :team="row.team" class="table-team-copy">
-                  <span class="table-team-name team-profile-link-text">{{
-                    teamName(row)
-                  }}</span><span class="table-team-abbr">{{ row.team.abbreviation ?? 'NBA' }}</span>
+                  <span class="table-team-name team-profile-link-text">{{ teamName(row) }}</span>
                 </TeamProfileLink>
               </div>
             </th>
@@ -124,16 +161,12 @@ function teamName(row: StandingsRow) {
               {{ formatRecord(row.record.wins, row.record.losses) }}
             </td>
             <td class="pct-cell" :class="{ 'ui-sorted-column': sortBy === 'winPercentage' }">
-              <strong>{{ formatPercentage(row.winPercentage) }}</strong><span
-                v-if="row.winPercentage !== null"
-                class="pct-meter"
-                aria-hidden="true"
-                ><span :style="{ width: `${Math.max(0, Math.min(1, row.winPercentage)) * 100}%` }"
-              /></span>
+              <strong>{{ formatPercentage(row.winPercentage) }}</strong>
             </td>
             <td :class="{ 'ui-sorted-column': sortBy === 'gamesBehind' }">
               {{ formatGamesBehind(gamesBehindByTeamId.get(row.team.id)) }}
             </td>
+            <td v-if="showRank" class="rank-cell">{{ formatNumber(row.officialRank) }}</td>
             <td :class="{ 'ui-sorted-column': sortBy === 'homeWins' }">
               {{ formatRecord(row.record.homeWins, row.record.homeLosses) }}
             </td>
@@ -154,16 +187,6 @@ function teamName(row: StandingsRow) {
               }"
             >
               {{ formatAverageMargin(row.record.averageMargin) }}
-            </td>
-            <td v-if="compareEnabled" class="compare-cell">
-              <input
-                type="checkbox"
-                class="ui-checkbox"
-                :checked="compareIds.has(row.team.id)"
-                :disabled="compareIds.size >= 2 && !compareIds.has(row.team.id)"
-                :aria-label="`Сравнить ${teamName(row)}`"
-                @change="emit('toggleCompare', row.team.id)"
-              />
             </td>
           </tr>
         </tbody>

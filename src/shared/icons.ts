@@ -15,6 +15,8 @@ export type AppIconName =
   | 'users'
   | 'search'
   | 'down'
+  | 'up'
+  | 'compare'
   | 'refresh'
   | 'star'
   | 'check'

@@ -17,13 +17,14 @@ const props = defineProps<{
   showLabel?: boolean
   disabled?: boolean
   placeholder?: string
-  options: readonly { value: T; label: string; disabled?: boolean }[]
+  options: readonly { value: T; label: string; shortLabel?: string; disabled?: boolean }[]
 }>()
 const id = useId()
 const model = defineModel<T>({ required: true })
+const selectedOption = computed(() => props.options.find(({ value }) => value === model.value))
 const selectedLabel = computed(
   () =>
-    props.options.find(({ value }) => value === model.value)?.label ??
+    selectedOption.value?.label ??
     props.placeholder ??
     (props.options.length ? 'Выберите…' : 'Нет вариантов'),
 )
@@ -36,7 +37,15 @@ const selectedLabel = computed(
       class="gc-control gc-select"
       :aria-label="showLabel ? undefined : label"
     >
-      <SelectValue>{{ selectedLabel }}</SelectValue>
+      <SelectValue>
+        <template v-if="selectedOption?.shortLabel">
+          <span class="gc-select-full-value">{{ selectedLabel }}</span>
+          <span class="gc-select-short-value" aria-hidden="true">{{
+            selectedOption.shortLabel
+          }}</span>
+        </template>
+        <template v-else>{{ selectedLabel }}</template>
+      </SelectValue>
       <AppIcon name="down" :size="15" />
     </SelectTrigger>
     <SelectPortal
@@ -61,3 +70,22 @@ const selectedLabel = computed(
     ></SelectPortal>
   </SelectRoot>
 </template>
+
+<style scoped>
+.gc-select-short-value {
+  display: none;
+}
+@media (max-width: 620px) {
+  .gc-select-full-value {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .gc-select-short-value {
+    display: inline;
+  }
+}
+</style>

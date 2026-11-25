@@ -41,7 +41,10 @@ export function useStandingsCenter() {
     ),
   )
   const comparisonRows = computed(() =>
-    rows.value.filter((row) => compareIds.value.has(row.team.id)),
+    [...compareIds.value].flatMap((id) => {
+      const row = rows.value.find(({ team }) => team.id === id)
+      return row ? [row] : []
+    }),
   )
   const activeFilters = computed(() => favoriteOnly.value || search.value.trim() !== '')
   const conferenceLabel = computed(() =>
@@ -53,20 +56,21 @@ export function useStandingsCenter() {
       : 'Не удалось загрузить таблицу',
   )
   const sortOptions = computed<
-    readonly { value: StandingsSortKey; label: string; disabled?: boolean }[]
+    readonly { value: StandingsSortKey; label: string; shortLabel: string; disabled?: boolean }[]
   >(() => [
-    { value: 'winPercentage', label: 'Процент побед' },
-    { value: 'wins', label: 'Победы' },
+    { value: 'winPercentage', label: 'Процент побед', shortLabel: 'PCT' },
+    { value: 'wins', label: 'Победы', shortLabel: 'В–П' },
     {
       value: 'gamesBehind',
       label: 'Отставание · GB',
+      shortLabel: 'GB*',
       disabled: !activeStandings.value.gamesBehindAvailable,
     },
-    { value: 'homeWins', label: 'Победы дома' },
-    { value: 'awayWins', label: 'Победы в гостях' },
-    { value: 'conferenceWins', label: 'Победы в конференции' },
-    { value: 'lastTenWins', label: 'Победы в последних 10' },
-    { value: 'averageMargin', label: 'Средняя разница очков' },
+    { value: 'homeWins', label: 'Победы дома', shortLabel: 'Дома' },
+    { value: 'awayWins', label: 'Победы в гостях', shortLabel: 'В гостях' },
+    { value: 'conferenceWins', label: 'Победы в конференции', shortLabel: 'Конф.' },
+    { value: 'lastTenWins', label: 'Победы в последних 10', shortLabel: 'Посл. 10' },
+    { value: 'averageMargin', label: 'Средняя разница очков', shortLabel: 'Разница' },
   ])
   watch(
     () => activeStandings.value.gamesBehindAvailable,
@@ -81,6 +85,9 @@ export function useStandingsCenter() {
     compareIds.value = new Set(
       [...compareIds.value].filter((id) => rows.value.some((row) => row.team.id === id)),
     )
+  })
+  watch(comparisonRows, (selected) => {
+    if (selected.length !== 2) comparisonOpen.value = false
   })
   function selectSort(field: StandingsSortKey) {
     if (field === 'gamesBehind' && !activeStandings.value.gamesBehindAvailable) return
@@ -98,7 +105,7 @@ export function useStandingsCenter() {
   function toggleCompare(id: TeamId) {
     const next = new Set(compareIds.value)
     if (next.has(id)) next.delete(id)
-    else if (next.size < 2) next.add(id)
+    else if (next.size < 2 && rows.value.some(({ team }) => team.id === id)) next.add(id)
     compareIds.value = next
   }
   function clearComparison() {

@@ -9,13 +9,14 @@ const props = defineProps<{
   sortBy: StandingsSortKey
   direction: SortDirection
   disabled?: boolean
+  describedBy?: string | null
 }>()
 defineEmits<{ sort: [field: StandingsSortKey] }>()
 </script>
 <template>
   <th
     scope="col"
-    :aria-sort="props.sortBy === field ? direction : 'none'"
+    :aria-sort="props.sortBy === field ? direction : undefined"
     :class="{ 'ui-sorted-column': sortBy === field }"
   >
     <AppTooltip :text="description"
@@ -23,6 +24,7 @@ defineEmits<{ sort: [field: StandingsSortKey] }>()
         class="sort-button"
         type="button"
         :disabled="disabled"
+        :aria-describedby="describedBy ?? undefined"
         :aria-label="`Сортировать по полю «${description}»${sortBy === field ? `, сейчас ${direction === 'ascending' ? 'по возрастанию' : 'по убыванию'}` : ''}`"
         @click="$emit('sort', field)"
       >
