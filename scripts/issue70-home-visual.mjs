@@ -3,11 +3,15 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, readFile, realpath, writeFile, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
-import { chromium } from 'playwright'
+import { chromium, request } from 'playwright'
 import { createServer } from 'vite'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
-const out = path.resolve(process.env.HUB_OUTPUT ?? path.join(root, 'artifacts/issue-70'))
+const logoEvidence = process.argv.includes('--logo-evidence')
+const usePlaywrightLogoFetch = process.argv.includes('--playwright-logo-fetch')
+const out = path.resolve(
+  process.env.HUB_OUTPUT ?? path.join(root, 'artifacts', logoEvidence ? 'issue-72' : 'issue-70'),
+)
 const fixturePath = new URL('./fixtures/nba-hub.synthetic.json', import.meta.url)
 const fixtureBytes = await readFile(fixturePath)
 const fixture = JSON.parse(fixtureBytes)
@@ -60,6 +64,29 @@ const measurements = {
   implementation: {},
 }
 const failures = []
+const logoIds = { BOS: '1610612738', CHI: '1610612741', LAL: '1610612747', MIN: '1610612750' }
+const logoSelector = '.home-hub .gc-team-logo'
+const logoClient = usePlaywrightLogoFetch && logoEvidence ? await request.newContext() : null
+const svgBodies = new Map()
+
+function fetchLogo(url) {
+  if (!svgBodies.has(url)) {
+    svgBodies.set(
+      url,
+      (async () => {
+        const response = await logoClient.get(url, { maxRedirects: 0, timeout: 10_000 })
+        try {
+          assert.equal(response.status(), 200, url)
+          assert.match(response.headers()['content-type'] ?? '', /^image\/svg\+xml/)
+          return await response.body()
+        } finally {
+          await response.dispose()
+        }
+      })(),
+    )
+  }
+  return svgBodies.get(url)
+}
 
 async function serve(appRoot, port) {
   const server = await createServer({
@@ -88,6 +115,7 @@ async function configure(browser, origin, width, height, options = {}) {
   })
   const modes = { games: 'full', standings: 'full', ...options.modes }
   const requests = []
+  const logoRequests = new Set()
   await ctx.addInitScript(
     ({ favorites, spoiler, date, storageDisabled }) => {
       if (storageDisabled) {
@@ -122,6 +150,21 @@ async function configure(browser, origin, width, height, options = {}) {
       if (url.origin !== origin) {
         if (url.hostname !== 'cdn.nba.com')
           failures.push('Unexpected external request ' + url.hostname)
+        const imageId = /^\/logos\/nba\/(\d+)\/primary\/L\/logo\.svg$/.exec(url.pathname)?.[1]
+        if (
+          url.origin === 'https://cdn.nba.com' &&
+          imageId &&
+          route.request().method() === 'GET' &&
+          route.request().resourceType() === 'image'
+        ) {
+          logoRequests.add(imageId)
+          if (options.logos === 'live') {
+            if (!logoClient) return route.continue()
+            // Use the same response bytes when the browser transport cannot reach the public SVG.
+            return route.fulfill({ contentType: 'image/svg+xml', body: await fetchLogo(url.href) })
+          }
+          if (options.logos === 'error') return route.fulfill({ status: 503 })
+        }
         return route.abort()
       }
       requests.push(url.pathname + url.search)
@@ -212,7 +255,7 @@ async function configure(browser, origin, width, height, options = {}) {
   page.setDefaultTimeout(10_000)
   page.on('pageerror', (error) => failures.push(error.message))
   await page.clock.setFixedTime(new Date(fixture.clock))
-  return { ctx, page, modes, requests }
+  return { ctx, page, modes, requests, logoRequests }
 }
 
 async function measure(page, before) {
@@ -261,18 +304,90 @@ async function measure(page, before) {
   }, before)
 }
 
+async function checkLogoSlots(page, live) {
+  await page.waitForFunction(
+    ({ selector, live }) => {
+      const slots = [...document.querySelectorAll(selector)]
+      return (
+        slots.length === 16 &&
+        slots.every((slot) => {
+          const image = slot.querySelector('img')
+          return live
+            ? image?.complete && image.naturalWidth > 0
+            : slot.querySelector('.gc-team-fallback')
+        })
+      )
+    },
+    { selector: logoSelector, live },
+  )
+  const loadedIds = await page.locator(logoSelector).evaluateAll((slots) =>
+    slots.map((slot) => ({
+      id: slot.querySelector('img')?.src.split('/')[5],
+      width: slot.getBoundingClientRect().width,
+    })),
+  )
+  assert(
+    loadedIds.every(({ width }) => width >= 18),
+    'A team logo has no visible footprint',
+  )
+  if (live)
+    for (const [team, id] of Object.entries(logoIds))
+      assert(
+        loadedIds.some((logo) => logo.id === id),
+        team + ' logo did not load',
+      )
+}
+
+async function captureLogoFallbacks(browser, origin) {
+  for (const [name, width, height] of sizes) {
+    const { ctx, page } = await configure(browser, origin, width, height, {
+      logos: name === 'mobile' ? 'error' : 'blocked',
+    })
+    try {
+      await open(page, origin)
+      await checkLogoSlots(page, false)
+      await page.evaluate(() => document.fonts.ready)
+      const result = await measure(page, false)
+      assert.equal(result.width, width)
+      assert.equal(
+        result.groups.games.fullBeforeFold,
+        measurements.implementation[name].groups.games.fullBeforeFold,
+      )
+      await screenshot(page, 'fallback-' + name)
+      await screenshot(page, 'fallback-' + name + '-full', true)
+    } finally {
+      await ctx.close()
+    }
+  }
+  const { ctx, page } = await configure(browser, origin, 375, 812, { logos: 'live' })
+  try {
+    await page.goto(origin + '/games?date=' + today)
+    await page.waitForFunction(() =>
+      Array.from(document.querySelectorAll('.gc-scoreboard-row img')).some(
+        (image) => image.src.includes('/1610612738/') && image.complete && image.naturalWidth > 0,
+      ),
+    )
+    await screenshot(page, 'game-center')
+  } finally {
+    await ctx.close()
+  }
+}
+
 async function regularDay(browser, origin, before = false) {
   const prefix = before ? 'main' : 'hub'
+  const legacy = before && !logoEvidence
   for (const [name, width, height] of sizes) {
-    const { ctx, page, requests } = await configure(browser, origin, width, height)
+    const { ctx, page, requests, logoRequests } = await configure(browser, origin, width, height, {
+      logos: logoEvidence && !before ? 'live' : 'blocked',
+    })
     try {
       await open(page, origin)
       await table(page).first().waitFor()
-      await (before ? page.locator('.overview-scoreboard .gc-score-row') : rows(page))
+      await (legacy ? page.locator('.overview-scoreboard .gc-score-row') : rows(page))
         .last()
         .waitFor()
       await page.evaluate(() => document.fonts.ready)
-      const result = await measure(page, before)
+      const result = await measure(page, legacy)
       if (result.width !== width) {
         await screenshot(page, prefix + '-' + name + '-overflow', true)
         console.error(
@@ -292,12 +407,15 @@ async function regularDay(browser, origin, before = false) {
         )
       }
       assert.equal(result.width, width, name)
-      assert.equal(result.groups.games.rows, before ? 4 : 5, name)
-      assert.equal(result.groups.standings.rows, before ? 4 + 1 : 4)
+      assert.equal(result.groups.games.rows, legacy ? 4 : 5, name)
+      assert.equal(result.groups.standings.rows, legacy ? 5 : 4)
       assert.ok(result.fonts >= 2)
       if (!before) {
+        await checkLogoSlots(page, logoEvidence)
+        for (const [team, id] of Object.entries(logoIds))
+          assert(logoRequests.has(id), team + ' was not requested')
         assert.ok(
-          result.groups.games.fullBeforeFold >= (name === 'narrow' ? 2 : 4),
+          result.groups.games.fullBeforeFold >= (name === 'narrow' ? 2 : 5),
           JSON.stringify(result),
         )
         assert.deepEqual(requests.sort(), [
@@ -577,10 +695,16 @@ async function spoiler(browser, origin) {
   const { ctx, page } = await configure(browser, origin, 375, 812, {
     spoiler: true,
     modes: { games: 'spoilerStatus', standings: 'partial' },
+    logos: logoEvidence ? 'live' : 'blocked',
   })
   try {
     await open(page, origin)
     await rows(page).first().waitFor()
+    if (logoEvidence)
+      await page.waitForFunction(() => {
+        const image = document.querySelector('.gc-score-row--protected .gc-team-logo img')
+        return image?.complete && image.naturalWidth > 0
+      })
     const home = page.locator('.home-hub')
     assert.equal(
       await home
@@ -701,6 +825,7 @@ try {
   if (baseline) await regularDay(browser, 'http://127.0.0.1:4171', true)
   const origin = 'http://127.0.0.1:4172'
   await regularDay(browser, origin)
+  if (logoEvidence) await captureLogoFallbacks(browser, origin)
   await journeys(browser, origin)
   await states(browser, origin)
   await spoiler(browser, origin)
@@ -711,7 +836,7 @@ try {
   await writeFile(
     path.join(out, 'README.md'),
     [
-      '# BuzzerBoard · Issue #70',
+      '# BuzzerBoard · Issue #' + (logoEvidence ? '72' : '70'),
       '',
       'Vue HEAD: `' + measurements.head + '`',
       'Baseline: `' + (measurements.baselineHead ?? 'not captured') + '`',
@@ -719,7 +844,12 @@ try {
       'Screenshots at 1440×900, 375×812, 320×600 and 768×1024, with full-page variants and scenario crops.',
       'The viewport fold stops at fixed bottom navigation. Rows count only when completely visible.',
       'Measurements are in CSS pixels. The source fixture is from the Terra Issue #69 archive.',
-      'Chromium uses Asia/Nicosia. API responses are mocked, external requests blocked. No live provider calls.',
+      'Chromium uses Asia/Nicosia. API responses are mocked. No live provider calls.',
+      logoEvidence
+        ? 'After captures use authentic cdn.nba.com SVGs via ' +
+          (usePlaywrightLogoFetch ? 'the Playwright HTTP client. ' : 'Chromium. ') +
+          'Fallback captures simulate blocked requests or HTTP 503.'
+        : 'External requests are blocked.',
       'Run: HUB_BASELINE_ROOT=/path/to/baseline node scripts/issue70-home-visual.mjs',
       '',
     ].join('\n'),
@@ -727,6 +857,7 @@ try {
   console.log(JSON.stringify(measurements, null, 2))
 } finally {
   await browser?.close()
+  await logoClient?.dispose()
   await app?.close()
   await baselineServer?.close()
 }

@@ -75,6 +75,17 @@ describe('GameScoreRow', () => {
     expect(wrapper.emitted('details')).toHaveLength(1)
     expect(wrapper.text()).toContain('Счёт по четвертям недоступен.')
   })
+  it('requests official logos for both teams in the compact Home scoreboard', () => {
+    const wrapper = mount(GameScoreRow, {
+      props: { game, favorite: false, expanded: false, compact: true, detailsTo: '/games/example' },
+      global: { stubs: { AppIcon: true, RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.findAll('img').map((img) => img.attributes('src'))).toEqual([
+      'https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg',
+      'https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg',
+    ])
+  })
+
   it('keeps the scoreboard match, teams and favorite as separate controls and only marks confirmed winners', async () => {
     const final = {
       ...game,

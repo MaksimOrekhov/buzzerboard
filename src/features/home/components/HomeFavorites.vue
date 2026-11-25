@@ -98,7 +98,7 @@ const gameName = (game: Game) =>
             class="home-favorite-card"
           >
             <TeamProfileLink :team="team" class="home-favorite-item">
-              <TeamLogo :team="team" :size="30" initials-only />
+              <TeamLogo :team="team" :size="30" />
               <span
                 ><strong>{{ name }}</strong
                 ><small>Профиль команды</small></span

@@ -122,11 +122,7 @@ const winner = computed(() =>
           'gc-scoreboard-team--loser': winner === 'home',
         }"
       >
-        <TeamLogo
-          :team="game.awayTeam"
-          :size="compact ? 24 : 36"
-          :initials-only="compact"
-        /><TeamProfileLink
+        <TeamLogo :team="game.awayTeam" :size="compact ? 24 : 36" /><TeamProfileLink
           :team="game.awayTeam"
           :aria-describedby="!compact && winner === 'away' ? winnerId : undefined"
           ><span class="gc-team-role">Гости</span
@@ -189,11 +185,7 @@ const winner = computed(() =>
           'gc-scoreboard-team--loser': winner === 'away',
         }"
       >
-        <TeamLogo
-          :team="game.homeTeam"
-          :size="compact ? 24 : 36"
-          :initials-only="compact"
-        /><TeamProfileLink
+        <TeamLogo :team="game.homeTeam" :size="compact ? 24 : 36" /><TeamProfileLink
           :team="game.homeTeam"
           :aria-describedby="!compact && winner === 'home' ? winnerId : undefined"
           ><span class="gc-team-role">Хозяева</span

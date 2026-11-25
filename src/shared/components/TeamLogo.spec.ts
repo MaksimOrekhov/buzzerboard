@@ -69,6 +69,12 @@ describe('TeamLogo', () => {
     expect(wrapper.text()).toBe('BOS')
     expect(wrapper.attributes('style')).toContain('width: 40px')
     expect(wrapper.attributes('style')).toContain('height: 40px')
+
+    await wrapper.setProps({ team: team('LAL') })
+    expect(wrapper.find('.gc-team-fallback').exists()).toBe(false)
+    expect(wrapper.get('img').attributes('src')).toBe(
+      'https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg',
+    )
     const unknown = mount(TeamLogo, { props: { team: team('XYZ', 'test:unknown') } })
     expect(unknown.find('img').exists()).toBe(false)
     expect(unknown.text()).toBe('XYZ')

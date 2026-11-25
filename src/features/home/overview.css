@@ -694,13 +694,18 @@ a.home-shortcut:hover {
 }
 @media (max-width: 350px) {
   .home-game-list .gc-scoreboard-row {
-    grid-template-columns: 44px minmax(0, 1fr) 76px 44px;
-    column-gap: 4px;
-    padding-inline: 5px;
+    grid-template-columns: 42px minmax(0, 1fr) 76px 44px;
+    column-gap: 3px;
+    padding-inline: 4px 1px;
   }
   .home-game-list .gc-team-logo,
   .home-favorite-card .gc-team-logo {
-    display: none;
+    max-width: 18px;
+    max-height: 18px;
+  }
+  .home-game-list .gc-scoreboard-team,
+  .home-favorite-card .home-favorite-item {
+    gap: 4px;
   }
   .home-game-list .gc-scoreboard-numbers {
     gap: 3px;
