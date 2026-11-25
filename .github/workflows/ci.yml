@@ -13,10 +13,8 @@ jobs:
     name: Verify app
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Check out CI event revision
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -56,30 +54,6 @@ jobs:
 
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
-
-      - name: Check out original Standings baseline
-        uses: actions/checkout@v4
-        with:
-          ref: b4dfd416d2d5d4a5eba7916afa55e2965554186e
-          path: .standings-reference
-
-      - name: Verify Standings A and capture visual evidence
-        env:
-          STANDINGS_BASELINE_ROOT: ${{ github.workspace }}/.standings-reference
-        run: |
-          ln -s "$GITHUB_WORKSPACE/node_modules" "$STANDINGS_BASELINE_ROOT/node_modules"
-          node scripts/issue66-standings-visual.mjs
-
-      - name: Upload Standings visual evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: buzzerboard-standings-a
-          path: |
-            artifacts/issue-66/*.png
-            artifacts/issue-66/measurements.json
-            artifacts/issue-66/README.md
-          if-no-files-found: error
-          retention-days: 30
 
       - name: Check all routes, box score and responsive states
         run: pnpm run visual:pro171 --compact
@@ -122,3 +96,54 @@ jobs:
           path: artifacts/pro-171/ci/
           if-no-files-found: warn
           retention-days: 3
+
+  standings-visual:
+    name: Standings visual evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Standings revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Check out original Standings baseline
+        uses: actions/checkout@v4
+        with:
+          ref: b4dfd416d2d5d4a5eba7916afa55e2965554186e
+          path: .standings-reference
+
+      - name: Verify Standings A and capture visual evidence
+        env:
+          STANDINGS_BASELINE_ROOT: ${{ github.workspace }}/.standings-reference
+        run: |
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$STANDINGS_BASELINE_ROOT/node_modules"
+          node scripts/issue66-standings-visual.mjs
+
+      - name: Upload Standings visual evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-standings-a
+          path: |
+            artifacts/issue-66/*.png
+            artifacts/issue-66/measurements.json
+            artifacts/issue-66/README.md
+          if-no-files-found: error
+          retention-days: 30
