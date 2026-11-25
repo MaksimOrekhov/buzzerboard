@@ -5,7 +5,7 @@ import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import { WorkerApiError } from '@/features/games/api'
 import { useGameFavorites } from './useGameFavorites'
 import { useGamesForDate } from './useGamesForDate'
-import { shiftNbaGameDate } from '@/shared/utils/nbaDate'
+import { selectableNbaGameDate, shiftNbaGameDate } from '@/shared/utils/nbaDate'
 import { gameCenterReturnTo, gameDetailsPath } from '@/features/games/gameDetailsRoute'
 
 import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
@@ -25,20 +25,11 @@ export function useGameCenter() {
   )
   const minDate = computed(() => shiftGameDate(today.value, -30))
   const maxDate = computed(() => shiftGameDate(today.value, 7))
-  const selectedDate = computed(() => {
-    const date = route.query.date
-    if (
-      typeof date !== 'string' ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-      date < minDate.value ||
-      date > maxDate.value
-    )
-      return today.value
-    const parsed = new Date(`${date}T12:00:00Z`)
-    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date
-      ? (date as NbaGameDate)
-      : today.value
-  })
+  const selectedDate = computed(
+    () =>
+      (selectableNbaGameDate(route.query.date, minDate.value, maxDate.value) ??
+        today.value) as NbaGameDate,
+  )
   const query = useGamesForDate(selectedDate, yesterday)
   const { favoriteIds, isFavorite, toggleFavorite } = useGameFavorites()
   const validStatuses: GameStatus[] = [

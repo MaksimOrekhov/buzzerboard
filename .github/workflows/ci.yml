@@ -147,3 +147,56 @@ jobs:
             artifacts/issue-66/README.md
           if-no-files-found: error
           retention-days: 30
+
+  nba-hub-visual:
+    name: NBA Hub visual evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out NBA Hub revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Check out the approved NBA Hub baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 94a72b734c4783c1692aba5118e3837aa98b6652
+          path: .hub-reference
+
+      - name: Test NBA Hub and capture the visual comparison
+        env:
+          HUB_BASELINE_ROOT: ${{ github.workspace }}/.hub-reference
+        run: |
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$HUB_BASELINE_ROOT/node_modules"
+          node scripts/issue70-home-visual.mjs
+
+      - name: Upload NBA Hub visual evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-nba-hub-a
+          path: |
+            artifacts/issue-70/*.png
+            artifacts/issue-70/comparison.html
+            artifacts/issue-70/measurements.json
+            artifacts/issue-70/nba-hub.synthetic.json
+            artifacts/issue-70/README.md
+          if-no-files-found: error
+          retention-days: 30

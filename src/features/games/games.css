@@ -1192,7 +1192,7 @@
     flex-direction: row;
     text-align: left;
   }
-  .gc-scoreboard-team .gc-team-logo {
+  :where(.gc-score-row:not(.gc-score-row--compact)) .gc-scoreboard-team .gc-team-logo {
     width: 30px !important;
     height: 30px !important;
     flex: 0 0 30px;

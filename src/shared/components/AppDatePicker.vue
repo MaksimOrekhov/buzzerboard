@@ -20,16 +20,18 @@ import {
   CalendarCellTrigger,
 } from 'reka-ui'
 import AppIcon from '@/shared/components/AppIcon.vue'
-const props = defineProps<{ min: string; max: string; compact?: boolean }>()
+const props = defineProps<{ min: string; max: string; compact?: boolean; short?: boolean }>()
 const model = defineModel<string>({ required: true })
 const open = shallowRef(false)
 const value = computed(() => parseDate(model.value))
 const label = computed(() =>
   new Intl.DateTimeFormat(
     'ru-RU',
-    props.compact
-      ? { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }
-      : { month: 'long', year: 'numeric', timeZone: 'UTC' },
+    props.short
+      ? { day: 'numeric', month: 'short', timeZone: 'UTC' }
+      : props.compact
+        ? { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }
+        : { month: 'long', year: 'numeric', timeZone: 'UTC' },
   ).format(new Date(`${model.value}T12:00:00Z`)),
 )
 function select(date: DateValue | undefined) {
@@ -40,8 +42,12 @@ function select(date: DateValue | undefined) {
 </script>
 <template>
   <PopoverRoot v-model:open="open">
-    <PopoverTrigger class="gc-control gc-date-trigger" aria-label="Выбрать игровую дату NBA"
-      ><AppIcon name="calendar" :size="18" />{{ label }}<AppIcon name="down" :size="15"
+    <PopoverTrigger
+      class="gc-control"
+      :class="short ? 'gc-date-trigger--short' : 'gc-date-trigger'"
+      aria-label="Выбрать игровую дату NBA"
+      ><AppIcon name="calendar" :size="18" />{{ label
+      }}<AppIcon v-if="!short" name="down" :size="15"
     /></PopoverTrigger>
     <PopoverPortal
       ><PopoverContent
