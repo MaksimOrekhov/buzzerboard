@@ -123,7 +123,7 @@ const errorTitle = computed(() =>
             <tr v-for="row in preview" :key="row.team.id" class="overview-mini-row">
               <th scope="row">
                 <TeamProfileLink :team="row.team" class="home-standings-team">
-                  <TeamLogo :team="row.team" :size="26" initials-only />
+                  <TeamLogo :team="row.team" :size="26" />
                   <span>{{ row.team.displayName ?? row.team.abbreviation ?? 'Команда' }}</span>
                 </TeamProfileLink>
               </th>
