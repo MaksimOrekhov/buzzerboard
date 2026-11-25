@@ -16,7 +16,7 @@
     "worker:deploy": "pnpm build && XDG_CONFIG_HOME=.wrangler/config WRANGLER_WRITE_LOGS=false wrangler deploy",
     "db:migrate:local": "XDG_CONFIG_HOME=.wrangler/config WRANGLER_WRITE_LOGS=false wrangler d1 migrations apply buzzerboard-nba-cache --local",
     "db:migrate:remote": "XDG_CONFIG_HOME=.wrangler/config WRANGLER_WRITE_LOGS=false wrangler d1 migrations apply buzzerboard-nba-cache --remote",
-    "test": "vitest run && node --experimental-strip-types --test scripts/pro169-cloudflare-seed.test.mjs scripts/pro202-media-assets.test.mjs",
+    "test": "vitest run && node --experimental-strip-types --test scripts/pro169-cloudflare-seed.test.mjs scripts/pro202-media-assets.test.mjs scripts/project-status-sync.test.mjs",
     "media:check": "node scripts/pro202-media-assets.mjs",
     "test:watch": "vitest",
     "dunkapi:smoke": "node scripts/dunkapi-smoke.mjs",
