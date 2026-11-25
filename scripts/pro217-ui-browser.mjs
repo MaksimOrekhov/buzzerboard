@@ -108,6 +108,9 @@ export async function checkUiAudit({
 
     await visit('/standings')
     const table = page.locator('.standings-scroll')
+    await table.waitFor()
+    const compareMode = page.getByRole('button', { name: 'Режим сравнения', exact: true })
+    if (await compareMode.count()) await compareMode.click()
     const checkboxes = table.getByRole('checkbox', { name: /Сравнить/ })
     await checkboxes.nth(0).check()
     await checkboxes.nth(1).check()

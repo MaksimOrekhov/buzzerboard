@@ -6,6 +6,7 @@ import { useStandingsCenter, CURRENT_SEASON } from './useStandingsCenter'
 import { standingsQueryKey } from './useStandings'
 import { makeStandingsRows } from '../standingsTestData'
 import type { StandingsRow } from '@/entities/nba/model'
+import type { StandingsResponse } from '@/shared/api/nba/contracts'
 const cleanups: (() => void)[] = []
 afterEach(() => {
   cleanups.splice(0).forEach((fn) => fn())
@@ -39,12 +40,12 @@ function setup(rows: StandingsRow[]) {
     wrapper.unmount()
     client.clear()
   })
-  return state
+  return { state, client }
 }
 describe('Standings controls', () => {
   it('keeps comparison selection across conferences and limits it to two teams', async () => {
     const rows = [...makeStandingsRows('east'), ...makeStandingsRows('west')]
-    const state = setup(rows)
+    const { state } = setup(rows)
     state.toggleCompare(rows[0]!.team.id)
     state.conference.value = 'west'
     state.toggleCompare(rows[15]!.team.id)
@@ -55,9 +56,28 @@ describe('Standings controls', () => {
     state.clearComparison()
     expect(state.compareIds.value.size).toBe(0)
   })
+  it('removes unavailable teams from a new snapshot and closes an incomplete comparison', async () => {
+    const rows = [...makeStandingsRows('east'), ...makeStandingsRows('west')]
+    const { state, client } = setup(rows)
+    const first = rows[0]!.team.id
+    const second = rows[15]!.team.id
+    state.toggleCompare(first)
+    state.toggleCompare(second)
+    state.comparisonOpen.value = true
+
+    client.setQueryData<StandingsResponse>(
+      standingsQueryKey(CURRENT_SEASON),
+      (snapshot) => snapshot && { ...snapshot, data: rows.slice(1) },
+    )
+    await nextTick()
+    state.toggleCompare(first)
+
+    expect([...state.compareIds.value]).toEqual([second])
+    expect(state.comparisonOpen.value).toBe(false)
+  })
   it('keeps favorites and search as filters without changing GB eligibility', () => {
     const rows = makeStandingsRows()
-    const state = setup(rows)
+    const { state } = setup(rows)
     state.toggleFavorite(rows[0]!.team.id)
     state.favoriteOnly.value = true
     expect(state.visibleRows.value).toHaveLength(1)
@@ -72,7 +92,7 @@ describe('Standings controls', () => {
     rows[0]!.record.conferenceWins = null
     rows[1]!.record.conferenceWins = 2
     rows[2]!.record.conferenceWins = 1
-    const state = setup(rows)
+    const { state } = setup(rows)
     state.selectSort('gamesBehind')
     expect(state.sortBy.value).toBe('winPercentage')
     state.selectSort('conferenceWins')

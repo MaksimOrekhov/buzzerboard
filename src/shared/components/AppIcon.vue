@@ -88,6 +88,8 @@ withDefaults(
       <path d="m16 16 4.5 4.5" />
     </template>
     <path v-else-if="name === 'down'" d="m6 9 6 6 6-6" />
+    <path v-else-if="name === 'up'" d="m6 15 6-6 6 6" />
+    <path v-else-if="name === 'compare'" d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4" />
     <template v-else-if="name === 'refresh'">
       <path d="M20 7v5h-5M4 17v-5h5" />
       <path d="M6.2 6.2A8 8 0 0 1 20 12M4 12a8 8 0 0 0 13.8 5.8" />

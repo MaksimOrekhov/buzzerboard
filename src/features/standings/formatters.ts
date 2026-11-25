@@ -16,7 +16,7 @@ export function formatAverageMargin(value: number | null): string {
 }
 export function formatLastTen(wins: number | null): string {
   if (wins === null || !Number.isInteger(wins) || wins < 0 || wins > 10) return '—'
-  return `${wins} ${wins === 1 ? 'победа' : wins >= 2 && wins <= 4 ? 'победы' : 'побед'}`
+  return formatNumber(wins)
 }
 export function formatGamesBehind(value: number | undefined): string {
   return value === undefined
