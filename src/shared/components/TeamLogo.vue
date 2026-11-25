@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, shallowRef, watch } from 'vue'
 import type { Team } from '@/entities/nba/model'
-const props = withDefaults(defineProps<{ team: Team; size?: number }>(), { size: 40 })
+const props = withDefaults(defineProps<{ team: Team; size?: number; initialsOnly?: boolean }>(), {
+  size: 40,
+})
 // Canonical NBA team abbreviations map to the IDs used by the official NBA CDN.
 const logoIds: Record<string, number> = {
   atl: 1610612737,
@@ -73,7 +75,7 @@ watch(src, () => {
     aria-hidden="true"
   >
     <img
-      v-if="src && !failed"
+      v-if="src && !failed && !initialsOnly"
       :src="src"
       alt=""
       :width="size"

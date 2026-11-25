@@ -5,9 +5,10 @@ import type { Game, GameStatus } from '@/entities/nba/model'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import TeamLogo from '@/shared/components/TeamLogo.vue'
 import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
-import { VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
+import { getViewerGameDate, VIEWER_TIME_ZONE } from '@/shared/utils/nbaDate'
 import { RouterLink } from 'vue-router'
 import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
+import { isSettledGameResult } from '@/shared/api/nba/gameDetailsGuards'
 import SpoilerGameReveal from '@/features/spoilers/SpoilerGameReveal.vue'
 const { hideGame, isFutureSchedule } = useSpoilerMode()
 const props = defineProps<{
@@ -16,6 +17,7 @@ const props = defineProps<{
   expanded: boolean
   detailsTo?: string
   scoreboard?: boolean
+  compact?: boolean
 }>()
 const emit = defineEmits<{ favorite: []; details: [] }>()
 const detailsId = useId()
@@ -47,12 +49,30 @@ const localDate = computed(() =>
       }).format(new Date(props.game.startsAt))
     : 'Время не указано',
 )
+const compactDate = computed(() => {
+  if (!props.game.startsAt || getViewerGameDate(props.game.startsAt) === props.game.nbaGameDate)
+    return ''
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: VIEWER_TIME_ZONE,
+  }).format(new Date(props.game.startsAt))
+})
 const hidden = computed(() => hideGame(props.game))
 const scheduleOnly = computed(() => isFutureSchedule(props.game))
+const showCompactScore = computed(
+  () =>
+    !hidden.value &&
+    !scheduleOnly.value &&
+    props.game.status === 'final' &&
+    isSettledGameResult(props.game),
+)
 const matchLabel = computed(() => {
   const teams = `${props.game.awayTeam.displayName ?? 'Гости'} — ${props.game.homeTeam.displayName ?? 'Хозяева'}`
   if (hidden.value) return `Открыть матч: ${teams}. Результат скрыт`
   if (scheduleOnly.value) return `Открыть матч: ${teams}. Ожидается`
+  if (props.compact && !showCompactScore.value)
+    return `Открыть матч: ${teams}. ${labels[props.game.status]}`
   return `Открыть матч: ${teams}. Счёт ${props.game.score.away ?? 'неизвестен'} : ${props.game.score.home ?? 'неизвестен'}. ${labels[props.game.status]}`
 })
 const winner = computed(() =>
@@ -75,17 +95,21 @@ const winner = computed(() =>
     :class="{
       'gc-score-row--open': expanded && !hidden && !scheduleOnly,
       'gc-score-row--protected': hidden,
-      'gc-score-row--scoreboard': scoreboard,
+      'gc-score-row--scoreboard': scoreboard || compact,
+      'gc-score-row--compact': compact,
     }"
     :aria-label="`${game.awayTeam.displayName ?? 'Гости'} — ${game.homeTeam.displayName ?? 'Хозяева'}`"
   >
-    <div v-if="scoreboard" class="gc-scoreboard-row">
+    <div v-if="scoreboard || compact" class="gc-scoreboard-row">
       <div class="gc-scoreboard-time">
         <time v-if="game.startsAt" :datetime="game.startsAt">{{ startTime }}</time><span v-else
           >—</span
         >
-        <span>{{ localDate }}</span><span
-          v-if="!hidden"
+        <span v-if="!compact">{{ localDate }}</span><span v-else-if="compactDate">{{
+          compactDate
+        }}</span
+        ><span
+          v-if="!compact && !hidden"
           class="gc-scoreboard-status"
           :class="{ 'gc-match-status--final': !scheduleOnly && game.status === 'final' }"
           >{{ labels[scheduleOnly ? 'scheduled' : game.status] }}</span
@@ -98,13 +122,17 @@ const winner = computed(() =>
           'gc-scoreboard-team--loser': winner === 'home',
         }"
       >
-        <TeamLogo :team="game.awayTeam" :size="36" /><TeamProfileLink
+        <TeamLogo
           :team="game.awayTeam"
-          :aria-describedby="winner === 'away' ? winnerId : undefined"
+          :size="compact ? 24 : 36"
+          :initials-only="compact"
+        /><TeamProfileLink
+          :team="game.awayTeam"
+          :aria-describedby="!compact && winner === 'away' ? winnerId : undefined"
           ><span class="gc-team-role">Гости</span
           ><span class="gc-team-name"
             ><span
-              v-if="winner === 'away'"
+              v-if="!compact && winner === 'away'"
               :id="winnerId"
               class="gc-winner-marker gc-scoreboard-winner"
               ><span aria-hidden="true">▸</span
@@ -129,7 +157,7 @@ const winner = computed(() =>
         :aria-label="matchLabel"
       >
         <span
-          v-if="!scheduleOnly"
+          v-if="compact ? showCompactScore : !scheduleOnly"
           class="gc-scoreboard-numbers"
           :aria-label="`Счёт ${game.score.away ?? 'неизвестен'} : ${game.score.home ?? 'неизвестен'}`"
           ><span
@@ -147,8 +175,12 @@ const winner = computed(() =>
             >{{ game.score.home ?? '—' }}</span
           ></span
         >
-        <span v-else class="gc-scoreboard-scheduled">Расписание</span
-        ><AppIcon name="chevron-right" :size="16" class="gc-scoreboard-chevron" />
+        <span v-if="compact" class="gc-compact-status">
+          {{ labels[scheduleOnly ? 'scheduled' : game.status] }}
+          <AppIcon name="chevron-right" :size="12" />
+        </span>
+        <span v-else-if="scheduleOnly" class="gc-scoreboard-scheduled">Расписание</span>
+        <AppIcon v-if="!compact" name="chevron-right" :size="16" class="gc-scoreboard-chevron" />
       </RouterLink>
       <div
         class="gc-scoreboard-team gc-scoreboard-team--home"
@@ -157,13 +189,17 @@ const winner = computed(() =>
           'gc-scoreboard-team--loser': winner === 'away',
         }"
       >
-        <TeamLogo :team="game.homeTeam" :size="36" /><TeamProfileLink
+        <TeamLogo
           :team="game.homeTeam"
-          :aria-describedby="winner === 'home' ? winnerId : undefined"
+          :size="compact ? 24 : 36"
+          :initials-only="compact"
+        /><TeamProfileLink
+          :team="game.homeTeam"
+          :aria-describedby="!compact && winner === 'home' ? winnerId : undefined"
           ><span class="gc-team-role">Хозяева</span
           ><span class="gc-team-name"
             ><span
-              v-if="winner === 'home'"
+              v-if="!compact && winner === 'home'"
               :id="winnerId"
               class="gc-winner-marker gc-scoreboard-winner"
               ><span aria-hidden="true">▸</span

@@ -255,20 +255,20 @@ export async function checkSpoilerMode({
   assert.equal(
     await rows
       .first()
-      .locator('.gc-match-reveal button')
+      .locator('.gc-scoreboard-result--hidden button')
       .evaluate((node) => {
         const button = node.getBoundingClientRect()
-        return [...node.closest('.gc-match-main').querySelectorAll('.gc-match-team')].every(
-          (team) => {
-            const rect = team.getBoundingClientRect()
-            return (
-              button.right <= rect.left ||
-              button.left >= rect.right ||
-              button.bottom <= rect.top ||
-              button.top >= rect.bottom
-            )
-          },
-        )
+        return [
+          ...node.closest('.gc-scoreboard-row').querySelectorAll('.gc-scoreboard-team'),
+        ].every((team) => {
+          const rect = team.getBoundingClientRect()
+          return (
+            button.right <= rect.left ||
+            button.left >= rect.right ||
+            button.bottom <= rect.top ||
+            button.top >= rect.bottom
+          )
+        })
       }),
     true,
   )

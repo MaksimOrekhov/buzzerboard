@@ -1,0 +1,1354 @@
+{
+  "clock": "2026-11-25T03:20:00.000Z",
+  "today": "2026-11-24",
+  "leagueTimeZone": "America/New_York",
+  "viewerTimeZone": "Asia/Nicosia",
+  "days": {
+    "2026-11-24": {
+      "meta": {
+        "source": "bbs",
+        "fetchedAt": "2026-11-25T03:14:00.000Z",
+        "providerUpdatedAt": null,
+        "isStale": false,
+        "rejectedRecords": 0,
+        "refreshError": null
+      },
+      "data": [
+        {
+          "id": "bbs:game:hub-demo-2026-11-24-bos-nyk",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-24-bos-nyk",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-24",
+          "startsAt": "2026-11-24T19:00:00-05:00",
+          "status": "final",
+          "awayTeam": {
+            "id": "nba:team:BOS",
+            "providerId": null,
+            "abbreviation": "BOS",
+            "displayName": "Boston Celtics"
+          },
+          "homeTeam": {
+            "id": "nba:team:NYK",
+            "providerId": null,
+            "abbreviation": "NYK",
+            "displayName": "New York Knicks"
+          },
+          "score": {
+            "home": 118,
+            "away": 111
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-24-min-chi",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-24-min-chi",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-24",
+          "startsAt": "2026-11-24T19:30:00-05:00",
+          "status": "final",
+          "awayTeam": {
+            "id": "nba:team:MIN",
+            "providerId": null,
+            "abbreviation": "MIN",
+            "displayName": "Minnesota Timberwolves"
+          },
+          "homeTeam": {
+            "id": "nba:team:CHI",
+            "providerId": null,
+            "abbreviation": "CHI",
+            "displayName": "Chicago Bulls"
+          },
+          "score": {
+            "home": 113,
+            "away": 124
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-24-cle-mia",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-24-cle-mia",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-24",
+          "startsAt": "2026-11-24T20:00:00-05:00",
+          "status": "final",
+          "awayTeam": {
+            "id": "nba:team:CLE",
+            "providerId": null,
+            "abbreviation": "CLE",
+            "displayName": "Cleveland Cavaliers"
+          },
+          "homeTeam": {
+            "id": "nba:team:MIA",
+            "providerId": null,
+            "abbreviation": "MIA",
+            "displayName": "Miami Heat"
+          },
+          "score": {
+            "home": 109,
+            "away": 104
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-24-tor-orl",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-24-tor-orl",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-24",
+          "startsAt": "2026-11-24T20:30:00-05:00",
+          "status": "unknown",
+          "awayTeam": {
+            "id": "nba:team:TOR",
+            "providerId": null,
+            "abbreviation": "TOR",
+            "displayName": "Toronto Raptors"
+          },
+          "homeTeam": {
+            "id": "nba:team:ORL",
+            "providerId": null,
+            "abbreviation": "ORL",
+            "displayName": "Orlando Magic"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-24-lal-gsw",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-24-lal-gsw",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-24",
+          "startsAt": "2026-11-24T22:30:00-05:00",
+          "status": "scheduled",
+          "awayTeam": {
+            "id": "nba:team:LAL",
+            "providerId": null,
+            "abbreviation": "LAL",
+            "displayName": "Los Angeles Lakers"
+          },
+          "homeTeam": {
+            "id": "nba:team:GSW",
+            "providerId": null,
+            "abbreviation": "GSW",
+            "displayName": "Golden State Warriors"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-24-dal-den",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-24-dal-den",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-24",
+          "startsAt": "2026-11-24T22:45:00-05:00",
+          "status": "scheduled",
+          "awayTeam": {
+            "id": "nba:team:DAL",
+            "providerId": null,
+            "abbreviation": "DAL",
+            "displayName": "Dallas Mavericks"
+          },
+          "homeTeam": {
+            "id": "nba:team:DEN",
+            "providerId": null,
+            "abbreviation": "DEN",
+            "displayName": "Denver Nuggets"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-24-sac-por",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-24-sac-por",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-24",
+          "startsAt": "2026-11-24T23:00:00-05:00",
+          "status": "postponed",
+          "awayTeam": {
+            "id": "nba:team:SAC",
+            "providerId": null,
+            "abbreviation": "SAC",
+            "displayName": "Sacramento Kings"
+          },
+          "homeTeam": {
+            "id": "nba:team:POR",
+            "providerId": null,
+            "abbreviation": "POR",
+            "displayName": "Portland Trail Blazers"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        }
+      ]
+    },
+    "2026-11-23": {
+      "meta": {
+        "source": "bbs",
+        "fetchedAt": "2026-11-24T06:25:00.000Z",
+        "providerUpdatedAt": null,
+        "isStale": false,
+        "rejectedRecords": 0,
+        "refreshError": null
+      },
+      "data": [
+        {
+          "id": "bbs:game:hub-demo-2026-11-23-phi-atl",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-23-phi-atl",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-23",
+          "startsAt": "2026-11-23T18:00:00-05:00",
+          "status": "final",
+          "awayTeam": {
+            "id": "nba:team:PHI",
+            "providerId": null,
+            "abbreviation": "PHI",
+            "displayName": "Philadelphia 76ers"
+          },
+          "homeTeam": {
+            "id": "nba:team:ATL",
+            "providerId": null,
+            "abbreviation": "ATL",
+            "displayName": "Atlanta Hawks"
+          },
+          "score": {
+            "home": 114,
+            "away": 107
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-23-nyk-bkn",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-23-nyk-bkn",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-23",
+          "startsAt": "2026-11-23T19:00:00-05:00",
+          "status": "final",
+          "awayTeam": {
+            "id": "nba:team:NYK",
+            "providerId": null,
+            "abbreviation": "NYK",
+            "displayName": "New York Knicks"
+          },
+          "homeTeam": {
+            "id": "nba:team:BKN",
+            "providerId": null,
+            "abbreviation": "BKN",
+            "displayName": "Brooklyn Nets"
+          },
+          "score": {
+            "home": 103,
+            "away": 115
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-23-mil-ind",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-23-mil-ind",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-23",
+          "startsAt": "2026-11-23T20:00:00-05:00",
+          "status": "final",
+          "awayTeam": {
+            "id": "nba:team:MIL",
+            "providerId": null,
+            "abbreviation": "MIL",
+            "displayName": "Milwaukee Bucks"
+          },
+          "homeTeam": {
+            "id": "nba:team:IND",
+            "providerId": null,
+            "abbreviation": "IND",
+            "displayName": "Indiana Pacers"
+          },
+          "score": {
+            "home": 117,
+            "away": 122
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-23-lac-lal",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-23-lac-lal",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-23",
+          "startsAt": "2026-11-23T22:00:00-05:00",
+          "status": "final",
+          "awayTeam": {
+            "id": "nba:team:LAC",
+            "providerId": null,
+            "abbreviation": "LAC",
+            "displayName": "Los Angeles Clippers"
+          },
+          "homeTeam": {
+            "id": "nba:team:LAL",
+            "providerId": null,
+            "abbreviation": "LAL",
+            "displayName": "Los Angeles Lakers"
+          },
+          "score": {
+            "home": 121,
+            "away": 119
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        }
+      ]
+    },
+    "2026-11-25": {
+      "meta": {
+        "source": "bbs",
+        "fetchedAt": "2026-11-25T03:14:00.000Z",
+        "providerUpdatedAt": null,
+        "isStale": false,
+        "rejectedRecords": 0,
+        "refreshError": null
+      },
+      "data": [
+        {
+          "id": "bbs:game:hub-demo-2026-11-25-det-was",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-25-det-was",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-25",
+          "startsAt": "2026-11-25T19:00:00-05:00",
+          "status": "scheduled",
+          "awayTeam": {
+            "id": "nba:team:DET",
+            "providerId": null,
+            "abbreviation": "DET",
+            "displayName": "Detroit Pistons"
+          },
+          "homeTeam": {
+            "id": "nba:team:WAS",
+            "providerId": null,
+            "abbreviation": "WAS",
+            "displayName": "Washington Wizards"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-25-nyk-bos",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-25-nyk-bos",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-25",
+          "startsAt": "2026-11-25T19:30:00-05:00",
+          "status": "scheduled",
+          "awayTeam": {
+            "id": "nba:team:NYK",
+            "providerId": null,
+            "abbreviation": "NYK",
+            "displayName": "New York Knicks"
+          },
+          "homeTeam": {
+            "id": "nba:team:BOS",
+            "providerId": null,
+            "abbreviation": "BOS",
+            "displayName": "Boston Celtics"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-25-chi-hou",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-25-chi-hou",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-25",
+          "startsAt": "2026-11-25T20:00:00-05:00",
+          "status": "scheduled",
+          "awayTeam": {
+            "id": "nba:team:CHI",
+            "providerId": null,
+            "abbreviation": "CHI",
+            "displayName": "Chicago Bulls"
+          },
+          "homeTeam": {
+            "id": "nba:team:HOU",
+            "providerId": null,
+            "abbreviation": "HOU",
+            "displayName": "Houston Rockets"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-25-okc-uta",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-25-okc-uta",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-25",
+          "startsAt": "2026-11-25T21:00:00-05:00",
+          "status": "scheduled",
+          "awayTeam": {
+            "id": "nba:team:OKC",
+            "providerId": null,
+            "abbreviation": "OKC",
+            "displayName": "Oklahoma City Thunder"
+          },
+          "homeTeam": {
+            "id": "nba:team:UTA",
+            "providerId": null,
+            "abbreviation": "UTA",
+            "displayName": "Utah Jazz"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        },
+        {
+          "id": "bbs:game:hub-demo-2026-11-25-phx-lal",
+          "provider": "bbs",
+          "providerId": "hub-demo-2026-11-25-phx-lal",
+          "seasonEndYear": 2027,
+          "nbaGameDate": "2026-11-25",
+          "startsAt": "2026-11-25T22:00:00-05:00",
+          "status": "scheduled",
+          "awayTeam": {
+            "id": "nba:team:PHX",
+            "providerId": null,
+            "abbreviation": "PHX",
+            "displayName": "Phoenix Suns"
+          },
+          "homeTeam": {
+            "id": "nba:team:LAL",
+            "providerId": null,
+            "abbreviation": "LAL",
+            "displayName": "Los Angeles Lakers"
+          },
+          "score": {
+            "home": null,
+            "away": null
+          },
+          "scoreByPeriod": null,
+          "venue": null
+        }
+      ]
+    },
+    "2026-11-26": {
+      "meta": {
+        "source": "bbs",
+        "fetchedAt": "2026-11-25T03:14:00.000Z",
+        "providerUpdatedAt": null,
+        "isStale": false,
+        "rejectedRecords": 0,
+        "refreshError": null
+      },
+      "data": []
+    }
+  },
+  "standings": {
+    "meta": {
+      "source": "bbs",
+      "fetchedAt": "2026-11-24T18:10:00.000Z",
+      "providerUpdatedAt": null,
+      "isStale": false,
+      "rejectedRecords": 0,
+      "refreshError": null
+    },
+    "data": [
+      {
+        "team": {
+          "id": "nba:team:BOS",
+          "providerId": null,
+          "abbreviation": "BOS",
+          "displayName": "Boston Celtics"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.7894736842105263,
+        "record": {
+          "wins": 15,
+          "losses": 4,
+          "homeWins": 9,
+          "homeLosses": 1,
+          "awayWins": 6,
+          "awayLosses": 3,
+          "conferenceWins": 10,
+          "conferenceLosses": 2,
+          "lastTenWins": 8,
+          "averageMargin": 8.4,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:CLE",
+          "providerId": null,
+          "abbreviation": "CLE",
+          "displayName": "Cleveland Cavaliers"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.7368421052631579,
+        "record": {
+          "wins": 14,
+          "losses": 5,
+          "homeWins": 8,
+          "homeLosses": 2,
+          "awayWins": 6,
+          "awayLosses": 3,
+          "conferenceWins": 9,
+          "conferenceLosses": 3,
+          "lastTenWins": 7,
+          "averageMargin": 6.9,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:NYK",
+          "providerId": null,
+          "abbreviation": "NYK",
+          "displayName": "New York Knicks"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.6842105263157895,
+        "record": {
+          "wins": 13,
+          "losses": 6,
+          "homeWins": 8,
+          "homeLosses": 2,
+          "awayWins": 5,
+          "awayLosses": 4,
+          "conferenceWins": 9,
+          "conferenceLosses": 4,
+          "lastTenWins": 7,
+          "averageMargin": 5.3,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:ORL",
+          "providerId": null,
+          "abbreviation": "ORL",
+          "displayName": "Orlando Magic"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.631578947368421,
+        "record": {
+          "wins": 12,
+          "losses": 7,
+          "homeWins": 8,
+          "homeLosses": 2,
+          "awayWins": 4,
+          "awayLosses": 5,
+          "conferenceWins": 8,
+          "conferenceLosses": 4,
+          "lastTenWins": 6,
+          "averageMargin": 3.6,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:MIL",
+          "providerId": null,
+          "abbreviation": "MIL",
+          "displayName": "Milwaukee Bucks"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.5789473684210527,
+        "record": {
+          "wins": 11,
+          "losses": 8,
+          "homeWins": 7,
+          "homeLosses": 3,
+          "awayWins": 4,
+          "awayLosses": 5,
+          "conferenceWins": 8,
+          "conferenceLosses": 5,
+          "lastTenWins": 6,
+          "averageMargin": 2.1,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:PHI",
+          "providerId": null,
+          "abbreviation": "PHI",
+          "displayName": "Philadelphia 76ers"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.55,
+        "record": {
+          "wins": 11,
+          "losses": 9,
+          "homeWins": 7,
+          "homeLosses": 4,
+          "awayWins": 4,
+          "awayLosses": 5,
+          "conferenceWins": 7,
+          "conferenceLosses": 5,
+          "lastTenWins": 5,
+          "averageMargin": 1.8,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:MIA",
+          "providerId": null,
+          "abbreviation": "MIA",
+          "displayName": "Miami Heat"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.5263157894736842,
+        "record": {
+          "wins": 10,
+          "losses": 9,
+          "homeWins": 6,
+          "homeLosses": 3,
+          "awayWins": 4,
+          "awayLosses": 6,
+          "conferenceWins": 8,
+          "conferenceLosses": 5,
+          "lastTenWins": 6,
+          "averageMargin": 1.2,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:CHI",
+          "providerId": null,
+          "abbreviation": "CHI",
+          "displayName": "Chicago Bulls"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.5,
+        "record": {
+          "wins": 10,
+          "losses": 10,
+          "homeWins": 6,
+          "homeLosses": 4,
+          "awayWins": 4,
+          "awayLosses": 6,
+          "conferenceWins": 7,
+          "conferenceLosses": 6,
+          "lastTenWins": 5,
+          "averageMargin": -0.2,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:ATL",
+          "providerId": null,
+          "abbreviation": "ATL",
+          "displayName": "Atlanta Hawks"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.47368421052631576,
+        "record": {
+          "wins": 9,
+          "losses": 10,
+          "homeWins": 6,
+          "homeLosses": 4,
+          "awayWins": 3,
+          "awayLosses": 6,
+          "conferenceWins": 6,
+          "conferenceLosses": 7,
+          "lastTenWins": 5,
+          "averageMargin": -1.1,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:IND",
+          "providerId": null,
+          "abbreviation": "IND",
+          "displayName": "Indiana Pacers"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.45,
+        "record": {
+          "wins": 9,
+          "losses": 11,
+          "homeWins": 6,
+          "homeLosses": 5,
+          "awayWins": 3,
+          "awayLosses": 6,
+          "conferenceWins": 6,
+          "conferenceLosses": 8,
+          "lastTenWins": 4,
+          "averageMargin": -1.7,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:DET",
+          "providerId": null,
+          "abbreviation": "DET",
+          "displayName": "Detroit Pistons"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.42105263157894735,
+        "record": {
+          "wins": 8,
+          "losses": 11,
+          "homeWins": 5,
+          "homeLosses": 5,
+          "awayWins": 3,
+          "awayLosses": 6,
+          "conferenceWins": 5,
+          "conferenceLosses": 8,
+          "lastTenWins": 4,
+          "averageMargin": -2.6,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:TOR",
+          "providerId": null,
+          "abbreviation": "TOR",
+          "displayName": "Toronto Raptors"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.3684210526315789,
+        "record": {
+          "wins": 7,
+          "losses": 12,
+          "homeWins": 5,
+          "homeLosses": 5,
+          "awayWins": 2,
+          "awayLosses": 7,
+          "conferenceWins": 5,
+          "conferenceLosses": 8,
+          "lastTenWins": 4,
+          "averageMargin": -3.9,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:BKN",
+          "providerId": null,
+          "abbreviation": "BKN",
+          "displayName": "Brooklyn Nets"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.3157894736842105,
+        "record": {
+          "wins": 6,
+          "losses": 13,
+          "homeWins": 4,
+          "homeLosses": 6,
+          "awayWins": 2,
+          "awayLosses": 7,
+          "conferenceWins": 4,
+          "conferenceLosses": 9,
+          "lastTenWins": 3,
+          "averageMargin": -5.7,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:CHA",
+          "providerId": null,
+          "abbreviation": "CHA",
+          "displayName": "Charlotte Hornets"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.2631578947368421,
+        "record": {
+          "wins": 5,
+          "losses": 14,
+          "homeWins": 4,
+          "homeLosses": 6,
+          "awayWins": 1,
+          "awayLosses": 8,
+          "conferenceWins": 3,
+          "conferenceLosses": 10,
+          "lastTenWins": 2,
+          "averageMargin": -7.1,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:WAS",
+          "providerId": null,
+          "abbreviation": "WAS",
+          "displayName": "Washington Wizards"
+        },
+        "conference": "east",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.21052631578947367,
+        "record": {
+          "wins": 4,
+          "losses": 15,
+          "homeWins": 3,
+          "homeLosses": 7,
+          "awayWins": 1,
+          "awayLosses": 8,
+          "conferenceWins": 2,
+          "conferenceLosses": 11,
+          "lastTenWins": 2,
+          "averageMargin": -9.4,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:OKC",
+          "providerId": null,
+          "abbreviation": "OKC",
+          "displayName": "Oklahoma City Thunder"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.8421052631578947,
+        "record": {
+          "wins": 16,
+          "losses": 3,
+          "homeWins": 9,
+          "homeLosses": 1,
+          "awayWins": 7,
+          "awayLosses": 2,
+          "conferenceWins": 11,
+          "conferenceLosses": 2,
+          "lastTenWins": 9,
+          "averageMargin": 10.8,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:DEN",
+          "providerId": null,
+          "abbreviation": "DEN",
+          "displayName": "Denver Nuggets"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.7368421052631579,
+        "record": {
+          "wins": 14,
+          "losses": 5,
+          "homeWins": 8,
+          "homeLosses": 2,
+          "awayWins": 6,
+          "awayLosses": 3,
+          "conferenceWins": 10,
+          "conferenceLosses": 3,
+          "lastTenWins": 8,
+          "averageMargin": 6.2,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:MIN",
+          "providerId": null,
+          "abbreviation": "MIN",
+          "displayName": "Minnesota Timberwolves"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.6842105263157895,
+        "record": {
+          "wins": 13,
+          "losses": 6,
+          "homeWins": 8,
+          "homeLosses": 2,
+          "awayWins": 5,
+          "awayLosses": 4,
+          "conferenceWins": 9,
+          "conferenceLosses": 5,
+          "lastTenWins": 7,
+          "averageMargin": 4.9,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:HOU",
+          "providerId": null,
+          "abbreviation": "HOU",
+          "displayName": "Houston Rockets"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.65,
+        "record": {
+          "wins": 13,
+          "losses": 7,
+          "homeWins": 8,
+          "homeLosses": 3,
+          "awayWins": 5,
+          "awayLosses": 4,
+          "conferenceWins": 9,
+          "conferenceLosses": 5,
+          "lastTenWins": 7,
+          "averageMargin": 4.4,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:LAL",
+          "providerId": null,
+          "abbreviation": "LAL",
+          "displayName": "Los Angeles Lakers"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.631578947368421,
+        "record": {
+          "wins": 12,
+          "losses": 7,
+          "homeWins": 7,
+          "homeLosses": 3,
+          "awayWins": 5,
+          "awayLosses": 4,
+          "conferenceWins": 8,
+          "conferenceLosses": 5,
+          "lastTenWins": 6,
+          "averageMargin": 3.2,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:GSW",
+          "providerId": null,
+          "abbreviation": "GSW",
+          "displayName": "Golden State Warriors"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.6,
+        "record": {
+          "wins": 12,
+          "losses": 8,
+          "homeWins": 7,
+          "homeLosses": 3,
+          "awayWins": 5,
+          "awayLosses": 5,
+          "conferenceWins": 8,
+          "conferenceLosses": 6,
+          "lastTenWins": 6,
+          "averageMargin": 2.6,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:DAL",
+          "providerId": null,
+          "abbreviation": "DAL",
+          "displayName": "Dallas Mavericks"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.5789473684210527,
+        "record": {
+          "wins": 11,
+          "losses": 8,
+          "homeWins": 6,
+          "homeLosses": 3,
+          "awayWins": 5,
+          "awayLosses": 5,
+          "conferenceWins": 8,
+          "conferenceLosses": 5,
+          "lastTenWins": 5,
+          "averageMargin": 1.6,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:LAC",
+          "providerId": null,
+          "abbreviation": "LAC",
+          "displayName": "Los Angeles Clippers"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.5263157894736842,
+        "record": {
+          "wins": 10,
+          "losses": 9,
+          "homeWins": 6,
+          "homeLosses": 4,
+          "awayWins": 4,
+          "awayLosses": 5,
+          "conferenceWins": 7,
+          "conferenceLosses": 6,
+          "lastTenWins": 5,
+          "averageMargin": 1.1,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:PHX",
+          "providerId": null,
+          "abbreviation": "PHX",
+          "displayName": "Phoenix Suns"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.5,
+        "record": {
+          "wins": 10,
+          "losses": 10,
+          "homeWins": 6,
+          "homeLosses": 4,
+          "awayWins": 4,
+          "awayLosses": 6,
+          "conferenceWins": 7,
+          "conferenceLosses": 7,
+          "lastTenWins": 5,
+          "averageMargin": 0.5,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:MEM",
+          "providerId": null,
+          "abbreviation": "MEM",
+          "displayName": "Memphis Grizzlies"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.47368421052631576,
+        "record": {
+          "wins": 9,
+          "losses": 10,
+          "homeWins": 6,
+          "homeLosses": 4,
+          "awayWins": 3,
+          "awayLosses": 6,
+          "conferenceWins": 7,
+          "conferenceLosses": 7,
+          "lastTenWins": 4,
+          "averageMargin": -1.3,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:SAS",
+          "providerId": null,
+          "abbreviation": "SAS",
+          "displayName": "San Antonio Spurs"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.42105263157894735,
+        "record": {
+          "wins": 8,
+          "losses": 11,
+          "homeWins": 5,
+          "homeLosses": 5,
+          "awayWins": 3,
+          "awayLosses": 6,
+          "conferenceWins": 6,
+          "conferenceLosses": 7,
+          "lastTenWins": 4,
+          "averageMargin": -2.4,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:SAC",
+          "providerId": null,
+          "abbreviation": "SAC",
+          "displayName": "Sacramento Kings"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.3684210526315789,
+        "record": {
+          "wins": 7,
+          "losses": 12,
+          "homeWins": 5,
+          "homeLosses": 6,
+          "awayWins": 2,
+          "awayLosses": 6,
+          "conferenceWins": 5,
+          "conferenceLosses": 8,
+          "lastTenWins": 3,
+          "averageMargin": -3.5,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:POR",
+          "providerId": null,
+          "abbreviation": "POR",
+          "displayName": "Portland Trail Blazers"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.3157894736842105,
+        "record": {
+          "wins": 6,
+          "losses": 13,
+          "homeWins": 4,
+          "homeLosses": 6,
+          "awayWins": 2,
+          "awayLosses": 7,
+          "conferenceWins": 4,
+          "conferenceLosses": 9,
+          "lastTenWins": 3,
+          "averageMargin": -5.4,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:NOP",
+          "providerId": null,
+          "abbreviation": "NOP",
+          "displayName": "New Orleans Pelicans"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.2631578947368421,
+        "record": {
+          "wins": 5,
+          "losses": 14,
+          "homeWins": 4,
+          "homeLosses": 6,
+          "awayWins": 1,
+          "awayLosses": 8,
+          "conferenceWins": 3,
+          "conferenceLosses": 10,
+          "lastTenWins": 2,
+          "averageMargin": -7,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      },
+      {
+        "team": {
+          "id": "nba:team:UTA",
+          "providerId": null,
+          "abbreviation": "UTA",
+          "displayName": "Utah Jazz"
+        },
+        "conference": "west",
+        "seasonEndYear": 2027,
+        "officialRank": null,
+        "playoffSeed": null,
+        "providerOrder": null,
+        "winPercentage": 0.21052631578947367,
+        "record": {
+          "wins": 4,
+          "losses": 15,
+          "homeWins": 3,
+          "homeLosses": 7,
+          "awayWins": 1,
+          "awayLosses": 8,
+          "conferenceWins": 3,
+          "conferenceLosses": 10,
+          "lastTenWins": 2,
+          "averageMargin": -8.7,
+          "pointsFor": null,
+          "pointsAgainst": null
+        }
+      }
+    ]
+  },
+  "players": [
+    {
+      "id": "bbs:player:00000000-0000-4000-8000-000000006901",
+      "name": "Ethan Clarke"
+    },
+    {
+      "id": "bbs:player:00000000-0000-4000-8000-000000006902",
+      "name": "Noah Reed"
+    }
+  ],
+  "favorites": {
+    "teams": ["nba:team:NYK", "nba:team:LAL"],
+    "games": ["bbs:game:hub-demo-2026-11-24-min-chi"],
+    "players": ["bbs:player:00000000-0000-4000-8000-000000006901"]
+  }
+}
