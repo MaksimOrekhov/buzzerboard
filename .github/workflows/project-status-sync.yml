@@ -1,0 +1,54 @@
+name: Sync Issue status to Project
+
+on:
+  issues:
+    types: [opened, reopened, labeled, unlabeled]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Review dry-run output before choosing apply
+        type: choice
+        options: [dry-run, apply]
+        default: dry-run
+      issues:
+        description: Comma-separated issue numbers (blank uses existing board cards)
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: >-
+      github.repository == 'MaksimOrekhov/buzzerboard' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.action == 'opened' || github.event.action == 'reopened' ||
+       startsWith(github.event.label.name, 'status:'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: buzzerboard-project-status-${{ github.event.issue.number || 'reconcile' }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Sync issue event
+        if: github.event_name == 'issues'
+        env:
+          PROJECT_STATUS_TOKEN: ${{ secrets.PROJECT_STATUS_TOKEN }}
+        run: node scripts/project-status-sync.mjs event
+
+      - name: Reconcile Project statuses
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          PROJECT_STATUS_TOKEN: ${{ secrets.PROJECT_STATUS_TOKEN }}
+          SYNC_MODE: ${{ inputs.mode }}
+          ISSUE_NUMBERS: ${{ inputs.issues }}
+        run: node scripts/project-status-sync.mjs reconcile "$SYNC_MODE" "$ISSUE_NUMBERS"
