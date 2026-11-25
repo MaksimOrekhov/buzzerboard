@@ -117,13 +117,13 @@ async function contextFor(browser, width, height, port) {
       )
     }
   })
-  await context.route('**/*', async (route) => {
+  const fixtureRequest = (url) => url.origin !== origin || url.pathname.startsWith('/api/')
+  await context.route(fixtureRequest, async (route) => {
     const url = new URL(route.request().url())
     if (url.origin !== origin) {
       if (route.request().resourceType() !== 'image') failedRequests.push(url.origin)
       return route.abort()
     }
-    if (!url.pathname.startsWith('/api/')) return route.continue()
     if (
       url.pathname !== '/api/standings' ||
       url.search !== '?seasonEndYear=2027' ||

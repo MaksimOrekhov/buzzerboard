@@ -283,7 +283,7 @@ const server = await createServer({
   root,
   configFile: path.join(root, 'vite.config.ts'),
   logLevel: 'error',
-  server: { host: '127.0.0.1', port: 4186, strictPort: true },
+  server: { host: '127.0.0.1', port: 4186, strictPort: true, ws: false },
 })
 let browser
 try {
@@ -309,12 +309,12 @@ try {
     let tiedStandings = false
     let boxScoreAvailable = true
     const calls = []
-    await context.route('**/*', async (route) => {
+    const origin = 'http://127.0.0.1:4186'
+    const fixtureRequest = (url) => url.origin !== origin || url.pathname.startsWith('/api/')
+    await context.route(fixtureRequest, async (route) => {
       const request = route.request()
       const url = new URL(request.url())
-      if (url.hostname !== '127.0.0.1') return route.abort()
-      if (!url.pathname.startsWith('/api/')) return route.continue()
-      if (request.method() !== 'GET') return route.abort()
+      if (url.origin !== origin || request.method() !== 'GET') return route.abort()
       calls.push({ path: url.pathname, method: request.method() })
       if (mode === 'loading') await new Promise((resolve) => setTimeout(resolve, 1200))
       if (mode === 'error') return route.fulfill({ status: 503, json: error })
@@ -344,7 +344,15 @@ try {
                   ast: 8,
                   min: 21,
                 },
-                { date: shift(-2), opponent: 'CLE', gameId: null, pts: 1, reb: 3, ast: 0, min: 12 },
+                {
+                  date: shift(-2),
+                  opponent: 'CLE',
+                  gameId: null,
+                  pts: 1,
+                  reb: 3,
+                  ast: 0,
+                  min: 12,
+                },
               ],
             },
           },
