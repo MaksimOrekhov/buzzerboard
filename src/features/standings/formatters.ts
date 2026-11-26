@@ -1,11 +1,13 @@
+import { knownWinPercentage } from './standingsModel'
+
 export function formatNumber(value: number | null): string {
   return value === null
     ? '—'
     : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value)
 }
 export function formatPercentage(value: number | null): string {
-  if (value === null || value < 0 || value > 1) return '—'
-  return value.toFixed(3).replace(/^0\./, '.')
+  const percentage = knownWinPercentage(value)
+  return percentage === null ? '—' : percentage.toFixed(3).replace(/^0\./, '.')
 }
 export function formatRecord(wins: number | null, losses: number | null): string {
   return wins === null || losses === null ? '—' : `${formatNumber(wins)}–${formatNumber(losses)}`

@@ -21,20 +21,22 @@ export interface ConferenceStandings {
   warning: string | null
 }
 
+export function knownWinPercentage(value: number | null): number | null {
+  return value !== null && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null
+}
+
 function isCounter(value: number | null): value is number {
   return value !== null && Number.isSafeInteger(value) && value >= 0
 }
 
 function isValidRecord(row: StandingsRow, seasonEndYear: SeasonEndYear): boolean {
   const { wins, losses } = row.record
+  const winPercentage = knownWinPercentage(row.winPercentage)
   if (
     row.seasonEndYear !== seasonEndYear ||
     !isCounter(wins) ||
     !isCounter(losses) ||
-    row.winPercentage === null ||
-    !Number.isFinite(row.winPercentage) ||
-    row.winPercentage < 0 ||
-    row.winPercentage > 1
+    winPercentage === null
   ) {
     return false
   }
@@ -42,7 +44,7 @@ function isValidRecord(row: StandingsRow, seasonEndYear: SeasonEndYear): boolean
   const gamesPlayed = wins + losses
   if (gamesPlayed === 0) return false
   const calculatedPercentage = wins / gamesPlayed
-  return Math.abs(calculatedPercentage - row.winPercentage) <= 0.001
+  return Math.abs(calculatedPercentage - winPercentage) <= 0.001
 }
 
 export function deriveConferenceStandings(
@@ -114,7 +116,7 @@ export function sortStandingsRows(
   const valueFor = (row: StandingsRow): number | null => {
     switch (sortBy) {
       case 'winPercentage':
-        return row.winPercentage
+        return knownWinPercentage(row.winPercentage)
       case 'wins':
         return row.record.wins
       case 'gamesBehind':

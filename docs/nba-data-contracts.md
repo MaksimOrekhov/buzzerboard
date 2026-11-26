@@ -81,6 +81,8 @@ These are target contracts, not routes implemented by the current Vite-only app:
 
 Components depend on the endpoint/domain response, not provider JSON, provider IDs, SDK types, or credentials. Provider preferences are keyed by capability (not one application-wide primary/fallback), and resolution stays in the server layer. If a capability has no normalized adapter, resolution returns `null` instead of silently using an unrelated source.
 
+The Worker client accepts a season-scoped standings snapshot only when every row names the requested `seasonEndYear`. A `null` season is representable in the domain model but cannot be attributed to the requested season, so the client rejects the snapshot with `invalid_response`. A finite PCT outside `[0, 1]` becomes `null` before caching. In-range values, including zero and one, remain as supplied. Standings display unavailable PCT as a dash and sort it after known values in both directions. GB still requires complete, consistent records and a unique leader. Official rank and seed come from the source.
+
 ## Provider coverage and limits
 
 | Adapter | Capabilities with normalizers                                                                                                                                                          | Known gaps / deployment condition                                                                                                                                                                                                                                                                                                       |

@@ -6,6 +6,13 @@ import type { SeasonEndYear, UtcTimestamp } from '@/entities/nba/model'
 import type { StandingsResponse } from '@/shared/api/nba/contracts'
 import { WorkerApiError } from '@/shared/api/nba/workerClient'
 
+const season = 2027 as SeasonEndYear
+const invalidResponse = { status: 200, error: { code: 'invalid_response' } }
+
+function mockResponse(payload: unknown) {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(payload)))
+}
+
 function makeResponse(
   source: StandingsResponse['meta']['source'],
   overrides: Partial<StandingsResponse['meta']> = {},
@@ -27,6 +34,83 @@ function makeResponse(
 afterEach(() => vi.unstubAllGlobals())
 
 describe('fetchStandings', () => {
+  it.each([
+    ['all rows from another season', () => 2026],
+    ['mixed seasons', (i: number) => (i === 20 ? 2026 : season)],
+    ['all rows with unknown season', () => null],
+    ['one row with unknown season', (i: number) => (i === 20 ? null : season)],
+    ['one row with a string season', (i: number) => (i === 20 ? '2027' : season)],
+  ])('rejects a snapshot with %s', async (_, rowSeason) => {
+    const response = makeResponse('bbs')
+    mockResponse({
+      ...response,
+      data: response.data.map((row, i) => ({ ...row, seasonEndYear: rowSeason(i) })),
+    })
+    await expect(fetchStandings(season)).rejects.toMatchObject(invalidResponse)
+  })
+
+  it('keeps a partial snapshot and degrades only out-of-range percentages to null', async () => {
+    const response = makeResponse('bbs')
+    const data = [1.42, -0.1, 0, 1, null, 0.999, 0.67, 0.67].map((winPercentage, i) => ({
+      ...response.data[i]!,
+      winPercentage,
+    }))
+    mockResponse({ ...response, data })
+    await expect(fetchStandings(season)).resolves.toEqual({
+      ...response,
+      data: data.map((row, i) => (i < 2 ? { ...row, winPercentage: null } : row)),
+    })
+  })
+
+  it.each(['".5"', '1e999'])(
+    'rejects a PCT with an invalid type or nonfinite value %s',
+    async (pct) => {
+      const response = makeResponse('bbs')
+      const json = JSON.stringify({
+        ...response,
+        data: [{ ...response.data[0], winPercentage: 0.5 }],
+      })
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValue(
+            new Response(json.replace('"winPercentage":0.5', '"winPercentage":' + pct)),
+          ),
+      )
+      await expect(fetchStandings(season)).rejects.toMatchObject(invalidResponse)
+    },
+  )
+
+  it.each([
+    { fetchedAt: 'invalid' },
+    { fetchedAt: '2026-02-30T00:00:00Z' },
+    { providerUpdatedAt: '2026-11-17T07:41:38' },
+    { rejectedRecords: -1 },
+    {
+      refreshError: {
+        code: 'timeout',
+        message: 'Synthetic',
+        retryable: true,
+        provider: null,
+        upstreamStatus: 503.5,
+      },
+    },
+  ])('rejects malformed snapshot metadata %j', async (overrides) => {
+    const response = makeResponse('bbs')
+    mockResponse({ ...response, meta: { ...response.meta, ...overrides } })
+    await expect(fetchStandings(season)).rejects.toMatchObject(invalidResponse)
+  })
+
+  it('preserves an empty snapshot with a valid timestamp offset', async () => {
+    const response = {
+      ...makeResponse('bbs', { providerUpdatedAt: '2026-11-17T01:41:38-05:00' as UtcTimestamp }),
+      data: [],
+    }
+    mockResponse(response)
+    await expect(fetchStandings(season)).resolves.toEqual(response)
+  })
+
   it('reads the same-origin Worker GET with no provider credentials', async () => {
     const response = makeResponse('dunkapi')
     const fetchMock = vi

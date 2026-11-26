@@ -1,4 +1,6 @@
 import type { NbaApiError, NbaApiErrorCode } from '@/entities/nba/model'
+import type { NbaApiSnapshot } from './contracts'
+import { isIsoInstant } from './gameDetailsGuards'
 
 const errorCodes = new Set<NbaApiErrorCode>([
   'authentication',
@@ -33,7 +35,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export function isSnapshotRefreshError(value: unknown): value is NbaApiError {
+function isSnapshotRefreshError(value: unknown): value is NbaApiError {
   return (
     isRecord(value) &&
     typeof value.code === 'string' &&
@@ -49,6 +51,20 @@ export function isSnapshotRefreshError(value: unknown): value is NbaApiError {
         Number.isSafeInteger(value.upstreamStatus) &&
         value.upstreamStatus >= 100 &&
         value.upstreamStatus <= 599))
+  )
+}
+
+export function isSnapshotMeta(meta: unknown): meta is NbaApiSnapshot<unknown>['meta'] {
+  return (
+    isRecord(meta) &&
+    (meta.source === 'dunkapi' || meta.source === 'espn' || meta.source === 'bbs') &&
+    isIsoInstant(meta.fetchedAt) &&
+    (meta.providerUpdatedAt === null || isIsoInstant(meta.providerUpdatedAt)) &&
+    typeof meta.isStale === 'boolean' &&
+    typeof meta.rejectedRecords === 'number' &&
+    Number.isSafeInteger(meta.rejectedRecords) &&
+    meta.rejectedRecords >= 0 &&
+    (meta.refreshError === null || isSnapshotRefreshError(meta.refreshError))
   )
 }
 
