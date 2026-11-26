@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import './players.css'
+import { formatFreshness, refreshPhaseLabel } from './playerFreshness'
 import { computed, shallowRef, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { NBA_TEAMS, findNbaTeam } from '@/entities/nba/teamCatalog'
@@ -144,22 +145,6 @@ function sampleContext(player: NonNullable<typeof data.value>['players'][number]
   const stats = player.stats
   if (!stats) return ''
   return `GP ${formatPlayerStat('gp', stats.gp)} · MIN ${formatPlayerStat('min', stats.min)} · FGA ${formatPlayerStat('fga', stats.fga)}`
-}
-function formatFreshness(value: string | null | undefined) {
-  return value ? new Date(value).toLocaleString('ru-RU') : 'нет даты'
-}
-function refreshPhaseLabel(phase: string) {
-  return (
-    {
-      directory: 'обновляется каталог',
-      averages: 'обновляются средние',
-      publish: 'сохраняются средние',
-      retry: 'повторная проверка отдельных игроков',
-      gameRefs: 'связываются недавние матчи',
-      enrich: 'обогащаются профили',
-      idle: 'ожидает следующего цикла',
-    }[phase] ?? 'статус неизвестен'
-  )
 }
 const filtered = computed(() => {
   const term = search.value.toLowerCase().trim()

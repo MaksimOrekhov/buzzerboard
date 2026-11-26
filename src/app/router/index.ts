@@ -19,6 +19,10 @@ export const router = createRouter({
       document.getElementById(to.hash.slice(1))
     )
       return { el: to.hash }
+    if (to.name === 'player-profile' && /^#player-(overview|stats|matches)$/.test(to.hash)) {
+      // The profile scrolls after its asynchronous data and anchor sections are available.
+      return false
+    }
     if (savedPosition) return savedPosition
     if (
       to.name === 'team-profile' &&

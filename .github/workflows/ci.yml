@@ -58,6 +58,28 @@ jobs:
       - name: Check all routes, box score and responsive states
         run: pnpm run visual:pro171 --compact
 
+      - name: Check out original Player Profile baseline
+        uses: actions/checkout@v4
+        with:
+          ref: e0f2b7bf5ac83ae39478081f8c6385d824278f30
+          path: .player-reference
+
+      - name: Verify Player Analytics and capture before and after
+        env:
+          PLAYER_BASELINE_ROOT: ${{ github.workspace }}/.player-reference
+        run: |
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$PLAYER_BASELINE_ROOT/node_modules"
+          node scripts/issue82-player-profile-visual.mjs
+
+      - name: Upload Player Analytics visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-player-analytics-a
+          path: artifacts/issue-82/
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Check out original Game Center baseline
         uses: actions/checkout@v4
         with:
