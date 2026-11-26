@@ -20,7 +20,11 @@ import type { D1Database } from '@/server/nba/runtime/types'
 import type { Game } from '@/entities/nba/model'
 import { findNbaTeam, NBA_TEAMS } from '@/entities/nba/teamCatalog'
 import { parseNbaGameDate, parseSeasonEndYear } from '@/server/nba/adapters/normalizers/primitives'
-import { isGameBoxScoreForGame, isGameRecord } from '@/shared/api/nba/gameDetailsGuards'
+import {
+  isGameBoxScoreForGame,
+  isGameRecord,
+  isTeamBoxScore,
+} from '@/shared/api/nba/gameDetailsGuards'
 
 const canonicalTeamIds = new Set<string>(NBA_TEAMS.map(({ team }) => team.id))
 
@@ -147,6 +151,15 @@ function isCacheRecord(value: unknown): value is NbaCacheRecord {
         record.providerReferences !== null &&
         !Array.isArray(record.providerReferences) &&
         Object.values(record.providerReferences).every((value) => typeof value === 'string'))) &&
+    (record.inlineBoxTeams === undefined ||
+      (record.capability === 'games' &&
+        record.provider === 'bbs' &&
+        typeof record.inlineBoxTeams === 'object' &&
+        record.inlineBoxTeams !== null &&
+        !Array.isArray(record.inlineBoxTeams) &&
+        Object.values(record.inlineBoxTeams).every(
+          (teams) => Array.isArray(teams) && teams.length === 2 && teams.every(isTeamBoxScore),
+        ))) &&
     (record.emptyDayConfirmed === undefined ||
       (record.capability === 'games' &&
         record.provider === 'bbs' &&

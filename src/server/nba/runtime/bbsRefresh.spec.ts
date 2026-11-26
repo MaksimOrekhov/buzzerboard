@@ -656,50 +656,54 @@ describe('BBS cached refresh flow', () => {
     expect(afterIncomplete?.fetchedAt).toBe(previous.fetchedAt)
   })
 
-  it('inherits missing archive references only for the same game and team identities', async () => {
-    const repository = new MemoryRepository()
-    const initial = fakeBbsFetch()
-    await refreshBbsGames(
-      { type: 'games', date },
-      environment,
-      repository,
-      initial.fetcher,
-      now,
-      false,
-    )
-    const previous = repository.cache.get(gamesCacheKey('bbs', date))
-    if (previous?.capability !== 'games') throw new Error('Expected verified game snapshot')
-    await repository.putCache({ ...previous, expiresAt: now - 1 })
+  it.each(['missing', 'alias'])(
+    'retains verified archive references when a later list has a %s ID',
+    async (shape) => {
+      const repository = new MemoryRepository()
+      const initial = fakeBbsFetch()
+      await refreshBbsGames(
+        { type: 'games', date },
+        environment,
+        repository,
+        initial.fetcher,
+        now,
+        false,
+      )
+      const previous = repository.cache.get(gamesCacheKey('bbs', date))
+      if (previous?.capability !== 'games') throw new Error('Expected verified game snapshot')
+      await repository.putCache({ ...previous, expiresAt: now - 1 })
 
-    const source = fakeBbsFetch()
-    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const response = await source.fetcher(input, init)
-      if (new URL(String(input)).pathname !== '/v1/matches') return response
-      const payload = (await response.json()) as {
-        data: Array<Record<string, unknown>>
-        pagination: { total: number }
-      }
-      const final = payload.data.find((match) => match.status === 'finished')!
-      delete final.archive_game_id
-      delete (final.home as Record<string, unknown>).archive_team_id
-      delete (final.away as Record<string, unknown>).archive_team_id
-      return Response.json(payload)
-    }) as typeof fetch
+      const source = fakeBbsFetch()
+      const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const response = await source.fetcher(input, init)
+        if (new URL(String(input)).pathname !== '/v1/matches') return response
+        const payload = (await response.json()) as {
+          data: Array<Record<string, unknown>>
+          pagination: { total: number }
+        }
+        const final = payload.data.find((match) => match.status === 'finished')!
+        if (shape === 'alias') final.archive_game_id = final.id
+        else delete final.archive_game_id
+        delete (final.home as Record<string, unknown>).archive_team_id
+        delete (final.away as Record<string, unknown>).archive_team_id
+        return Response.json(payload)
+      }) as typeof fetch
 
-    const result = await refreshBbsGames(
-      { type: 'games', date },
-      environment,
-      repository,
-      fetcher,
-      now,
-      false,
-    )
-    const current = repository.cache.get(gamesCacheKey('bbs', date))
-    expect(result.state).toBe('refreshed')
-    expect(current?.capability === 'games' && current.providerReferences).toEqual(
-      previous.providerReferences,
-    )
-  })
+      const result = await refreshBbsGames(
+        { type: 'games', date },
+        environment,
+        repository,
+        fetcher,
+        now,
+        false,
+      )
+      const current = repository.cache.get(gamesCacheKey('bbs', date))
+      expect(result.state).toBe('refreshed')
+      expect(current?.capability === 'games' && current.providerReferences).toEqual(
+        previous.providerReferences,
+      )
+    },
+  )
 
   it('rejects conflicting archive references and keeps the previous verified snapshot', async () => {
     const repository = new MemoryRepository()
