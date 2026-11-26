@@ -21,6 +21,21 @@ function isNbaDate(value: unknown): value is string {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
 }
 
+export function isIsoInstant(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(
+      value,
+    ) &&
+    isNbaDate(value.slice(0, 10)) &&
+    Number.isFinite(Date.parse(value))
+  )
+}
+
+function isGamePoints(value: number | null): boolean {
+  return value === null || (Number.isSafeInteger(value) && value >= 0)
+}
+
 export function isTeamRecord(value: unknown): value is Team {
   return (
     isRecord(value) &&
@@ -68,6 +83,18 @@ export function isGameRecord(value: unknown): value is Game {
         isNullableNumber(period.home) &&
         isNullableNumber(period.away),
     )
+  )
+}
+
+/** Additional invariants for games received by the Worker HTTP client. */
+export function isGameSnapshotRecord(value: unknown): value is Game {
+  return (
+    isGameRecord(value) &&
+    (value.startsAt === null || isIsoInstant(value.startsAt)) &&
+    isGamePoints(value.score.home) &&
+    isGamePoints(value.score.away) &&
+    (value.scoreByPeriod === null ||
+      value.scoreByPeriod.every(({ home, away }) => isGamePoints(home) && isGamePoints(away)))
   )
 }
 
