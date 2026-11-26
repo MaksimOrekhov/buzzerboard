@@ -10,11 +10,10 @@ export const standingsQueryKey = (seasonEndYear: SeasonEndYear) =>
   ['nba', 'standings', seasonEndYear] as const
 
 export function useStandings(seasonEndYear: MaybeRefOrGetter<SeasonEndYear>) {
-  const currentSeason = computed(() => toValue(seasonEndYear))
-
   return useQuery({
-    queryKey: computed(() => standingsQueryKey(currentSeason.value)),
-    queryFn: ({ signal }) => fetchStandings(currentSeason.value, signal),
+    queryKey: computed(() => standingsQueryKey(toValue(seasonEndYear))),
+    queryFn: ({ queryKey: [, , requestedSeason], signal }) =>
+      fetchStandings(requestedSeason, signal),
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     retry: false,

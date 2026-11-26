@@ -29,13 +29,7 @@ const options = [
 ] as const
 const conferenceName = computed(() => (conference.value === 'east' ? 'Восток' : 'Запад'))
 const conferenceRows = computed(() =>
-  hidden.value
-    ? []
-    : (data.value?.data ?? []).filter(
-        (row) =>
-          row.conference === conference.value &&
-          (row.seasonEndYear === CURRENT_SEASON || row.seasonEndYear === null),
-      ),
+  hidden.value ? [] : (data.value?.data ?? []).filter((row) => row.conference === conference.value),
 )
 const coverage = computed(() => new Set(conferenceRows.value.map(({ team }) => team.id)).size)
 const preview = computed(() =>

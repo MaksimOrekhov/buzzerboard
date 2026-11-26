@@ -1,34 +1,12 @@
 import type { GameId, NbaGameDate } from '@/entities/nba/model'
-import {
-  fetchWorkerResource,
-  isSnapshotRefreshError,
-  WorkerApiError,
-} from '@/shared/api/nba/workerClient'
+import { fetchWorkerResource, isSnapshotMeta, WorkerApiError } from '@/shared/api/nba/workerClient'
 import type { GameDetailsResponse, GamesResponse } from '@/shared/api/nba/contracts'
-import {
-  isGameBoxScoreForGame,
-  isGameSnapshotRecord,
-  isIsoInstant,
-} from '@/shared/api/nba/gameDetailsGuards'
+import { isGameBoxScoreForGame, isGameSnapshotRecord } from '@/shared/api/nba/gameDetailsGuards'
 
 export { WorkerApiError } from '@/shared/api/nba/workerClient'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isSnapshotMeta(meta: unknown): meta is GamesResponse['meta'] {
-  return (
-    isRecord(meta) &&
-    (meta.source === 'dunkapi' || meta.source === 'espn' || meta.source === 'bbs') &&
-    isIsoInstant(meta.fetchedAt) &&
-    (meta.providerUpdatedAt === null || isIsoInstant(meta.providerUpdatedAt)) &&
-    typeof meta.isStale === 'boolean' &&
-    typeof meta.rejectedRecords === 'number' &&
-    Number.isSafeInteger(meta.rejectedRecords) &&
-    meta.rejectedRecords >= 0 &&
-    (meta.refreshError === null || isSnapshotRefreshError(meta.refreshError))
-  )
 }
 
 type UncheckedGameDetails = Omit<GameDetailsResponse, 'data' | 'boxScoreMeta'> & {

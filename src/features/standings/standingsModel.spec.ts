@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { SeasonEndYear } from '@/entities/nba/model'
 import { deriveConferenceStandings, sortStandingsRows } from './standingsModel'
 import { makeStandingsRows } from './standingsTestData'
+import { formatPercentage } from './formatters'
 
 const seasonEndYear = 2027 as SeasonEndYear
 
@@ -48,9 +49,44 @@ describe('deriveConferenceStandings', () => {
     expect(standings.gamesBehindAvailable).toBe(false)
     expect(standings.warning).toContain('противоречат')
   })
+
+  it.each([null, -0.1, 1.42, NaN, Infinity])('withholds GB with an unknown PCT (%s)', (pct) => {
+    const rows = makeStandingsRows('west')
+    rows[1]!.winPercentage = pct
+    const standings = deriveConferenceStandings(rows, 'west', seasonEndYear)
+
+    expect(standings.gamesBehindByTeamId.size).toBe(0)
+    expect(standings.warning).toContain('W–L и PCT неполны')
+  })
 })
 
 describe('sortStandingsRows', () => {
+  it.each(['east', 'west'] as const)(
+    'puts unknown PCT last in both directions in the %s',
+    (conference) => {
+      const rows = makeStandingsRows(conference, 8)
+      const pcts = [1.42, -0.1, 0, null, NaN, 1, 0.5, 0.5]
+      for (const [index, row] of rows.entries()) row.winPercentage = pcts[index]!
+      const values = (indices: number[]) => indices.map((i) => rows[i]!.team.id)
+      const sort = (direction: 'ascending' | 'descending') =>
+        sortStandingsRows(rows, 'winPercentage', direction).map((row) => row.team.id)
+
+      expect(sort('ascending')).toEqual(values([2, 6, 7, 5, 0, 1, 3, 4]))
+      expect(sort('descending')).toEqual(values([5, 6, 7, 2, 0, 1, 3, 4]))
+      expect(pcts.map(formatPercentage)).toEqual([
+        '—',
+        '—',
+        '.000',
+        '—',
+        '—',
+        '1.000',
+        '.500',
+        '.500',
+      ])
+      expect(rows.every((row) => row.officialRank === null)).toBe(true)
+    },
+  )
+
   it('uses metric sorting and an alphabetical fallback instead of provider order', () => {
     const rows = makeStandingsRows('east', 2)
     rows[0]!.providerOrder = 2
