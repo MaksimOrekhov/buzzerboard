@@ -25,7 +25,7 @@ export function gameCenterReturnTo(state: {
 
 export function safeGameReturnTo(value: unknown): string {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return '/games'
-  const path = value.split('?')[0] ?? ''
+  const path = value.split(/[?#]/, 1)[0] ?? ''
   if (path.startsWith('/players/')) {
     try {
       return bbsPlayerId.test(decodeURIComponent(path.slice('/players/'.length))) ? value : '/games'

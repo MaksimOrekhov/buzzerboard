@@ -1,30 +1,22 @@
 <script setup lang="ts">
 import './players.css'
-import { computed } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
-import { bbsPlayerId, formatPlayerStat, playerMetrics, playerPath } from '@/entities/nba/players'
-import { findNbaTeam } from '@/entities/nba/teamCatalog'
+import './player-profile.css'
+import { computed, nextTick, onMounted, onUnmounted, shallowRef, useTemplateRef, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { bbsPlayerId, playerPath } from '@/entities/nba/players'
 import { usePlayer } from './api'
 import { usePlayerFavorites } from './usePlayerFavorites'
 import PlayerForm from './PlayerForm.vue'
-import PageHeading from '@/shared/components/PageHeading.vue'
+import PlayerProfileHeader from './PlayerProfileHeader.vue'
+import PlayerSeasonStats from './PlayerSeasonStats.vue'
+import PlayerSeasonSummary from './PlayerSeasonSummary.vue'
 import ResourceState from '@/shared/components/ResourceState.vue'
-import TeamProfileLink from '@/shared/components/TeamProfileLink.vue'
-import TeamLogo from '@/shared/components/TeamLogo.vue'
-import AppButton from '@/shared/components/AppButton.vue'
-import StatValue from '@/shared/components/StatValue.vue'
-import AppTooltip from '@/shared/components/AppTooltip.vue'
-import {
-  advancedMetrics,
-  formatAdvancedStat,
-  per36Metrics,
-  seasonAdvancedMetrics,
-} from '@/entities/nba/advancedStats'
-
 import { useSpoilerMode } from '@/features/spoilers/useSpoilerMode'
 import SpoilerAggregateGate from '@/features/spoilers/SpoilerAggregateGate.vue'
+
 const { hideAggregate } = useSpoilerMode()
 const route = useRoute()
+const router = useRouter()
 const id = computed(() => (typeof route.params.playerId === 'string' ? route.params.playerId : ''))
 const valid = computed(() => bbsPlayerId.test(id.value))
 const { data, isPending, isError, refetch } = usePlayer(id)
@@ -33,184 +25,136 @@ const statsHidden = computed(() =>
   hideAggregate(statsScope.value, data.value?.player.averageUpdatedAt),
 )
 const { ids, toggle } = usePlayerFavorites()
-const team = computed(() => findNbaTeam(data.value?.player.team ?? ''))
-const currentTeam = computed(() => findNbaTeam(data.value?.detail?.currentTeam ?? ''))
-const initials = computed(() =>
-  data.value?.player.name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((name) => name[0])
-    .join(''),
-)
 const back = computed(() => {
   const from = route.query.from
   return typeof from === 'string' && /^\/(players|favorites)(\?|$)/.test(from) ? from : '/players'
 })
-const facts = computed(() => {
-  const player = data.value?.player
-  const birth = data.value?.detail?.birthDate
-  const observation = data.value?.detail?.profileAt?.slice(0, 10)
-  const age =
-    birth && observation && observation > birth
-      ? Number(observation.slice(0, 4)) -
-        Number(birth.slice(0, 4)) -
-        (observation.slice(5) < birth.slice(5) ? 1 : 0)
-      : null
-  return [
-    player?.position,
-    player?.number ? '№ ' + player.number : null,
-    age && age < 80 ? age + ' лет' : null,
-    player?.height,
-    player?.weight,
-  ].filter(Boolean)
+const gameReturn = computed(() => {
+  const query = back.value === '/players' ? '' : '?' + new URLSearchParams({ from: back.value })
+  return playerPath(id.value) + query + '#player-matches'
 })
-const sections = [
-  { key: 'basic', title: 'Основное' },
-  { key: 'shooting', title: 'Броски' },
-  { key: 'defense', title: 'Защита и потери' },
-]
-const advancedStats = computed(() => seasonAdvancedMetrics(data.value?.player.stats ?? null))
+
+const anchors = [
+  { id: 'player-overview', label: 'Обзор' },
+  { id: 'player-stats', label: 'Статистика' },
+  { id: 'player-matches', label: 'Матчи' },
+] as const
+const profileRoot = useTemplateRef('profile')
+const activeAnchor = shallowRef<string>(anchors[0].id)
+
+function updateActiveAnchor() {
+  const sections = profileRoot.value?.querySelectorAll<HTMLElement>('[data-player-section]')
+  if (!sections?.length) return
+  let active = sections[0]!
+  for (const section of sections) {
+    if (section.getBoundingClientRect().top <= 72) active = section
+  }
+  if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) {
+    active = sections[sections.length - 1]!
+  }
+  activeAnchor.value = active.id
+}
+
+function showAnchor(hash: string, focus: boolean) {
+  if (!anchors.some((anchor) => '#' + anchor.id === hash)) return
+  const section = profileRoot.value?.querySelector<HTMLElement>(hash)
+  if (!section) return
+  section.scrollIntoView({ block: 'start' })
+  if (focus) section.focus({ preventScroll: true })
+  activeAnchor.value = section.id
+}
+
+async function navigateAnchor(event: MouseEvent, anchor: string) {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  event.preventDefault()
+  const hash = '#' + anchor
+  if (route.hash !== hash) await router.push({ hash })
+  showAnchor(hash, true)
+}
+
+watch(
+  [() => route.hash, () => data.value?.player.id],
+  async ([hash], [oldHash, oldId]) => {
+    await nextTick()
+    if (hash) showAnchor(hash, false)
+    else if (oldHash || id.value !== oldId) updateActiveAnchor()
+  },
+  { flush: 'post' },
+)
+
+onMounted(() => {
+  window.addEventListener('scroll', updateActiveAnchor, { passive: true })
+  window.addEventListener('resize', updateActiveAnchor)
+  showAnchor(route.hash, false)
+})
+onUnmounted(() => {
+  window.removeEventListener('scroll', updateActiveAnchor)
+  window.removeEventListener('resize', updateActiveAnchor)
+})
 </script>
 
 <template>
-  <div class="player-center">
-    <RouterLink :to="back" class="ui-text-link">← К списку игроков</RouterLink>
+  <div ref="profile" class="player-center player-analytics">
+    <RouterLink :to="back" class="ui-text-link pa-back">
+      <span aria-hidden="true">‹</span>
+      {{ back.startsWith('/favorites') ? 'К избранному' : 'К списку игроков' }}
+    </RouterLink>
     <ResourceState v-if="!valid" status="empty" title="Игрок не найден" />
     <ResourceState v-else-if="isPending" status="loading" title="Загружаем профиль" />
     <ResourceState v-else-if="isError && !data" status="error" title="Профиль недоступен">
-      <template #action
-        ><button class="gc-control" type="button" @click="refetch()">
-          Повторить запрос
-        </button></template
-      >
+      <template #action>
+        <button class="gc-control" type="button" @click="refetch()">Повторить запрос</button>
+      </template>
     </ResourceState>
     <template v-else-if="data">
-      <PageHeading
-        class="player-profile-heading"
-        eyebrow="Профиль игрока · 2026/27"
-        :title="data.player.name"
-        :description="facts.join(' · ') || 'NBA'"
-      >
-        <template #actions>
-          <AppButton
-            icon="star"
-            :aria-label="`Избранное: ${data.player.name}`"
-            :aria-pressed="ids.has(id)"
-            @click="toggle(id)"
-          >
-            {{ ids.has(id) ? 'В избранном' : 'В избранное' }}
-          </AppButton>
-        </template>
-      </PageHeading>
-      <section class="player-panel player-profile-identity" aria-label="Команды игрока">
-        <span class="player-initials" aria-hidden="true">{{ initials }}</span>
-        <div v-if="team">
-          <span class="player-meta">Команда в каталоге сезона</span>
-          <TeamProfileLink :team="team.team"
-            ><TeamLogo :team="team.team" :size="24" />{{ team.name }}</TeamProfileLink
-          >
-        </div>
-        <div>
-          <span class="player-meta">Текущая команда по профилю BBS</span>
-          <TeamProfileLink v-if="currentTeam" :team="currentTeam.team">{{
-            currentTeam.name
-          }}</TeamProfileLink>
-          <strong v-else>Не подтверждена</strong>
-        </div>
+      <PlayerProfileHeader :profile="data" :favorite="ids.has(id)" @toggle-favorite="toggle(id)" />
+      <nav class="pa-sections" aria-label="Разделы профиля игрока">
+        <a
+          v-for="anchor in anchors"
+          :key="anchor.id"
+          :href="'#' + anchor.id"
+          :aria-current="activeAnchor === anchor.id ? 'location' : undefined"
+          @click="navigateAnchor($event, anchor.id)"
+          >{{ anchor.label }}</a
+        >
+      </nav>
+
+      <section id="player-overview" data-player-section tabindex="-1" aria-label="Обзор игрока">
+        <SpoilerAggregateGate
+          v-if="statsHidden"
+          :scope="statsScope"
+          title="Сезонная статистика скрыта"
+        />
+        <PlayerSeasonSummary v-else-if="data.player.stats" :stats="data.player.stats" />
+        <p v-else class="player-panel player-empty">Подтверждённых средних за сезон пока нет.</p>
       </section>
-      <SpoilerAggregateGate
-        v-if="statsHidden"
-        :scope="statsScope"
-        title="Сезонная статистика скрыта"
-      />
-      <section v-else class="player-panel">
-        <h2>Статистика сезона</h2>
-        <p class="player-meta">
-          BBS · Снимок {{ new Date(data.fetchedAt).toLocaleString('ru-RU')
-          }}{{ data.isStale ? ' · устарел' : '' }}. Средние за игру; GP — количество матчей. Средние
-          этого игрока обновлены:
-          {{
-            data.player.averageUpdatedAt
-              ? new Date(data.player.averageUpdatedAt).toLocaleString('ru-RU')
-              : 'нет даты'
-          }}.
-          <template v-if="data.refreshStatus">
-            Цикл обновления: {{ data.refreshStatus.checked }}/{{ data.refreshStatus.total }}
-            игроков проверено. Последний завершённый проход
-            {{
-              data.refreshStatus.lastCompletedAt
-                ? new Date(data.refreshStatus.lastCompletedAt).toLocaleString('ru-RU')
-                : 'ещё не завершён'
-            }}.
-          </template>
-        </p>
-        <template v-if="data.player.stats">
-          <div v-for="section in sections" :key="section.key">
-            <h3>{{ section.title }}</h3>
-            <dl class="player-kpis">
-              <div
-                v-for="[key, short, label] in playerMetrics.filter(
-                  (column) => column[3] === section.key,
-                )"
-                :key="key"
-              >
-                <dt :title="label">
-                  {{ short }} <small>{{ label }}</small>
-                </dt>
-                <dd><StatValue :value="formatPlayerStat(key, data.player.stats[key])" /></dd>
-              </div>
-            </dl>
-          </div>
-        </template>
-        <p v-else class="player-empty">Подтверждённых средних за сезон пока нет.</p>
+      <section id="player-matches" data-player-section tabindex="-1" aria-label="Последние игры">
+        <PlayerForm
+          v-if="data.detail?.games.length"
+          :key="id"
+          :games="data.detail.games"
+          :return-to="gameReturn"
+          :hide-trend="statsHidden"
+        />
+        <section v-else class="player-panel">
+          <h2>Журнал матчей</h2>
+          <p class="player-meta">Журнал матчей пока недоступен.</p>
+        </section>
       </section>
       <section
-        v-if="!statsHidden && data.player.stats"
+        id="player-stats"
+        data-player-section
+        tabindex="-1"
         class="player-panel"
-        aria-labelledby="advanced-player-heading"
+        aria-labelledby="player-season-stats"
       >
-        <h2 id="advanced-player-heading">Расширенная статистика</h2>
-        <p class="player-meta">
-          Расчёт BuzzerBoard по сезонным средним BBS. Отношения приблизительны из-за округления
-          источника; это не официальные рейтинги NBA.
+        <h2 id="player-season-stats">Статистика сезона</h2>
+        <p v-if="statsHidden" class="player-meta">
+          Сезонные показатели можно раскрыть в разделе «Обзор».
         </p>
-        <h3>Эффективность</h3>
-        <dl class="player-kpis">
-          <div v-for="metric in advancedMetrics" :key="metric.key">
-            <dt>
-              <AppTooltip :text="metric.description">
-                <span tabindex="0"
-                  >{{ metric.short }} <small>{{ metric.label }}</small></span
-                >
-              </AppTooltip>
-            </dt>
-            <dd>
-              <StatValue :value="formatAdvancedStat(metric.key, advancedStats[metric.key])" />
-            </dd>
-          </div>
-        </dl>
-        <h3>За 36 минут</h3>
-        <dl class="player-kpis">
-          <div v-for="metric in per36Metrics" :key="metric.key">
-            <dt :title="metric.label">
-              {{ metric.short }} <small>{{ metric.label }}</small>
-            </dt>
-            <dd>
-              <StatValue :value="formatAdvancedStat(metric.key, advancedStats[metric.key])" />
-            </dd>
-          </div>
-        </dl>
-        <p class="player-meta">
-          Показатели за 36 минут нормируют среднее на игровое время и не являются прогнозом.
-          GmSc/игру — линейная оценка по средним, не PER или рейтинг влияния.
-        </p>
+        <PlayerSeasonStats v-else-if="data.player.stats" :stats="data.player.stats" />
+        <p v-else class="player-meta">Подтверждённых средних за сезон пока нет.</p>
       </section>
-      <PlayerForm
-        v-if="data.detail?.games.length"
-        :games="data.detail.games"
-        :return-to="playerPath(id)"
-      />
-      <p v-else class="player-empty">Журнал матчей пока недоступен.</p>
     </template>
   </div>
 </template>
