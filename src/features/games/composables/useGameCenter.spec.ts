@@ -1,7 +1,7 @@
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
-import { createMemoryHistory, createRouter } from 'vue-router'
+import { createMemoryHistory, createRouter, type LocationQueryRaw } from 'vue-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { shiftGameDate, useGameCenter } from './useGameCenter'
 import { gamesQueryKey } from './useGamesForDate'
@@ -50,7 +50,7 @@ afterEach(() => {
   localStorage.clear()
   vi.unstubAllGlobals()
 })
-async function setup(records: Game[], date = today) {
+async function setup(records: Game[], date = today, filters: LocationQueryRaw = {}) {
   const fetch = vi.fn()
   vi.stubGlobal('fetch', fetch)
   const client = new QueryClient()
@@ -60,7 +60,7 @@ async function setup(records: Game[], date = today) {
     history: createMemoryHistory(),
     routes: [{ path: '/games', component: { render: () => null } }],
   })
-  await router.push({ path: '/games', query: { date } })
+  await router.push({ path: '/games', query: { ...filters, date } })
   let center!: ReturnType<typeof useGameCenter>
   const wrapper = mount(
     defineComponent({
@@ -75,7 +75,7 @@ async function setup(records: Game[], date = today) {
     wrapper.unmount()
     client.clear()
   })
-  return { center, router, fetch }
+  return { center, router, fetch, client }
 }
 describe('Game Center', () => {
   it('excludes unfinished and incomplete scores from derived day insights', async () => {
@@ -103,12 +103,18 @@ describe('Game Center', () => {
     expect(center.games.value).toEqual([])
   })
   it('preserves active filters and restores them through date navigation and browser history', async () => {
-    const { center, router } = await setup([game('one', 110, 100)])
+    const match = game('one', 110, 100)
+    const { center, router, client, fetch } = await setup([match])
+    const yesterday = shiftGameDate(today, -1)
+    client.setQueryData(gamesQueryKey(yesterday), {
+      data: [{ ...match, nbaGameDate: yesterday }],
+      meta,
+    })
     center.teamFilter.value = 'home-one'
     center.search.value = 'home'
     center.favoriteOnly.value = true
     center.sortDirection.value = 'desc'
-    await center.setDate(shiftGameDate(today, -1))
+    await center.setDate(yesterday)
     expect(center.teamFilter.value).toBe('home-one')
     expect(center.teamOptions.value).toContainEqual({ value: 'home-one', label: 'home-one' })
     expect(router.currentRoute.value.query).toMatchObject({
@@ -130,8 +136,106 @@ describe('Game Center', () => {
     expect(center.search.value).toBe('home')
     expect(center.favoriteOnly.value).toBe(true)
     expect(center.sortDirection.value).toBe('desc')
+    expect(fetch).not.toHaveBeenCalled()
     center.resetFilters()
     expect(center.activeFilterCount.value).toBe(0)
+  })
+  it.each([
+    ['a complete day without the team', false],
+    ['a confirmed empty day', true],
+  ] as const)(
+    'clears only the team filter on %s, including on history navigation',
+    async (_, empty) => {
+      const tomorrow = shiftGameDate(today, 1)
+      const initial = {
+        team: 'home-one',
+        q: 'home',
+        favorites: '1',
+        status: 'scheduled',
+        sort: 'desc',
+      }
+      const { center, router, fetch } = await setup([game('one', 110, 100)], today, initial)
+      const other = { ...game('two', null, null, 'scheduled'), nbaGameDate: tomorrow }
+      fetch.mockResolvedValueOnce(Response.json({ data: empty ? [] : [other], meta }))
+      center.toggleFavorite(other.id)
+      await center.setDate(tomorrow)
+
+      await vi.waitFor(() => expect(router.currentRoute.value.query.team).toBeUndefined())
+      expect(center.teamFilter.value).toBe('all')
+      expect(center.visibleGames.value).toEqual(empty ? [] : [other])
+      expect(router.currentRoute.value.query).toEqual({
+        date: tomorrow,
+        q: 'home',
+        favorites: '1',
+        status: 'scheduled',
+        sort: 'desc',
+      })
+      const details = new URL(center.detailsTo(other), 'https://test.invalid')
+      expect(
+        new URL(details.searchParams.get('from')!, 'https://test.invalid').searchParams.has('team'),
+      ).toBe(false)
+
+      router.back()
+      await vi.waitFor(() => expect(center.selectedDate.value).toBe(today))
+      expect(center.teamFilter.value).toBe('home-one')
+      router.forward()
+      await vi.waitFor(() => expect(center.selectedDate.value).toBe(tomorrow))
+      expect(center.teamFilter.value).toBe('all')
+      expect(fetch).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  it.each([
+    { isStale: true },
+    { rejectedRecords: 1 },
+    {
+      refreshError: {
+        code: 'timeout',
+        message: 'Synthetic',
+        retryable: true,
+        provider: null,
+        upstreamStatus: null,
+      },
+    },
+  ])('preserves a team deep link on a snapshot with %j', async (flags) => {
+    const tomorrow = shiftGameDate(today, 1)
+    const { center, router, fetch } = await setup([game('one', 110, 100)], today, {
+      team: 'home-one',
+    })
+    fetch.mockResolvedValueOnce(Response.json({ data: [], meta: { ...meta, ...flags } }))
+    await router.push({ path: '/games', query: { date: tomorrow, team: 'home-one' } })
+    await vi.waitFor(() => expect(center.query.isSuccess.value).toBe(true))
+    expect(center.teamFilter.value).toBe('home-one')
+    expect(router.currentRoute.value.query.team).toBe('home-one')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps filters while another day is loading and after cache_miss', async () => {
+    const { center, router, fetch } = await setup([game('one', 110, 100)], today, {
+      team: 'home-one',
+    })
+    let respond!: (response: Response) => void
+    fetch.mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          respond = resolve
+        }),
+    )
+    const tomorrow = shiftGameDate(today, 1)
+    await center.setDate(tomorrow)
+    await vi.waitFor(() => expect(center.query.isPending.value).toBe(true))
+    expect(center.teamFilter.value).toBe('home-one')
+    expect(router.currentRoute.value.query.team).toBe('home-one')
+    respond(
+      Response.json(
+        { error: { code: 'cache_miss', message: 'Synthetic', retryable: true } },
+        { status: 503 },
+      ),
+    )
+    await vi.waitFor(() => expect(center.query.isError.value).toBe(true))
+    expect(center.teamFilter.value).toBe('home-one')
+    expect(router.currentRoute.value.query.team).toBe('home-one')
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
   it('keeps live and unknown games in one neutral filter across dates, history and detail return', async () => {
     const live = game('live', null, null, 'live')

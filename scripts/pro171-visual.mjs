@@ -7,6 +7,7 @@ import { createServer } from 'vite'
 import { checkSpoilerMode } from './pro210-spoiler-browser.mjs'
 import { checkGameSnapshots } from './issue74-game-snapshots-browser.mjs'
 import { checkStandingsSnapshots } from './issue75-standings-browser.mjs'
+import { checkGameCenterTeamFilter } from './issue76-team-filter-browser.mjs'
 import { checkTeamHistory } from './pro203-team-history-browser.mjs'
 import { checkTeamCoaching } from './pro204-team-coaching-browser.mjs'
 import { checkArenaGuide } from './pro205-arena-browser.mjs'
@@ -311,6 +312,11 @@ try {
       origin: 'http://127.0.0.1:4186',
       output: path.join(workspace, 'artifacts/issue-75'),
     })
+    await checkGameCenterTeamFilter({
+      browser,
+      origin: 'http://127.0.0.1:4186',
+      output: path.join(workspace, 'artifacts/issue-76'),
+    })
   }
   for (const width of viewports) {
     const context = await browser.newContext({
@@ -543,12 +549,13 @@ try {
     await page.getByRole('option', { name: 'Home Test Club 1', exact: true }).click()
     assert.equal(await page.locator('.gc-score-row').count(), 1)
     await page.getByRole('button', { name: 'Предыдущий день', exact: true }).click()
-    await page.waitForURL(`**date=${shift(-1)}**`)
+    await page.waitForURL(
+      (url) => url.searchParams.get('date') === shift(-1) && !url.searchParams.has('team'),
+    )
     assert.equal(
       await page.getByRole('combobox', { name: 'Фильтр по команде' }).innerText(),
-      'Home Test Club 1',
+      'Все команды',
     )
-    await page.getByRole('button', { name: 'Сбросить', exact: true }).click()
     await page.getByRole('button', { name: 'Сегодня', exact: true }).click()
     await page.waitForURL(`**date=${today}**`)
     await page.locator('.gc-score-row').last().waitFor()

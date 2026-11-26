@@ -1,10 +1,11 @@
-import { computed, shallowRef, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useQueryClient } from '@tanstack/vue-query'
+import { computed, shallowRef, toRaw, watch } from 'vue'
+import { isNavigationFailure, NavigationFailureType, useRoute, useRouter } from 'vue-router'
 import type { Game, GameId, GameStatus, NbaGameDate, Team } from '@/entities/nba/model'
 import { findNbaTeam } from '@/entities/nba/teamCatalog'
 import { WorkerApiError } from '@/features/games/api'
 import { useGameFavorites } from './useGameFavorites'
-import { useGamesForDate } from './useGamesForDate'
+import { gamesQueryKey, useGamesForDate } from './useGamesForDate'
 import { selectableNbaGameDate, shiftNbaGameDate } from '@/shared/utils/nbaDate'
 import { gameCenterReturnTo, gameDetailsPath } from '@/features/games/gameDetailsRoute'
 
@@ -31,6 +32,7 @@ export function useGameCenter() {
         today.value) as NbaGameDate,
   )
   const query = useGamesForDate(selectedDate, yesterday)
+  const queryClient = useQueryClient()
   const { favoriteIds, isFavorite, toggleFavorite } = useGameFavorites()
   const validStatuses: GameStatus[] = [
     'final',
@@ -52,6 +54,8 @@ export function useGameCenter() {
   const favoriteOnly = shallowRef(route.query.favorites === '1')
   const sortDirection = shallowRef(route.query.sort === 'desc' ? 'desc' : 'asc')
   const expandedGameId = shallowRef<GameId | null>(null)
+  const changingDate = shallowRef(false)
+  let dateNavigation = 0
   const games = computed(() => query.data.value?.data ?? [])
   const hasHiddenGames = computed(() => games.value.some(hideGame))
   const statusOf = (game: Game): GameStatus =>
@@ -108,6 +112,52 @@ export function useGameCenter() {
       favoriteOnly.value = next.favorites === '1'
       sortDirection.value = next.sort === 'desc' ? 'desc' : 'asc'
     },
+  )
+  // An empty list is meaningful only when it belongs to the selected date's cache key.
+  watch(
+    [
+      selectedDate,
+      teamFilter,
+      query.data,
+      query.isSuccess,
+      query.fetchStatus,
+      query.isStale,
+      changingDate,
+    ],
+    () => {
+      const snapshot = query.data.value
+      if (
+        route.path !== '/games' ||
+        changingDate.value ||
+        teamFilter.value === 'all' ||
+        !query.isSuccess.value ||
+        query.fetchStatus.value !== 'idle' ||
+        query.isPlaceholderData.value ||
+        query.isStale.value ||
+        !snapshot ||
+        toRaw(snapshot) !== queryClient.getQueryData(gamesQueryKey(selectedDate.value)) ||
+        snapshot.meta.isStale ||
+        snapshot.meta.rejectedRecords !== 0 ||
+        snapshot.meta.refreshError ||
+        snapshot.data.some(
+          (game) =>
+            game.nbaGameDate !== selectedDate.value ||
+            game.homeTeam.id === teamFilter.value ||
+            game.awayTeam.id === teamFilter.value,
+        )
+      )
+        return
+
+      teamFilter.value = 'all'
+      if (route.query.team !== undefined) {
+        void router.replace({
+          path: route.path,
+          query: { ...route.query, ...filterQuery() },
+          hash: route.hash,
+        })
+      }
+    },
+    { immediate: true, flush: 'post' },
   )
   const visibleGames = computed(() =>
     games.value
@@ -222,16 +272,33 @@ export function useGameCenter() {
       }
     }),
   )
+  function filterQuery() {
+    return {
+      status: statusFilter.value === 'all' ? undefined : statusFilter.value,
+      team: teamFilter.value === 'all' ? undefined : teamFilter.value,
+      favorites: favoriteOnly.value ? '1' : undefined,
+      q: search.value.trim() ? search.value : undefined,
+      sort: sortDirection.value === 'asc' ? undefined : sortDirection.value,
+    }
+  }
   async function setDate(date: string) {
-    if (date >= minDate.value && date <= maxDate.value) {
-      const query: Record<string, string> = { date }
-      if (statusFilter.value !== 'all') query.status = statusFilter.value
-      if (teamFilter.value !== 'all') query.team = teamFilter.value
-      if (favoriteOnly.value) query.favorites = '1'
-      if (search.value.trim()) query.q = search.value
-      if (sortDirection.value !== 'asc') query.sort = sortDirection.value
-      await router.replace({ path: '/games', query: { ...query, date: selectedDate.value } })
-      await router.push({ path: '/games', query })
+    if (date < minDate.value || date > maxDate.value) return
+    const navigation = ++dateNavigation
+    const filters = filterQuery()
+    changingDate.value = true
+    try {
+      const failure = await router.replace({
+        path: '/games',
+        query: { date: selectedDate.value, ...filters },
+      })
+      if (
+        navigation !== dateNavigation ||
+        (failure && !isNavigationFailure(failure, NavigationFailureType.duplicated))
+      )
+        return
+      await router.push({ path: '/games', query: { date, ...filters } })
+    } finally {
+      if (navigation === dateNavigation) changingDate.value = false
     }
   }
   function resetFilters() {

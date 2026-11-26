@@ -115,6 +115,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Upload Game Center team filter regression screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-issue-76-team-filter
+          path: artifacts/issue-76/*.png
+          if-no-files-found: warn
+          retention-days: 30
+
   standings-visual:
     name: Standings visual evidence
     runs-on: ubuntu-latest
