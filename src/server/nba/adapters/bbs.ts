@@ -211,6 +211,82 @@ function stats(row: Record<string, unknown>) {
   }
 }
 
+/** The unified list can provide team totals even when its archive game ID is a UUID alias. */
+export function normalizeBbsInlineTeams(
+  value: unknown,
+  game: Game,
+): [TeamBoxScore, TeamBoxScore] | null {
+  if (
+    !isRecord(value) ||
+    !isRecord(value.archive_stats) ||
+    game.status !== 'final' ||
+    !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(game.providerId) ||
+    readIdentifier(value.id) !== game.providerId ||
+    readIdentifier(value.match_id) !== game.providerId ||
+    readIdentifier(value.archive_game_id) !== game.providerId ||
+    !isRecord(value.home) ||
+    !isRecord(value.away)
+  )
+    return null
+
+  const home = value.home
+  const away = value.away
+  const homeCode = readString(home.short_name)
+  const awayCode = readString(away.short_name)
+  if (
+    !homeCode ||
+    !awayCode ||
+    readIdentifier(home.id) !== game.homeTeam.providerId ||
+    readIdentifier(away.id) !== game.awayTeam.providerId
+  )
+    return null
+
+  const archive = value.archive_stats
+  const normalizeSide = (side: 'home' | 'away', matchup: string): TeamBoxScore | null => {
+    const row = archive[side]
+    if (!isRecord(row) || row.matchup !== matchup) return null
+    const team = side === 'home' ? game.homeTeam : game.awayTeam
+    const archiveTeamId = readIdentifier((side === 'home' ? home : away).archive_team_id)
+    for (const value of [row.team_id, row.teamId]) {
+      if (value == null) continue
+      const reportedId = readIdentifier(value)
+      if (!reportedId || (reportedId !== team.providerId && reportedId !== archiveTeamId))
+        return null
+    }
+    const { fgm, fga, fg3m, fg3a, ftm, fta } = row
+    if (
+      typeof fgm !== 'number' ||
+      typeof fga !== 'number' ||
+      typeof fg3m !== 'number' ||
+      typeof fg3a !== 'number' ||
+      typeof ftm !== 'number' ||
+      typeof fta !== 'number' ||
+      ![fgm, fga, fg3m, fg3a, ftm, fta].every((n) => Number.isSafeInteger(n) && n >= 0) ||
+      fg3m > fgm ||
+      fgm > fga ||
+      fg3m > fg3a ||
+      fg3a > fga ||
+      ftm > fta ||
+      fgm - fg3m > fga - fg3a
+    )
+      return null
+    const points = 2 * fgm + fg3m + ftm
+    if (
+      !Number.isSafeInteger(points) ||
+      points !== game.score[side] ||
+      [row.pts, row.points].some(
+        (score) => score != null && readNonNegativeNumber(score) !== points,
+      )
+    )
+      return null
+    return { team, ...stats({ ...row, pts: points }) }
+  }
+
+  const homeBox = normalizeSide('home', homeCode + ' vs. ' + awayCode)
+  const awayBox = normalizeSide('away', awayCode + ' @ ' + homeCode)
+  return homeBox && awayBox ? [homeBox, awayBox] : null
+}
+
 function teamBox(
   row: unknown,
   game: Game,
@@ -287,7 +363,7 @@ function playerBox(
 function ensureIdentity(
   root: Record<string, unknown>,
   game: Game,
-  archiveGameId: string,
+  archiveGameId: string | null,
   requireIdentity = true,
 ) {
   const expectedIds = new Set([game.providerId, archiveGameId])
@@ -316,10 +392,11 @@ export function normalizeBbsGameBox(
   playerPayload: unknown,
   availabilityPayload: unknown | null,
   game: Game,
-  archiveGameId: string,
+  archiveGameId: string | null,
   archiveTeamIds: { home: string; away: string },
+  inlineTeams?: readonly [TeamBoxScore, TeamBoxScore],
 ): GameBoxScore {
-  const teamRoot = rootOf(teamPayload)
+  const teamRoot = inlineTeams ? null : rootOf(teamPayload)
   const playerRoot = rootOf(playerPayload)
   let availabilityRoot: Record<string, unknown> | null = null
   if (availabilityPayload !== null) {
@@ -336,16 +413,16 @@ export function normalizeBbsGameBox(
     }
   }
   if (
-    !ensureIdentity(teamRoot, game, archiveGameId) ||
+    (teamRoot !== null && !ensureIdentity(teamRoot, game, archiveGameId)) ||
     // BBS's player /box envelope has only home/away arrays. The caller binds
     // this payload to game.providerId in the request path before normalizing.
     !ensureIdentity(playerRoot, game, archiveGameId, false)
   ) {
     throw new NbaAdapterError(invalidResponseError(provider))
   }
-  const teams = [
-    teamBox(teamRoot.home ?? teamRoot.home_team, game, 'home', archiveTeamIds.home),
-    teamBox(teamRoot.away ?? teamRoot.away_team, game, 'away', archiveTeamIds.away),
+  const teams = inlineTeams ?? [
+    teamBox(teamRoot?.home ?? teamRoot?.home_team, game, 'home', archiveTeamIds.home),
+    teamBox(teamRoot?.away ?? teamRoot?.away_team, game, 'away', archiveTeamIds.away),
   ]
   const homePlayers = playerRows(playerRoot, 'home')
   const awayPlayers = playerRows(playerRoot, 'away')
@@ -364,6 +441,10 @@ export function normalizeBbsGameBox(
   if (
     game.score.home === null ||
     game.score.away === null ||
+    teams[0].team.id !== game.homeTeam.id ||
+    teams[0].team.providerId !== game.homeTeam.providerId ||
+    teams[1].team.id !== game.awayTeam.id ||
+    teams[1].team.providerId !== game.awayTeam.providerId ||
     teams[0].points === null ||
     teams[1].points === null ||
     game.score.home !== teams[0].points ||
@@ -430,7 +511,7 @@ export function normalizeBbsGameBox(
   }
   return {
     game,
-    teams: teams as [TeamBoxScore, TeamBoxScore],
+    teams: [teams[0], teams[1]],
     players: players as PlayerBoxScore[],
   }
 }

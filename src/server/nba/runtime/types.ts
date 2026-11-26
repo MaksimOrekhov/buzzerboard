@@ -8,6 +8,7 @@ import type {
   SeasonEndYear,
   StandingsRow,
   TeamId,
+  TeamBoxScore,
   TeamProviderReference,
   TeamSeasonProfile,
   UtcTimestamp,
@@ -116,6 +117,8 @@ export type GamesCacheRecord =
       emptyDayConfirmed?: true
       /** Private provider IDs needed for BBS archive-stat routes; never returned to clients. */
       providerReferences?: Readonly<Record<string, string>>
+      /** Verified team totals from the same unified BBS list row, private to the refresh path. */
+      inlineBoxTeams?: Readonly<Record<string, readonly [TeamBoxScore, TeamBoxScore]>>
     })
   | (CacheRecordBase & {
       capability: 'schedule'

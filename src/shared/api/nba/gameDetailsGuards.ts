@@ -127,7 +127,7 @@ function hasBoxScoreMetrics(value: Record<string, unknown>): boolean {
   )
 }
 
-function isTeamBoxScore(value: unknown): value is TeamBoxScore {
+export function isTeamBoxScore(value: unknown): value is TeamBoxScore {
   return isRecord(value) && isTeamRecord(value.team) && hasBoxScoreMetrics(value)
 }
 
