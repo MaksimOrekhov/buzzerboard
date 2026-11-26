@@ -33,6 +33,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+export function isSnapshotRefreshError(value: unknown): value is NbaApiError {
+  return (
+    isRecord(value) &&
+    typeof value.code === 'string' &&
+    errorCodes.has(value.code as NbaApiErrorCode) &&
+    typeof value.message === 'string' &&
+    typeof value.retryable === 'boolean' &&
+    (value.provider === null ||
+      value.provider === 'dunkapi' ||
+      value.provider === 'espn' ||
+      value.provider === 'bbs') &&
+    (value.upstreamStatus === null ||
+      (typeof value.upstreamStatus === 'number' &&
+        Number.isSafeInteger(value.upstreamStatus) &&
+        value.upstreamStatus >= 100 &&
+        value.upstreamStatus <= 599))
+  )
+}
+
 function parseApiError(payload: unknown): NbaApiError | null {
   if (!isRecord(payload) || !isRecord(payload.error)) return null
   const value = payload.error

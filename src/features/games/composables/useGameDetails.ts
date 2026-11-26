@@ -19,10 +19,10 @@ export function useGameDetails() {
       : null
   })
   const query = useQuery({
-    queryKey: computed(() => ['game-details', date.value, gameId.value]),
-    queryFn: ({ signal }) => {
-      if (!gameId.value || !date.value) throw new Error('Invalid game route')
-      return fetchGameDetails(gameId.value, date.value, signal)
+    queryKey: computed(() => ['game-details', date.value, gameId.value] as const),
+    queryFn: ({ queryKey: [, requestedDate, requestedGameId], signal }) => {
+      if (!requestedGameId || !requestedDate) throw new Error('Invalid game route')
+      return fetchGameDetails(requestedGameId, requestedDate, signal)
     },
     enabled: computed(() => Boolean(gameId.value && date.value)),
     staleTime: 60_000,

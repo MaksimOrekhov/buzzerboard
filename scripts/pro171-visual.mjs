@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { createServer } from 'vite'
 import { checkSpoilerMode } from './pro210-spoiler-browser.mjs'
+import { checkGameSnapshots } from './issue74-game-snapshots-browser.mjs'
 import { checkTeamHistory } from './pro203-team-history-browser.mjs'
 import { checkTeamCoaching } from './pro204-team-coaching-browser.mjs'
 import { checkArenaGuide } from './pro205-arena-browser.mjs'
@@ -298,6 +299,12 @@ try {
   if (!auditOnly) {
     await checkJerseyViewer({ browser, output })
     await checkYesterdayRefresh({ browser, games, meta, output })
+    await checkGameSnapshots({
+      browser,
+      origin: 'http://127.0.0.1:4186',
+      output: path.join(workspace, 'artifacts/issue-74'),
+      syntheticBoxScore,
+    })
   }
   for (const width of viewports) {
     const context = await browser.newContext({

@@ -97,6 +97,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 3
 
+      - name: Upload games snapshot regression screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buzzerboard-issue-74-games-snapshots
+          path: artifacts/issue-74/*.png
+          if-no-files-found: warn
+          retention-days: 30
+
   standings-visual:
     name: Standings visual evidence
     runs-on: ubuntu-latest

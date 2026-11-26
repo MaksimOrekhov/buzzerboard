@@ -119,18 +119,20 @@ const unavailableDetails = computed(() =>
         :hidden="hidden"
         :schedule-only="scheduleOnly"
       />
+      <p v-if="query.isRefetchError.value" class="gc-notice gc-notice--warning" role="status">
+        Не удалось обновить данные. Показаны последние загруженные данные.
+      </p>
       <template v-if="!hidden && !scheduleOnly">
-        <p v-if="query.isRefetchError.value" class="gc-notice gc-notice--warning" role="status">
-          Не удалось обновить данные. Показан предыдущий результат.
-        </p>
         <div class="game-detail-snapshots">
           <div v-if="scoreMeta">
             <span>{{ awaitingGame ? 'Расписание' : 'Результат' }}</span><SnapshotStatus
               :meta="scoreMeta"
+              :refresh-failed="query.isRefetchError.value"
             />
           </div>
           <div v-if="boxScoreMeta">
-            <span>Статистика</span><SnapshotStatus :meta="boxScoreMeta" />
+            <span>Статистика</span
+            ><SnapshotStatus :meta="boxScoreMeta" :refresh-failed="query.isRefetchError.value" />
           </div>
         </div>
         <nav class="game-detail-nav" aria-label="Разделы матча">
