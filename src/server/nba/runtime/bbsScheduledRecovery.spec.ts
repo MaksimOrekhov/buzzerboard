@@ -29,6 +29,7 @@ import {
   teamSeasonCacheKey,
 } from './cacheKeys'
 import { D1NbaRepository } from './d1Repository'
+import { refreshBbsGames } from './bbsRefresh'
 import { runScheduledRefresh } from './refresh'
 import { SqliteTestD1 } from './sqliteD1.test-helper'
 import { scheduledBbsTaskKey, type ScheduledBbsProgress, type ScheduledBbsTask } from './types'
@@ -222,6 +223,7 @@ function harness(initialTime: string) {
     realisticBusyDays: false,
     sundayScenario: null as null | 'lag-one' | 'always-lag' | 'omit-once' | 'limit-once',
     sundayMatches: undefined as unknown,
+    playerBoxIdentity: undefined as Record<string, string | number> | undefined,
     transformMatches: undefined as
       ((date: NbaGameDate, matches: Record<string, unknown>[]) => void) | undefined,
   }
@@ -326,7 +328,7 @@ function harness(initialTime: string) {
           const away = (match as Record<string, unknown>).away as Record<string, unknown>
           return Response.json({
             data: {
-              id: matchId,
+              ...(response.playerBoxIdentity ?? { id: matchId }),
               home: [
                 {
                   player_id: `home-${matchId}`,
@@ -466,6 +468,8 @@ function harness(initialTime: string) {
     seedStandings,
     seedQueue,
     seedSundaySchedule,
+    refreshGamesOnly: (date: NbaGameDate) =>
+      refreshBbsGames({ type: 'games', date }, env, repository, fetcher, now, false),
     readGames,
     matchesFetchCounts,
     restart: () => {
@@ -1593,6 +1597,136 @@ describe('Issue #84 unified archive recovery', () => {
       }
     }
     expect(h.requests).toHaveLength(beforeReads)
+  })
+
+  it.each([
+    { name: 'verified numeric ID alone', native: true, identity: 'numeric', available: true },
+    { name: 'verified numeric ID and UUID', native: true, identity: 'both', available: true },
+    { name: 'wrong numeric ID', native: true, identity: 'wrong numeric', available: false },
+    { name: 'wrong UUID', native: true, identity: 'wrong UUID', available: false },
+    {
+      name: 'numeric ID without a verified crosswalk',
+      native: false,
+      identity: 'numeric',
+      available: false,
+    },
+  ] as const)(
+    'validates inline player box identity with $name using one GET',
+    async ({ native, identity, available }) => {
+      const start = Date.parse('2026-11-26T10:00:00Z')
+      const h = harness(new Date(start).toISOString())
+      const date = incidentDates[0] as NbaGameDate
+      h.response.realisticBusyDays = true
+
+      if (native) expect((await h.refreshGamesOnly(date)).state).toBe('refreshed')
+      h.response.transformMatches = (_date, matches) => {
+        for (const match of matches) unifiedArchiveMatch(match, true)
+      }
+      h.seedQueue({
+        cycleDate: incidentCycle,
+        cursor: 0,
+        pauseUntil: null,
+        tasks: [work({ type: 'lateGames', date })],
+      })
+      await h.tick(start + 10 * minute)
+
+      const original = busyDayMatches(date, busyGameCount(date), true)
+      const match = original.matches[0]!
+      const game = normalizeBbsGame(match)
+      if (!game) throw new Error('Expected a normalized fixture match')
+      const archiveId = String(match.archive_game_id)
+      const snapshot = await h.repository.getCache(gamesCacheKey('bbs', date))
+      expect(snapshot).toMatchObject({
+        capability: 'games',
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            id: game.id,
+            nbaGameDate: date,
+            status: 'final',
+            homeTeam: game.homeTeam,
+            awayTeam: game.awayTeam,
+            score: game.score,
+          }),
+        ]),
+        inlineBoxTeams: {
+          [game.id]: [
+            expect.objectContaining({ team: game.homeTeam, points: game.score.home }),
+            expect.objectContaining({ team: game.awayTeam, points: game.score.away }),
+          ],
+        },
+      })
+      if (snapshot?.capability !== 'games') throw new Error('Expected a games snapshot')
+      expect(snapshot.providerReferences?.[game.id]).toBe(native ? archiveId : undefined)
+      if (native) {
+        expect(snapshot.providerReferences).toMatchObject(original.providerReferences)
+      }
+
+      const boxIdentities = {
+        numeric: { game_id: Number(archiveId) },
+        both: { game_id: archiveId, match_id: game.providerId },
+        'wrong numeric': { game_id: '1', match_id: game.providerId },
+        'wrong UUID': { game_id: archiveId, match_id: '00000000-0000-4000-8000-000000000000' },
+      }
+      h.response.playerBoxIdentity = boxIdentities[identity]
+      const before = h.requests.length
+      const [outcome] = await h.tick(start + 20 * minute)
+      expect(h.requests.slice(before)).toEqual(['/v1/nba/games/' + game.providerId + '/box'])
+      const box = await h.repository.getCache(gameDetailsCacheKey('bbs', game.id))
+      if (available) {
+        expect(outcome?.state).toBe('refreshed')
+        expect(box).toMatchObject({
+          capability: 'boxScore',
+          data: {
+            game,
+            teams: [
+              expect.objectContaining({ team: game.homeTeam, points: game.score.home }),
+              expect.objectContaining({ team: game.awayTeam, points: game.score.away }),
+            ],
+          },
+          refreshError: null,
+        })
+        const response = await h.readBox(game)
+        expect(response.boxScoreAvailability).toBe('available')
+        expect(h.requests.slice(before)).toEqual(['/v1/nba/games/' + game.providerId + '/box'])
+      } else {
+        expect(outcome?.error?.code).toBe('invalid_response')
+        expect(box).toMatchObject({
+          capability: 'boxScore',
+          data: null,
+          refreshError: { code: 'invalid_response' },
+        })
+      }
+    },
+  )
+
+  it('still fetches both numeric team and UUID player boxes when there are no inline totals', async () => {
+    const start = Date.parse('2026-11-26T10:00:00Z')
+    const h = harness(new Date(start).toISOString())
+    const date = incidentDates[0] as NbaGameDate
+    h.response.realisticBusyDays = true
+    expect((await h.refreshGamesOnly(date)).state).toBe('refreshed')
+
+    const { matches } = busyDayMatches(date, busyGameCount(date), true)
+    const match = matches[0]!
+    const game = normalizeBbsGame(match)
+    if (!game) throw new Error('Expected a normalized fixture match')
+    const archiveId = String(match.archive_game_id)
+    h.seedQueue({
+      cycleDate: incidentCycle,
+      cursor: 0,
+      pauseUntil: null,
+      tasks: [work({ type: 'boxScore', date, gameId: game.id })],
+    })
+    h.response.playerBoxIdentity = { game_id: archiveId, match_id: game.providerId }
+
+    const before = h.requests.length
+    const [outcome] = await h.tick(start + 10 * minute)
+    expect(outcome?.state).toBe('refreshed')
+    expect((await h.readBox(game)).boxScoreAvailability).toBe('available')
+    expect(h.requests.slice(before)).toEqual([
+      '/v1/nba/games/' + archiveId,
+      '/v1/nba/games/' + game.providerId + '/box',
+    ])
   })
 
   it.each(['wrong UUID', 'wrong teams', 'wrong matchup', 'wrong score'])(

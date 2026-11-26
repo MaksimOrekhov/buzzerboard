@@ -130,7 +130,7 @@ function archiveReferences(record: BbsGamesRecord, game: Game) {
 function boxSource(record: BbsGamesRecord, game: Game): BoxSource | null {
   const { archiveGameId, home, away, inlineTeams } = archiveReferences(record, game)
   if (!home || !away || home === away) return null
-  if (inlineTeams) return { archiveGameId: null, archiveTeamIds: { home, away }, inlineTeams }
+  if (inlineTeams) return { archiveGameId, archiveTeamIds: { home, away }, inlineTeams }
   return archiveGameId ? { archiveGameId, archiveTeamIds: { home, away } } : null
 }
 
@@ -519,16 +519,18 @@ async function refreshBox(
     if (latestBox?.retryAt && latestBox.retryAt > latestNow)
       return { state: 'deferred', error: latestBox.refreshError, retryAt: latestBox.retryAt }
     const { archiveGameId, archiveTeamIds, inlineTeams } = source
-    const teamsPayload = archiveGameId
-      ? await getBbsJson(
-          '/v1/nba/games/' + encodeURIComponent(archiveGameId),
-          env,
-          repository,
-          fetcher,
-          Date.now(),
-          { key: lockKey, token },
-        )
-      : null
+    // Inline totals skip the team request but keep the archive ID for player identity checks.
+    const teamsPayload =
+      !inlineTeams && archiveGameId
+        ? await getBbsJson(
+            '/v1/nba/games/' + encodeURIComponent(archiveGameId),
+            env,
+            repository,
+            fetcher,
+            Date.now(),
+            { key: lockKey, token },
+          )
+        : null
     const playersPayload = await getBbsJson(
       `/v1/nba/games/${encodeURIComponent(game.providerId)}/box`,
       env,
